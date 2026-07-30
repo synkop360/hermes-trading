@@ -27,7 +27,20 @@ async def fetch(asset: str = "BTC/USDT") -> dict[str, Any]:
     finally:
         await exchange.close()
 
-    closes = [float(row[4]) for row in candles if len(row) >= 5]
+    normalized_candles = [
+        {
+            "timestamp": row[0],
+            "open": row[1],
+            "high": row[2],
+            "low": row[3],
+            "close": row[4],
+            "volume": row[5] if len(row) >= 6 else None,
+        }
+        for row in candles
+        if len(row) >= 5
+    ]
+    # Retained while the legacy RSI evaluator still consumes float closes.
+    closes = [float(item["close"]) for item in normalized_candles]
     payload = {
         "schema_version": SCHEMA_VERSION,
         "asset": asset,
@@ -36,6 +49,7 @@ async def fetch(asset: str = "BTC/USDT") -> dict[str, Any]:
         "bid": float(ticker["bid"] or ticker["last"]),
         "ask": float(ticker["ask"] or ticker["last"]),
         "closes": closes,
+        "candles": normalized_candles,
         "timestamp": ticker.get("timestamp"),
     }
     return require_schema(payload, SCHEMA_VERSION)

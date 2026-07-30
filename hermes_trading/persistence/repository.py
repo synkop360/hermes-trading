@@ -290,6 +290,58 @@ class StateRepository:
         ).fetchone()
         return row is not None
 
+    def record_market_data_failure(self, source: str, reason: str) -> int:
+        """Persist a stable incident and return its consecutive failure count."""
+        incident_id = f"market-data:{source}"
+        now = self._utc_now()
+        with self._connection:
+            row = self._connection.execute(
+                "SELECT status, revision FROM incidents WHERE incident_id = ?",
+                (incident_id,),
+            ).fetchone()
+            failures = 1 if row is None or row["status"] == "resolved" else int(row["revision"]) + 1
+            if row is None:
+                self._connection.execute(
+                    """
+                    INSERT INTO incidents (
+                        incident_id, status, reason, severity, revision, opened_at, resolved_at
+                    ) VALUES (?, 'open', ?, 'warning', ?, ?, NULL)
+                    """,
+                    (incident_id, reason, failures, now),
+                )
+            else:
+                self._connection.execute(
+                    """
+                    UPDATE incidents
+                    SET status = 'open', reason = ?, severity = 'warning', revision = ?, resolved_at = NULL
+                    WHERE incident_id = ?
+                    """,
+                    (reason, failures, incident_id),
+                )
+        return failures
+
+    def resolve_market_data_incident(self, source: str) -> None:
+        """Resolve and reset an incident after the source has recovered."""
+        incident_id = f"market-data:{source}"
+        with self._connection:
+            self._connection.execute(
+                """
+                UPDATE incidents
+                SET status = 'resolved', reason = 'resolved', revision = 0, resolved_at = ?
+                WHERE incident_id = ? AND status != 'resolved'
+                """,
+                (self._utc_now(), incident_id),
+            )
+
+    def market_data_failure_count(self, source: str) -> int:
+        row = self._connection.execute(
+            "SELECT status, revision FROM incidents WHERE incident_id = ?",
+            (f"market-data:{source}",),
+        ).fetchone()
+        if row is None or row["status"] == "resolved":
+            return 0
+        return int(row["revision"])
+
     @staticmethod
     def _utc_now() -> str:
         return datetime.now(UTC).isoformat()
