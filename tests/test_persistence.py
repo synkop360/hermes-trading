@@ -1,0 +1,214 @@
+from decimal import Decimal
+from pathlib import Path
+import sqlite3
+import tempfile
+import unittest
+
+from hermes_trading.domain import (
+    Decision,
+    Fill,
+    OrderIntent,
+    OrderRecord,
+    OrderStatus,
+    Position,
+    PositionStatus,
+)
+from hermes_trading.persistence import (
+    ActivePositionExists,
+    DuplicateIntentError,
+    StateRepository,
+    UnsupportedSchemaError,
+)
+
+
+def sample_decision() -> Decision:
+    return Decision(
+        decision_id="decision-btc-1",
+        asset="BTC/USDT",
+        action="enter",
+        reason="rsi_entry",
+        candle_id="btc-1h-20260730T200000Z",
+        strategy_version="69",
+        reference_price=Decimal("65000.0"),
+        decided_at="2026-07-30T20:00:00+00:00",
+    )
+
+
+def sample_intent(client_order_id: str) -> OrderIntent:
+    return OrderIntent(
+        client_order_id=client_order_id,
+        decision_id="decision-btc-1",
+        asset="BTC/USDT",
+        side="buy",
+        order_type="market",
+        quantity=Decimal("0.00010"),
+        reference_price=Decimal("65000.0"),
+        created_at="2026-07-30T20:00:01+00:00",
+        position_id="pos-btc-1",
+        stop_price=Decimal("64675.0"),
+    )
+
+
+def sample_order() -> OrderRecord:
+    return OrderRecord(
+        order_id="order-btc-1",
+        client_order_id="ht-btc-20260730",
+        asset="BTC/USDT",
+        side="buy",
+        order_type="market",
+        status=OrderStatus.FILLED,
+        requested_quantity=Decimal("0.00010"),
+        filled_quantity=Decimal("0.00010"),
+        average_fill_price=Decimal("65001.0"),
+        fees=Decimal("0.01"),
+        created_at="2026-07-30T20:00:01+00:00",
+        updated_at="2026-07-30T20:00:02+00:00",
+        exchange_order_id="exchange-btc-1",
+    )
+
+
+def sample_fill() -> Fill:
+    return Fill(
+        fill_id="fill-btc-1",
+        order_id="order-btc-1",
+        asset="BTC/USDT",
+        side="buy",
+        quantity=Decimal("0.00010"),
+        price=Decimal("65001.0"),
+        fee=Decimal("0.01"),
+        filled_at="2026-07-30T20:00:02+00:00",
+    )
+
+
+def sample_position(position_id: str, asset: str, status: PositionStatus = PositionStatus.OPEN) -> Position:
+    return Position(
+        position_id=position_id,
+        asset=asset,
+        status=status,
+        quantity=Decimal("0.00010"),
+        entry_price=Decimal("65001.0"),
+        stop_price=Decimal("64675.0"),
+        strategy_version="69",
+        opened_at="2026-07-30T20:00:02+00:00",
+        fees=Decimal("0.01"),
+    )
+
+
+class PersistenceTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.temporary_directory = tempfile.TemporaryDirectory()
+        self.db_path = Path(self.temporary_directory.name) / "trading.db"
+        self.repo = StateRepository.open(self.db_path)
+
+    def tearDown(self) -> None:
+        self.repo.close()
+        self.temporary_directory.cleanup()
+
+    def test_repository_enables_wal_and_migrates_once(self) -> None:
+        self.repo.migrate()
+
+        self.assertEqual(self.repo.journal_mode(), "wal")
+        self.assertEqual(self.repo.schema_version(), 1)
+
+        self.repo.migrate()
+
+        self.assertEqual(self.repo.schema_version(), 1)
+        self.assertEqual(self.repo.integrity_check(), "ok")
+
+    def test_migration_creates_all_canonical_tables(self) -> None:
+        self.repo.migrate()
+
+        self.assertEqual(
+            self.repo.table_names(),
+            {
+                "approval_requests",
+                "candles_processed",
+                "control_commands",
+                "cost_events",
+                "decisions",
+                "incidents",
+                "order_fills",
+                "order_intents",
+                "orders",
+                "positions",
+                "provider_attempts",
+                "qualification_checks",
+                "qualification_runs",
+                "risk_state",
+                "schema_migrations",
+                "strategy_versions",
+            },
+        )
+
+    def test_migration_rejects_an_unknown_schema_version(self) -> None:
+        with self.repo._connection:
+            self.repo._connection.execute(
+                "CREATE TABLE schema_migrations (version INTEGER PRIMARY KEY, applied_at TEXT NOT NULL)"
+            )
+            self.repo._connection.execute(
+                "INSERT INTO schema_migrations (version, applied_at) VALUES (2, '2026-07-30T20:00:00+00:00')"
+            )
+
+        with self.assertRaises(UnsupportedSchemaError):
+            self.repo.migrate()
+
+    def test_migration_rolls_back_when_an_existing_table_is_incompatible(self) -> None:
+        with self.repo._connection:
+            self.repo._connection.execute(
+                "CREATE TABLE schema_migrations (version INTEGER PRIMARY KEY, applied_at TEXT NOT NULL)"
+            )
+            self.repo._connection.execute("CREATE TABLE positions (position_id TEXT PRIMARY KEY)")
+
+        with self.assertRaises(sqlite3.OperationalError):
+            self.repo.migrate()
+
+        self.assertNotIn("decisions", self.repo.table_names())
+        self.assertEqual(self.repo.schema_version(), 0)
+
+    def test_order_intent_client_id_is_unique(self) -> None:
+        self.repo.migrate()
+        intent = sample_intent(client_order_id="ht-btc-20260730")
+
+        self.repo.create_order_intent(intent)
+
+        with self.assertRaises(DuplicateIntentError):
+            self.repo.create_order_intent(intent)
+
+    def test_only_one_active_position_per_asset(self) -> None:
+        self.repo.migrate()
+        self.repo.save_position(sample_position("one", "BTC/USDT"))
+
+        with self.assertRaises(ActivePositionExists):
+            self.repo.save_position(sample_position("two", "BTC/USDT"))
+
+    def test_repository_round_trips_domain_records_and_candle_identity(self) -> None:
+        self.repo.migrate()
+        self.repo.record_decision(sample_decision())
+        self.repo.create_order_intent(sample_intent("ht-btc-20260730"))
+        self.repo.upsert_order(sample_order())
+        self.repo.record_fill(sample_fill())
+        position = sample_position("pos-btc-1", "BTC/USDT")
+        self.repo.save_position(position)
+
+        self.assertEqual(self.repo.open_position("BTC/USDT"), position)
+        self.assertFalse(self.repo.is_candle_processed("BTC/USDT", "1h", "2026-07-30T20:00:00+00:00"))
+        self.repo.mark_candle_processed("BTC/USDT", "1h", "2026-07-30T20:00:00+00:00")
+        self.assertTrue(self.repo.is_candle_processed("BTC/USDT", "1h", "2026-07-30T20:00:00+00:00"))
+
+    def test_order_upsert_replaces_mutable_execution_fields(self) -> None:
+        self.repo.migrate()
+        self.repo.upsert_order(sample_order())
+        revised = OrderRecord(
+            **{**sample_order().__dict__, "status": OrderStatus.PARTIALLY_FILLED, "filled_quantity": Decimal("0.00005")}
+        )
+
+        self.repo.upsert_order(revised)
+
+        row = self.repo._connection.execute(
+            "SELECT status, filled_quantity FROM orders WHERE order_id = ?", ("order-btc-1",)
+        ).fetchone()
+        self.assertEqual(tuple(row), ("partially_filled", "0.00005"))
+
+
+if __name__ == "__main__":
+    unittest.main()

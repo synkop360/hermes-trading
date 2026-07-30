@@ -1,0 +1,286 @@
+from __future__ import annotations
+
+from datetime import UTC, datetime
+from decimal import Decimal
+from pathlib import Path
+import sqlite3
+
+from hermes_trading.domain import (
+    Decision,
+    Fill,
+    OrderIntent,
+    OrderRecord,
+    OrderStatus,
+    Position,
+    PositionStatus,
+)
+from hermes_trading.persistence.migrations import UnsupportedSchemaError, migrate
+
+
+class DuplicateIntentError(ValueError):
+    """Raised when an order intent repeats a client order identifier."""
+
+
+class ActivePositionExists(ValueError):
+    """Raised when an asset already has an opening, open, or closing position."""
+
+
+class StateRepository:
+    def __init__(self, connection: sqlite3.Connection) -> None:
+        self._connection = connection
+
+    @classmethod
+    def open(cls, path: str | Path) -> StateRepository:
+        connection = sqlite3.connect(Path(path))
+        connection.row_factory = sqlite3.Row
+        connection.execute("PRAGMA journal_mode=WAL")
+        connection.execute("PRAGMA foreign_keys=ON")
+        connection.execute("PRAGMA busy_timeout=5000")
+        return cls(connection)
+
+    def close(self) -> None:
+        self._connection.close()
+
+    def migrate(self) -> None:
+        migrate(self._connection, self._utc_now())
+
+    def journal_mode(self) -> str:
+        return str(self._connection.execute("PRAGMA journal_mode").fetchone()[0]).lower()
+
+    def schema_version(self) -> int:
+        row = self._connection.execute("SELECT MAX(version) FROM schema_migrations").fetchone()
+        return int(row[0]) if row is not None and row[0] is not None else 0
+
+    def integrity_check(self) -> str:
+        return str(self._connection.execute("PRAGMA integrity_check").fetchone()[0])
+
+    def table_names(self) -> set[str]:
+        return {
+            row[0]
+            for row in self._connection.execute(
+                "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'"
+            )
+        }
+
+    def record_decision(self, decision: Decision) -> None:
+        with self._connection:
+            self._connection.execute(
+                """
+                INSERT INTO decisions (
+                    decision_id, asset, action, reason, candle_id, strategy_version,
+                    reference_price, decided_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    decision.decision_id,
+                    decision.asset,
+                    decision.action,
+                    decision.reason,
+                    decision.candle_id,
+                    decision.strategy_version,
+                    str(decision.reference_price),
+                    decision.decided_at,
+                ),
+            )
+
+    def create_order_intent(self, intent: OrderIntent) -> None:
+        try:
+            with self._connection:
+                self._connection.execute(
+                    """
+                    INSERT INTO order_intents (
+                        client_order_id, decision_id, position_id, asset, side, order_type,
+                        quantity, reference_price, stop_price, created_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        intent.client_order_id,
+                        intent.decision_id,
+                        intent.position_id,
+                        intent.asset,
+                        intent.side,
+                        intent.order_type,
+                        str(intent.quantity),
+                        str(intent.reference_price),
+                        self._decimal_text(intent.stop_price),
+                        intent.created_at,
+                    ),
+                )
+        except sqlite3.IntegrityError as error:
+            if "order_intents.client_order_id" in str(error):
+                raise DuplicateIntentError(intent.client_order_id) from error
+            raise
+
+    def upsert_order(self, order: OrderRecord) -> None:
+        with self._connection:
+            self._connection.execute(
+                """
+                INSERT INTO orders (
+                    order_id, client_order_id, exchange_order_id, asset, side, order_type,
+                    status, requested_quantity, filled_quantity, average_fill_price, fees,
+                    created_at, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(order_id) DO UPDATE SET
+                    client_order_id = excluded.client_order_id,
+                    exchange_order_id = excluded.exchange_order_id,
+                    asset = excluded.asset,
+                    side = excluded.side,
+                    order_type = excluded.order_type,
+                    status = excluded.status,
+                    requested_quantity = excluded.requested_quantity,
+                    filled_quantity = excluded.filled_quantity,
+                    average_fill_price = excluded.average_fill_price,
+                    fees = excluded.fees,
+                    updated_at = excluded.updated_at
+                """,
+                self._order_values(order),
+            )
+
+    def record_fill(self, fill: Fill) -> None:
+        with self._connection:
+            self._connection.execute(
+                """
+                INSERT INTO order_fills (fill_id, order_id, asset, side, quantity, price, fee, filled_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    fill.fill_id,
+                    fill.order_id,
+                    fill.asset,
+                    fill.side,
+                    str(fill.quantity),
+                    str(fill.price),
+                    str(fill.fee),
+                    fill.filled_at,
+                ),
+            )
+
+    def save_position(self, position: Position) -> None:
+        try:
+            with self._connection:
+                self._connection.execute(
+                    """
+                    INSERT INTO positions (
+                        position_id, asset, status, quantity, entry_price, stop_price,
+                        strategy_version, opened_at, closed_at, realized_pnl, fees
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ON CONFLICT(position_id) DO UPDATE SET
+                        asset = excluded.asset,
+                        status = excluded.status,
+                        quantity = excluded.quantity,
+                        entry_price = excluded.entry_price,
+                        stop_price = excluded.stop_price,
+                        strategy_version = excluded.strategy_version,
+                        opened_at = excluded.opened_at,
+                        closed_at = excluded.closed_at,
+                        realized_pnl = excluded.realized_pnl,
+                        fees = excluded.fees
+                    """,
+                    self._position_values(position),
+                )
+        except sqlite3.IntegrityError as error:
+            if "one_active_position_per_asset" in str(error) or "positions.asset" in str(error):
+                raise ActivePositionExists(position.asset) from error
+            raise
+
+    def open_position(self, asset: str) -> Position | None:
+        row = self._connection.execute(
+            """
+            SELECT position_id, asset, status, quantity, entry_price, stop_price,
+                   strategy_version, opened_at, closed_at, realized_pnl, fees
+            FROM positions
+            WHERE asset = ? AND status IN ('opening', 'open', 'closing')
+            ORDER BY opened_at DESC
+            LIMIT 1
+            """,
+            (asset,),
+        ).fetchone()
+        return self._position_from_row(row) if row is not None else None
+
+    def mark_candle_processed(self, asset: str, timeframe: str, close_timestamp: str) -> None:
+        candle_id = f"{asset}:{timeframe}:{close_timestamp}"
+        with self._connection:
+            self._connection.execute(
+                """
+                INSERT OR IGNORE INTO candles_processed (
+                    candle_id, asset, timeframe, close_timestamp, processed_at
+                ) VALUES (?, ?, ?, ?, ?)
+                """,
+                (candle_id, asset, timeframe, close_timestamp, self._utc_now()),
+            )
+
+    def is_candle_processed(self, asset: str, timeframe: str, close_timestamp: str) -> bool:
+        row = self._connection.execute(
+            """
+            SELECT 1 FROM candles_processed
+            WHERE asset = ? AND timeframe = ? AND close_timestamp = ?
+            """,
+            (asset, timeframe, close_timestamp),
+        ).fetchone()
+        return row is not None
+
+    @staticmethod
+    def _utc_now() -> str:
+        return datetime.now(UTC).isoformat()
+
+    @staticmethod
+    def _decimal_text(value: Decimal | None) -> str | None:
+        return str(value) if value is not None else None
+
+    @staticmethod
+    def _order_values(order: OrderRecord) -> tuple[str | None, ...]:
+        return (
+            order.order_id,
+            order.client_order_id,
+            order.exchange_order_id,
+            order.asset,
+            order.side,
+            order.order_type,
+            order.status.value,
+            str(order.requested_quantity),
+            str(order.filled_quantity),
+            StateRepository._decimal_text(order.average_fill_price),
+            str(order.fees),
+            order.created_at,
+            order.updated_at,
+        )
+
+    @staticmethod
+    def _position_values(position: Position) -> tuple[str | None, ...]:
+        return (
+            position.position_id,
+            position.asset,
+            position.status.value,
+            str(position.quantity),
+            str(position.entry_price),
+            str(position.stop_price),
+            position.strategy_version,
+            position.opened_at,
+            position.closed_at,
+            str(position.realized_pnl),
+            str(position.fees),
+        )
+
+    @staticmethod
+    def _position_from_row(row: sqlite3.Row) -> Position:
+        return Position(
+            position_id=row["position_id"],
+            asset=row["asset"],
+            status=PositionStatus(row["status"]),
+            quantity=Decimal(row["quantity"]),
+            entry_price=Decimal(row["entry_price"]),
+            stop_price=Decimal(row["stop_price"]),
+            strategy_version=row["strategy_version"],
+            opened_at=row["opened_at"],
+            closed_at=row["closed_at"],
+            realized_pnl=Decimal(row["realized_pnl"]),
+            fees=Decimal(row["fees"]),
+        )
+
+
+__all__ = [
+    "ActivePositionExists",
+    "DuplicateIntentError",
+    "StateRepository",
+    "UnsupportedSchemaError",
+]
