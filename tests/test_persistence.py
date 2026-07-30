@@ -16,6 +16,7 @@ from hermes_trading.domain import (
 from hermes_trading.persistence import (
     ActivePositionExists,
     DuplicateIntentError,
+    RelatedRecordNotFoundError,
     StateRepository,
     UnsupportedSchemaError,
 )
@@ -108,6 +109,14 @@ class PersistenceTests(unittest.TestCase):
         self.repo.migrate()
 
         self.assertEqual(self.repo.journal_mode(), "wal")
+        self.assertEqual(
+            self.repo._connection.execute("PRAGMA foreign_keys").fetchone()[0],
+            1,
+        )
+        self.assertEqual(
+            self.repo._connection.execute("PRAGMA busy_timeout").fetchone()[0],
+            5000,
+        )
         self.assertEqual(self.repo.schema_version(), 1)
 
         self.repo.migrate()
@@ -159,15 +168,54 @@ class PersistenceTests(unittest.TestCase):
             )
             self.repo._connection.execute("CREATE TABLE positions (position_id TEXT PRIMARY KEY)")
 
-        with self.assertRaises(sqlite3.OperationalError):
+        with self.assertRaises(UnsupportedSchemaError):
             self.repo.migrate()
 
         self.assertNotIn("decisions", self.repo.table_names())
         self.assertEqual(self.repo.schema_version(), 0)
 
+    def test_migration_does_not_stamp_an_incompatible_preexisting_table(self) -> None:
+        with self.repo._connection:
+            self.repo._connection.execute(
+                "CREATE TABLE schema_migrations (version INTEGER PRIMARY KEY, applied_at TEXT NOT NULL)"
+            )
+            self.repo._connection.execute(
+                "CREATE TABLE decisions (decision_id TEXT PRIMARY KEY)"
+            )
+
+        with self.assertRaises(UnsupportedSchemaError):
+            self.repo.migrate()
+
+        self.assertEqual(self.repo.schema_version(), 0)
+        self.assertNotIn("orders", self.repo.table_names())
+
+    def test_recorded_v1_is_rejected_when_a_table_is_missing(self) -> None:
+        self.repo.migrate()
+        with self.repo._connection:
+            self.repo._connection.execute("DROP TABLE decisions")
+
+        with self.assertRaises(UnsupportedSchemaError):
+            self.repo.migrate()
+
+        self.assertEqual(self.repo.schema_version(), 1)
+
+    def test_recorded_v1_is_rejected_when_a_table_is_incompatible(self) -> None:
+        self.repo.migrate()
+        with self.repo._connection:
+            self.repo._connection.execute("DROP TABLE decisions")
+            self.repo._connection.execute(
+                "CREATE TABLE decisions (decision_id TEXT PRIMARY KEY)"
+            )
+
+        with self.assertRaises(UnsupportedSchemaError):
+            self.repo.migrate()
+
+        self.assertEqual(self.repo.schema_version(), 1)
+
     def test_order_intent_client_id_is_unique(self) -> None:
         self.repo.migrate()
         intent = sample_intent(client_order_id="ht-btc-20260730")
+        self.repo.record_decision(sample_decision())
 
         self.repo.create_order_intent(intent)
 
@@ -180,6 +228,46 @@ class PersistenceTests(unittest.TestCase):
 
         with self.assertRaises(ActivePositionExists):
             self.repo.save_position(sample_position("two", "BTC/USDT"))
+
+    def test_order_intent_rejects_a_missing_decision(self) -> None:
+        self.repo.migrate()
+
+        with self.assertRaises(RelatedRecordNotFoundError):
+            self.repo.create_order_intent(sample_intent("ht-orphan-intent"))
+
+    def test_order_rejects_a_missing_intent(self) -> None:
+        self.repo.migrate()
+
+        with self.assertRaises(RelatedRecordNotFoundError):
+            self.repo.upsert_order(sample_order())
+
+    def test_fill_rejects_a_missing_order(self) -> None:
+        self.repo.migrate()
+
+        with self.assertRaises(RelatedRecordNotFoundError):
+            self.repo.record_fill(sample_fill())
+
+    def test_qualification_check_rejects_a_missing_run(self) -> None:
+        self.repo.migrate()
+
+        with self.assertRaises(sqlite3.IntegrityError):
+            with self.repo._connection:
+                self.repo._connection.execute(
+                    """
+                    INSERT INTO qualification_checks (
+                        qualification_check_id, qualification_run_id, status,
+                        reason, revision, checked_at
+                    ) VALUES (?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        "check-orphan-1",
+                        "run-missing",
+                        "failed",
+                        "missing_run",
+                        1,
+                        "2026-07-30T20:00:00+00:00",
+                    ),
+                )
 
     def test_repository_round_trips_domain_records_and_candle_identity(self) -> None:
         self.repo.migrate()
@@ -197,6 +285,8 @@ class PersistenceTests(unittest.TestCase):
 
     def test_order_upsert_replaces_mutable_execution_fields(self) -> None:
         self.repo.migrate()
+        self.repo.record_decision(sample_decision())
+        self.repo.create_order_intent(sample_intent("ht-btc-20260730"))
         self.repo.upsert_order(sample_order())
         revised = OrderRecord(
             **{**sample_order().__dict__, "status": OrderStatus.PARTIALLY_FILLED, "filled_quantity": Decimal("0.00005")}

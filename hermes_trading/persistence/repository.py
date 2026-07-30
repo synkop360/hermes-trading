@@ -25,6 +25,10 @@ class ActivePositionExists(ValueError):
     """Raised when an asset already has an opening, open, or closing position."""
 
 
+class RelatedRecordNotFoundError(ValueError):
+    """Raised when a write references a missing canonical parent record."""
+
+
 class StateRepository:
     def __init__(self, connection: sqlite3.Connection) -> None:
         self._connection = connection
@@ -109,51 +113,61 @@ class StateRepository:
         except sqlite3.IntegrityError as error:
             if "order_intents.client_order_id" in str(error):
                 raise DuplicateIntentError(intent.client_order_id) from error
+            self._raise_related_record_not_found(error, "order intent")
             raise
 
     def upsert_order(self, order: OrderRecord) -> None:
-        with self._connection:
-            self._connection.execute(
-                """
-                INSERT INTO orders (
-                    order_id, client_order_id, exchange_order_id, asset, side, order_type,
-                    status, requested_quantity, filled_quantity, average_fill_price, fees,
-                    created_at, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                ON CONFLICT(order_id) DO UPDATE SET
-                    client_order_id = excluded.client_order_id,
-                    exchange_order_id = excluded.exchange_order_id,
-                    asset = excluded.asset,
-                    side = excluded.side,
-                    order_type = excluded.order_type,
-                    status = excluded.status,
-                    requested_quantity = excluded.requested_quantity,
-                    filled_quantity = excluded.filled_quantity,
-                    average_fill_price = excluded.average_fill_price,
-                    fees = excluded.fees,
-                    updated_at = excluded.updated_at
-                """,
-                self._order_values(order),
-            )
+        try:
+            with self._connection:
+                self._connection.execute(
+                    """
+                    INSERT INTO orders (
+                        order_id, client_order_id, exchange_order_id, asset, side, order_type,
+                        status, requested_quantity, filled_quantity, average_fill_price, fees,
+                        created_at, updated_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ON CONFLICT(order_id) DO UPDATE SET
+                        client_order_id = excluded.client_order_id,
+                        exchange_order_id = excluded.exchange_order_id,
+                        asset = excluded.asset,
+                        side = excluded.side,
+                        order_type = excluded.order_type,
+                        status = excluded.status,
+                        requested_quantity = excluded.requested_quantity,
+                        filled_quantity = excluded.filled_quantity,
+                        average_fill_price = excluded.average_fill_price,
+                        fees = excluded.fees,
+                        updated_at = excluded.updated_at
+                    """,
+                    self._order_values(order),
+                )
+        except sqlite3.IntegrityError as error:
+            self._raise_related_record_not_found(error, "order")
+            raise
 
     def record_fill(self, fill: Fill) -> None:
-        with self._connection:
-            self._connection.execute(
-                """
-                INSERT INTO order_fills (fill_id, order_id, asset, side, quantity, price, fee, filled_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                """,
-                (
-                    fill.fill_id,
-                    fill.order_id,
-                    fill.asset,
-                    fill.side,
-                    str(fill.quantity),
-                    str(fill.price),
-                    str(fill.fee),
-                    fill.filled_at,
-                ),
-            )
+        try:
+            with self._connection:
+                self._connection.execute(
+                    """
+                    INSERT INTO order_fills (
+                        fill_id, order_id, asset, side, quantity, price, fee, filled_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        fill.fill_id,
+                        fill.order_id,
+                        fill.asset,
+                        fill.side,
+                        str(fill.quantity),
+                        str(fill.price),
+                        str(fill.fee),
+                        fill.filled_at,
+                    ),
+                )
+        except sqlite3.IntegrityError as error:
+            self._raise_related_record_not_found(error, "fill")
+            raise
 
     def save_position(self, position: Position) -> None:
         try:
@@ -228,6 +242,15 @@ class StateRepository:
         return str(value) if value is not None else None
 
     @staticmethod
+    def _raise_related_record_not_found(
+        error: sqlite3.IntegrityError, record_name: str
+    ) -> None:
+        if "FOREIGN KEY constraint failed" in str(error):
+            raise RelatedRecordNotFoundError(
+                f"{record_name} references a missing parent record"
+            ) from error
+
+    @staticmethod
     def _order_values(order: OrderRecord) -> tuple[str | None, ...]:
         return (
             order.order_id,
@@ -281,6 +304,7 @@ class StateRepository:
 __all__ = [
     "ActivePositionExists",
     "DuplicateIntentError",
+    "RelatedRecordNotFoundError",
     "StateRepository",
     "UnsupportedSchemaError",
 ]
