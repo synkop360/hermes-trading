@@ -294,31 +294,37 @@ class StateRepository:
         """Persist a stable incident and return its consecutive failure count."""
         incident_id = f"market-data:{source}"
         now = self._utc_now()
-        with self._connection:
+        try:
+            self._connection.execute("BEGIN IMMEDIATE")
             row = self._connection.execute(
-                "SELECT status, revision FROM incidents WHERE incident_id = ?",
-                (incident_id,),
+                """
+                INSERT INTO incidents (
+                    incident_id, status, reason, severity, revision, opened_at, resolved_at
+                ) VALUES (?, 'open', ?, 'warning', 1, ?, NULL)
+                ON CONFLICT(incident_id) DO UPDATE SET
+                    status = 'open',
+                    reason = excluded.reason,
+                    severity = 'warning',
+                    revision = CASE
+                        WHEN incidents.status = 'resolved' THEN 1
+                        ELSE incidents.revision + 1
+                    END,
+                    opened_at = CASE
+                        WHEN incidents.status = 'resolved' THEN excluded.opened_at
+                        ELSE incidents.opened_at
+                    END,
+                    resolved_at = NULL
+                RETURNING revision
+                """,
+                (incident_id, reason, now),
             ).fetchone()
-            failures = 1 if row is None or row["status"] == "resolved" else int(row["revision"]) + 1
-            if row is None:
-                self._connection.execute(
-                    """
-                    INSERT INTO incidents (
-                        incident_id, status, reason, severity, revision, opened_at, resolved_at
-                    ) VALUES (?, 'open', ?, 'warning', ?, ?, NULL)
-                    """,
-                    (incident_id, reason, failures, now),
-                )
-            else:
-                self._connection.execute(
-                    """
-                    UPDATE incidents
-                    SET status = 'open', reason = ?, severity = 'warning', revision = ?, resolved_at = NULL
-                    WHERE incident_id = ?
-                    """,
-                    (reason, failures, incident_id),
-                )
-        return failures
+            self._connection.commit()
+        except BaseException:
+            self._connection.rollback()
+            raise
+        if row is None:
+            raise RuntimeError("market data incident increment returned no revision")
+        return int(row["revision"])
 
     def resolve_market_data_incident(self, source: str) -> None:
         """Resolve and reset an incident after the source has recovered."""

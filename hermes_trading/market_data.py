@@ -24,6 +24,11 @@ _TIMEFRAME_UNITS = {
     "M": timedelta(days=30),
 }
 _LOGGER = logging.getLogger(__name__)
+_SHARED_SCHEMA_VERSIONS = {
+    "news": news.SCHEMA_VERSION,
+    "macro": macro.SCHEMA_VERSION,
+    "onchain": onchain.SCHEMA_VERSION,
+}
 
 
 @dataclass(frozen=True)
@@ -86,11 +91,11 @@ def latest_closed_candle(
         raise ValueError("price payload does not contain candles")
 
     eligible: list[ClosedCandle] = []
-    for raw_candle in candles:
+    for index, raw_candle in enumerate(candles):
         try:
             candle = _closed_candle(raw_candle, interval)
-        except (KeyError, TypeError, ValueError, InvalidOperation):
-            continue
+        except (ArithmeticError, KeyError, TypeError, ValueError) as error:
+            raise ValueError(f"invalid candle at index {index}") from error
         if candle.close_timestamp <= current_time:
             eligible.append(candle)
     if not eligible:
@@ -103,7 +108,8 @@ class MarketDataCoordinator:
         self,
         *,
         repository: StateRepository,
-        price_fetch: Callable[[str], Awaitable[dict[str, Any]]] = price.fetch,
+        price_fetch: Callable[[str, str], Awaitable[dict[str, Any]]] | None = None,
+        price_client_factory: Callable[[], price.PriceClient] = price.PriceClient,
         news_fetch: Callable[[], Awaitable[dict[str, Any]]] = news.fetch,
         macro_fetch: Callable[[], Awaitable[dict[str, Any]]] = macro.fetch,
         onchain_fetch: Callable[[], Awaitable[dict[str, Any]]] = onchain.fetch,
@@ -123,6 +129,7 @@ class MarketDataCoordinator:
         timeframe_interval(timeframe)
         self.repository = repository
         self.price_fetch = price_fetch
+        self.price_client_factory = price_client_factory
         self.news_fetch = news_fetch
         self.macro_fetch = macro_fetch
         self.onchain_fetch = onchain_fetch
@@ -135,18 +142,54 @@ class MarketDataCoordinator:
 
     async def collect(self, assets: Sequence[str]) -> dict[str, MarketSnapshot]:
         current_time = _utc_datetime(self._now())
+        if self.price_fetch is not None:
+            return await self._collect_with_price_batch(
+                assets,
+                current_time,
+                self._fetch_injected_prices(assets),
+            )
+
+        async with self.price_client_factory() as client:
+            return await self._collect_with_price_batch(
+                assets,
+                current_time,
+                client.fetch_many(
+                    assets,
+                    self.timeframe,
+                    concurrency=self.concurrency,
+                ),
+            )
+
+    async def _collect_with_price_batch(
+        self,
+        assets: Sequence[str],
+        current_time: datetime,
+        price_batch: Awaitable[dict[str, dict[str, Any] | BaseException]],
+    ) -> dict[str, MarketSnapshot]:
         shared_tasks = {
             "news": asyncio.create_task(self.news_fetch()),
             "macro": asyncio.create_task(self.macro_fetch()),
             "onchain": asyncio.create_task(self.onchain_fetch()),
         }
-        semaphore = asyncio.Semaphore(self.concurrency)
-        price_tasks = [
-            asyncio.create_task(self._fetch_price(asset, semaphore))
-            for asset in assets
-        ]
-        shared_values = await asyncio.gather(*shared_tasks.values(), return_exceptions=True)
-        price_values = await asyncio.gather(*price_tasks, return_exceptions=True)
+        price_task = asyncio.create_task(price_batch)
+        all_tasks = (*shared_tasks.values(), price_task)
+        try:
+            values = await asyncio.gather(*all_tasks, return_exceptions=True)
+        finally:
+            await _cancel_and_await(all_tasks)
+        shared_values = values[: len(shared_tasks)]
+        price_result = values[-1]
+        if isinstance(price_result, BaseException):
+            price_values: Mapping[str, object] = {
+                asset: price_result for asset in assets
+            }
+        elif isinstance(price_result, Mapping):
+            price_values = price_result
+        else:
+            price_values = {
+                asset: ValueError("invalid price batch response")
+                for asset in assets
+            }
 
         shared_data: dict[str, Mapping[str, Any]] = {}
         shared_failures: dict[str, str] = {}
@@ -154,29 +197,44 @@ class MarketDataCoordinator:
             if isinstance(result, BaseException):
                 shared_failures[source] = _failure_reason(result)
                 self._record_failure(source, shared_failures[source])
-            elif isinstance(result, Mapping):
+            elif _valid_shared_payload(source, result):
                 shared_data[source] = result
                 self.repository.resolve_market_data_incident(source)
             else:
-                shared_failures[source] = "invalid_response"
-                self._record_failure(source, "invalid_response")
+                shared_failures[source] = "invalid_schema"
+                self._record_failure(source, "invalid_schema")
 
         return {
             asset: self._snapshot_for_asset(
                 asset,
-                result,
+                price_values.get(asset, ValueError("missing price batch result")),
                 current_time,
                 shared_data,
                 shared_failures,
             )
-            for asset, result in zip(assets, price_values)
+            for asset in assets
         }
 
-    async def _fetch_price(
-        self, asset: str, semaphore: asyncio.Semaphore
-    ) -> dict[str, Any]:
-        async with semaphore:
-            return await self.price_fetch(asset)
+    async def _fetch_injected_prices(
+        self, assets: Sequence[str]
+    ) -> dict[str, dict[str, Any] | BaseException]:
+        if self.price_fetch is None:
+            raise RuntimeError("injected price fetch is not configured")
+        semaphore = asyncio.Semaphore(self.concurrency)
+
+        async def bounded_fetch(asset: str) -> dict[str, Any]:
+            async with semaphore:
+                return await self.price_fetch(asset, self.timeframe)
+
+        tasks = {
+            asset: asyncio.create_task(bounded_fetch(asset))
+            for asset in assets
+        }
+        try:
+            values = await asyncio.gather(*tasks.values(), return_exceptions=True)
+            return dict(zip(tasks, values))
+        finally:
+            await _cancel_and_await(tuple(tasks.values()))
 
     def _snapshot_for_asset(
         self,
@@ -196,11 +254,18 @@ class MarketDataCoordinator:
             return self._no_trade(asset, "invalid", "invalid_price_response", shared_data, shared_failures)
 
         try:
+            _validate_price_payload(result, asset, self.timeframe)
             candle = latest_closed_candle(result, self.timeframe, now=current_time)
             normalized_price = _normalized_price(result)
-        except (TypeError, ValueError, InvalidOperation) as error:
-            self._record_failure(price_source, "invalid_candle")
-            return self._no_trade(asset, "invalid", f"invalid_candle:{error}", shared_data, shared_failures)
+        except (ArithmeticError, TypeError, ValueError) as error:
+            self._record_failure(price_source, "invalid_market_data")
+            return self._no_trade(
+                asset,
+                "invalid",
+                f"invalid_market_data:{error}",
+                shared_data,
+                shared_failures,
+            )
 
         interval = timeframe_interval(self.timeframe)
         if current_time - candle.close_timestamp > interval * self.stale_after_intervals:
@@ -292,7 +357,7 @@ def _closed_candle(raw_candle: object, interval: timedelta) -> ClosedCandle:
     if not isinstance(raw_candle, Mapping):
         raise ValueError("candle is not a mapping")
     open_timestamp = _timestamp(raw_candle["timestamp"])
-    return ClosedCandle(
+    candle = ClosedCandle(
         open_timestamp=open_timestamp,
         close_timestamp=open_timestamp + interval,
         open=_decimal(raw_candle["open"]),
@@ -301,20 +366,44 @@ def _closed_candle(raw_candle: object, interval: timedelta) -> ClosedCandle:
         close=_decimal(raw_candle["close"]),
         volume=_decimal(raw_candle["volume"]) if raw_candle.get("volume") is not None else None,
     )
+    if (
+        candle.low > min(candle.open, candle.close)
+        or candle.high < max(candle.open, candle.close)
+        or candle.low > candle.high
+    ):
+        raise ValueError("invalid OHLC price relationship")
+    if candle.volume is not None and candle.volume < 0:
+        raise ValueError("candle volume cannot be negative")
+    return candle
 
 
 def _normalized_price(payload: Mapping[str, Any]) -> dict[str, Decimal]:
-    return {
+    missing = [
+        field
+        for field in ("last", "bid", "ask")
+        if field not in payload or payload[field] is None
+    ]
+    if missing:
+        raise ValueError(f"price payload is missing ticker fields: {', '.join(missing)}")
+    values = {
         field: _decimal(payload[field])
         for field in ("last", "bid", "ask")
-        if payload.get(field) is not None
     }
+    if values["bid"] > values["ask"]:
+        raise ValueError("ticker bid exceeds ask")
+    return values
 
 
 def _decimal(value: object) -> Decimal:
     if isinstance(value, bool) or value is None:
         raise ValueError("numeric value is missing or boolean")
-    return Decimal(str(value))
+    try:
+        decimal_value = Decimal(str(value))
+    except (InvalidOperation, ValueError) as error:
+        raise ValueError("numeric value is invalid") from error
+    if not decimal_value.is_finite():
+        raise ValueError("numeric value must be finite")
+    return decimal_value
 
 
 def _timestamp(value: object) -> datetime:
@@ -322,7 +411,7 @@ def _timestamp(value: object) -> datetime:
         return _utc_datetime(datetime.fromisoformat(value.replace("Z", "+00:00")))
     if isinstance(value, bool) or value is None:
         raise ValueError("timestamp is missing or boolean")
-    milliseconds = Decimal(str(value))
+    milliseconds = _decimal(value)
     epoch = datetime(1970, 1, 1, tzinfo=UTC)
     return epoch + timedelta(microseconds=int(milliseconds * 1000))
 
@@ -335,6 +424,35 @@ def _utc_datetime(value: datetime) -> datetime:
 
 def _failure_reason(error: BaseException) -> str:
     return str(error) or type(error).__name__
+
+
+def _validate_price_payload(
+    payload: Mapping[str, Any], asset: str, timeframe: str
+) -> None:
+    if type(payload.get("schema_version")) is not int:
+        raise ValueError("price payload schema_version is missing or invalid")
+    if payload["schema_version"] != price.SCHEMA_VERSION:
+        raise ValueError("price payload schema_version mismatch")
+    if payload.get("asset") != asset:
+        raise ValueError("price payload asset mismatch")
+    if payload.get("timeframe") != timeframe:
+        raise ValueError("price payload timeframe mismatch")
+
+
+def _valid_shared_payload(source: str, payload: object) -> bool:
+    return (
+        isinstance(payload, Mapping)
+        and type(payload.get("schema_version")) is int
+        and payload["schema_version"] == _SHARED_SCHEMA_VERSIONS[source]
+    )
+
+
+async def _cancel_and_await(tasks: Sequence[asyncio.Task[Any]]) -> None:
+    for task in tasks:
+        if not task.done():
+            task.cancel()
+    if tasks:
+        await asyncio.gather(*tasks, return_exceptions=True)
 
 
 __all__ = [
