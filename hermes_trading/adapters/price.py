@@ -32,6 +32,7 @@ class PriceClient:
             }
         )
         self._closed = False
+        self._close_task: asyncio.Task[None] | None = None
 
     async def __aenter__(self) -> PriceClient:
         return self
@@ -47,8 +48,25 @@ class PriceClient:
     async def close(self) -> None:
         if self._closed:
             return
-        self._closed = True
-        await self._exchange.close()
+        close_task = self._close_task
+        if close_task is None:
+            close_task = asyncio.create_task(self._exchange.close())
+            self._close_task = close_task
+            close_task.add_done_callback(self._finish_close)
+        try:
+            await asyncio.shield(close_task)
+        except BaseException:
+            self._finish_close(close_task)
+            raise
+        else:
+            self._finish_close(close_task)
+
+    def _finish_close(self, close_task: asyncio.Task[None]) -> None:
+        if self._close_task is not close_task or not close_task.done():
+            return
+        if not close_task.cancelled() and close_task.exception() is None:
+            self._closed = True
+        self._close_task = None
 
     async def fetch(self, asset: str, timeframe: str = "1h") -> dict[str, Any]:
         ticker_task = asyncio.create_task(self._exchange.fetch_ticker(asset))

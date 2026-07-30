@@ -415,6 +415,61 @@ class MarketDataTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(payload["timeframe"], "1h")
         self.assertEqual(exchange.close_count, 1)
 
+    async def test_price_client_retries_after_exchange_close_failure(self) -> None:
+        exchange = CloseLifecycleExchange(failures=1)
+        client = price_adapter.PriceClient(
+            exchange_factory=lambda config: exchange
+        )
+
+        with self.assertRaisesRegex(RuntimeError, "close failed"):
+            await client.close()
+        await client.close()
+        await client.close()
+
+        self.assertEqual(exchange.close_count, 2)
+
+    async def test_concurrent_price_client_close_callers_share_one_close(self) -> None:
+        exchange = CloseLifecycleExchange(block=True)
+        client = price_adapter.PriceClient(
+            exchange_factory=lambda config: exchange
+        )
+
+        first = asyncio.create_task(client.close())
+        second = asyncio.create_task(client.close())
+        await asyncio.wait_for(exchange.close_started.wait(), timeout=1)
+        await asyncio.sleep(0)
+        self.assertEqual(exchange.close_count, 1)
+        self.assertFalse(first.done())
+        self.assertFalse(second.done())
+        exchange.allow_close.set()
+        await asyncio.gather(first, second)
+        await client.close()
+
+        self.assertEqual(exchange.close_count, 1)
+
+    async def test_cancelled_close_continues_and_later_caller_awaits_it(self) -> None:
+        exchange = CloseLifecycleExchange(block=True)
+        client = price_adapter.PriceClient(
+            exchange_factory=lambda config: exchange
+        )
+
+        interrupted = asyncio.create_task(client.close())
+        await asyncio.wait_for(exchange.close_started.wait(), timeout=1)
+        interrupted.cancel()
+        with self.assertRaises(asyncio.CancelledError):
+            await interrupted
+        self.assertEqual(exchange.cancelled_close_count, 0)
+
+        waiter = asyncio.create_task(client.close())
+        await asyncio.sleep(0)
+        self.assertEqual(exchange.close_count, 1)
+        self.assertFalse(waiter.done())
+        exchange.allow_close.set()
+        await waiter
+        await client.close()
+
+        self.assertEqual(exchange.close_count, 1)
+
     async def test_incident_increment_is_atomic_across_connections(self) -> None:
         barrier = threading.Barrier(4)
 
@@ -489,6 +544,33 @@ class FakeExchange:
         except asyncio.CancelledError:
             self.cancelled_calls += 1
             raise
+
+
+class CloseLifecycleExchange:
+    def __init__(
+        self,
+        *,
+        failures: int = 0,
+        block: bool = False,
+    ) -> None:
+        self.failures = failures
+        self.block = block
+        self.close_count = 0
+        self.cancelled_close_count = 0
+        self.close_started = asyncio.Event()
+        self.allow_close = asyncio.Event()
+
+    async def close(self) -> None:
+        self.close_count += 1
+        self.close_started.set()
+        if self.block:
+            try:
+                await self.allow_close.wait()
+            except asyncio.CancelledError:
+                self.cancelled_close_count += 1
+                raise
+        if self.close_count <= self.failures:
+            raise RuntimeError("close failed")
 
 
 if __name__ == "__main__":

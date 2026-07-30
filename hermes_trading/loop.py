@@ -16,6 +16,7 @@ from hermes_trading.adapters import SchemaError
 from hermes_trading.adapters import macro, news, onchain, price
 from hermes_trading.adapters.execution import execute_signal, resolve_execution_settings
 from hermes_trading.config import LIVE_CONFIRM_PHRASE
+from hermes_trading.domain import json_value
 from hermes_trading.funds import build_due_funds_alert, resolve_funds_alert_settings
 from hermes_trading.notifications import (
     PnlSummaryCounter,
@@ -125,12 +126,14 @@ async def _retry(name: str, operation: Callable[[], Awaitable[dict[str, Any]]]) 
 
 async def _append_jsonl(path: Path, payload: dict[str, Any]) -> None:
     async with aiofiles.open(path, "a", encoding="utf-8") as handle:
-        await handle.write(json.dumps(payload, separators=(",", ":")) + "\n")
+        await handle.write(
+            json.dumps(payload, separators=(",", ":"), default=json_value) + "\n"
+        )
 
 
 async def _write_json(path: Path, payload: dict[str, Any]) -> None:
     async with aiofiles.open(path, "w", encoding="utf-8") as handle:
-        await handle.write(json.dumps(payload, indent=2))
+        await handle.write(json.dumps(payload, indent=2, default=json_value))
 
 
 async def _notify_all(messages: list[str], settings: NotificationSettings | None = None) -> None:
