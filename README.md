@@ -1,0 +1,90 @@
+# Hermes Trading
+
+Hermes Trading est un worker de trading automatique en mode simule. Il observe plusieurs paires Kraken, ecrit chaque decision dans un journal local ou Railway, et laisse Hermes proposer des ajustements progressifs de strategie.
+
+Etat courant du deploiement:
+
+- Mode d'execution Railway: `training`, donc ordres simules uniquement.
+- Mode par defaut du code si aucune variable n'est definie: `paper`, egalement simule.
+- Actifs suivis: `BTC/USDT`, `ETH/USDT`, `XRP/USDT`, `SHIB/USDT`.
+- Exchange par defaut: Kraken via `ccxt`.
+- Deploiement: Railway, service `hermes-trading`, volume monte sur `/app/state`.
+- Supervision: cron Hermes `hermes-trading-watch`, toutes les 30 minutes.
+
+## Structure
+
+```text
+hermes_trading/
+  run.py              # point d'entree du worker
+  loop.py             # boucle multi-actifs et decisions de trading
+  reflect.py          # reflexion Hermes ou fallback local
+  score.py            # scoring des performances
+  adapters/           # prix, news, on-chain, macro
+state/
+  goal.yaml           # objectif et actifs suivis
+  strategy.yaml       # strategie active
+  heartbeat.json      # derniere sante du worker
+  decisions.jsonl     # toutes les decisions, meme sans trade
+  trades.jsonl        # trades simules fermes
+  orders.jsonl        # tentatives d'execution simulees, validees ou soumises
+  hypotheses.jsonl    # hypotheses de modification de strategie
+  history/            # archives des versions de strategie
+docs/
+  ARCHITECTURE.md
+  COMMANDS.md
+  DEPLOYMENT.md
+  GRAPHIFY_OBSIDIAN.md
+  HERMES.md
+  KRAKEN.md
+  OPERATIONS.md
+  SAFETY.md
+  STATE_FILES.md
+  TROUBLESHOOTING.md
+```
+
+## Demarrage local
+
+Depuis ce dossier:
+
+```powershell
+uv run python -m hermes_trading.run --interval-seconds 60
+```
+
+Pour forcer une liste d'actifs localement, utiliser la variable d'environnement ou l'option `--assets`:
+
+```powershell
+$env:HERMES_TRADING_MODE = "training"
+$env:HERMES_TRADING_ASSETS = "BTC/USDT,ETH/USDT,XRP/USDT,SHIB/USDT"
+uv run python -m hermes_trading.run
+```
+
+```powershell
+uv run python -m hermes_trading.run --assets "BTC/USDT,ETH/USDT,XRP/USDT,SHIB/USDT"
+```
+
+## Verification rapide
+
+```powershell
+uv run python -m unittest discover -s tests
+Get-Content .\state\heartbeat.json
+Get-Content .\state\decisions.jsonl -Tail 20
+```
+
+## Reflexion
+
+Le module `hermes_trading.reflect` peut mettre a jour `state/strategy.yaml`:
+
+- `--fallback`: logique locale basee sur les trades fermes.
+- `--hermes`: proposition JSON demandee a la CLI `hermes`.
+
+Dans les deux cas, la strategie precedente est archivee dans `state/history/` et un changement est ajoute a `state/hypotheses.jsonl`.
+
+## Documents utiles
+
+- `docs/OPERATIONS.md`: gestes quotidiens pour surveiller le flux.
+- `docs/NOTIFICATIONS.md`: activation Discord webhook pour alertes.
+- `docs/KRAKEN.md`: liaison Kraken, permissions API, mode training.
+- `docs/HERMES.md`: cron Hermes et logique de reflexion.
+- `docs/DEPLOYMENT.md`: Railway, volume et variables.
+- `docs/SAFETY.md`: garde-fous avant tout live trading.
+- `docs/GRAPHIFY_OBSIDIAN.md`: liens vers le graphe documentaire genere.
