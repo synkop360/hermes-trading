@@ -229,6 +229,7 @@ git commit -m "feat: add durable sqlite trading state"
 **Files:**
 - Create: `hermes_trading/persistence/artifacts.py`
 - Create: `scripts/inspect_state.py`
+- Modify: `hermes_trading/persistence/repository.py`
 - Modify: `hermes_trading/run.py`
 - Test: `tests/test_artifacts.py`
 
@@ -236,7 +237,11 @@ git commit -m "feat: add durable sqlite trading state"
 - Consumes: `StateRepository`, `json_value()`.
 - Produces: `ArtifactProjector.append_event(name, payload)`,
   `write_snapshot(name, payload)`, `rebuild_all(repo)`, CLI commands
-  `integrity`, `export`, `compare`, `rebuild`.
+  `integrity`, `export`, `compare`, `rebuild`, plus read-only repository
+  exports needed by those commands.
+
+The `export` command includes all 16 canonical tables, not only open positions
+and orders.
 
 - [ ] **Step 1: Write failing atomic-write and rebuild tests**
 
@@ -296,7 +301,7 @@ Expected: all tests pass and legacy JSONL files still exist.
 - [ ] **Step 6: Commit human-readable artifacts**
 
 ```bash
-git add hermes_trading/persistence/artifacts.py hermes_trading/run.py scripts/inspect_state.py tests/test_artifacts.py
+git add hermes_trading/persistence/artifacts.py hermes_trading/persistence/repository.py hermes_trading/run.py scripts/inspect_state.py tests/test_artifacts.py
 git commit -m "feat: project durable state to readable artifacts"
 ```
 
