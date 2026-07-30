@@ -440,6 +440,44 @@ def _foreign_keys(
     }
 
 
+def _normalize_sql(sql: str) -> str:
+    """Normalize unquoted SQL while preserving single-quoted literal data."""
+    normalized: list[str] = []
+    in_literal = False
+    pending_space = False
+    index = 0
+
+    while index < len(sql):
+        character = sql[index]
+        if in_literal:
+            normalized.append(character)
+            if character == "'":
+                if index + 1 < len(sql) and sql[index + 1] == "'":
+                    normalized.append("'")
+                    index += 2
+                    continue
+                in_literal = False
+            index += 1
+            continue
+
+        if character == "'":
+            if pending_space and normalized:
+                normalized.append(" ")
+            pending_space = False
+            normalized.append(character)
+            in_literal = True
+        elif character.isspace():
+            pending_space = True
+        else:
+            if pending_space and normalized:
+                normalized.append(" ")
+            pending_space = False
+            normalized.append(character.lower())
+        index += 1
+
+    return "".join(normalized).strip()
+
+
 def _validate_v1_schema(connection: sqlite3.Connection) -> None:
     actual_tables = {
         row[0]
@@ -501,7 +539,7 @@ def _validate_v1_schema(connection: sqlite3.Connection) -> None:
             "SELECT sql FROM sqlite_master WHERE type = 'index' AND name = ?",
             (index_name,),
         ).fetchone()
-        normalized_sql = " ".join(index_sql[0].lower().split())
+        normalized_sql = _normalize_sql(index_sql[0])
         if normalized_sql != V1_INDEX_SQL[index_name]:
             raise UnsupportedSchemaError(
                 f"schema v1 index definition mismatch for {index_name}"
