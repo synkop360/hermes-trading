@@ -201,6 +201,22 @@ V1_INDEXES = {
     ),
 }
 
+V1_INDEX_SQL = {
+    "unique_processed_candle": (
+        "create unique index unique_processed_candle "
+        "on candles_processed(asset, timeframe, close_timestamp)"
+    ),
+    "unique_client_order_id": (
+        "create unique index unique_client_order_id "
+        "on order_intents(client_order_id)"
+    ),
+    "one_active_position_per_asset": (
+        "create unique index one_active_position_per_asset "
+        "on positions(asset) "
+        "where status in ('opening', 'open', 'closing')"
+    ),
+}
+
 
 MIGRATIONS: tuple[Migration, ...] = (
     (
@@ -481,15 +497,15 @@ def _validate_v1_schema(connection: sqlite3.Connection) -> None:
                 f"schema v1 index mismatch for {index_name}"
             )
 
-    position_index_sql = connection.execute(
-        "SELECT sql FROM sqlite_master WHERE type = 'index' "
-        "AND name = 'one_active_position_per_asset'"
-    ).fetchone()
-    normalized_sql = " ".join(position_index_sql[0].lower().split())
-    if "where status in ('opening', 'open', 'closing')" not in normalized_sql:
-        raise UnsupportedSchemaError(
-            "schema v1 partial index predicate mismatch"
-        )
+        index_sql = connection.execute(
+            "SELECT sql FROM sqlite_master WHERE type = 'index' AND name = ?",
+            (index_name,),
+        ).fetchone()
+        normalized_sql = " ".join(index_sql[0].lower().split())
+        if normalized_sql != V1_INDEX_SQL[index_name]:
+            raise UnsupportedSchemaError(
+                f"schema v1 index definition mismatch for {index_name}"
+            )
 
     if connection.execute("PRAGMA foreign_key_check").fetchone() is not None:
         raise UnsupportedSchemaError("schema v1 contains orphan records")

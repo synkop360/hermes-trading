@@ -212,6 +212,25 @@ class PersistenceTests(unittest.TestCase):
 
         self.assertEqual(self.repo.schema_version(), 1)
 
+    def test_recorded_v1_rejects_a_disabled_active_position_index(self) -> None:
+        self.repo.migrate()
+        with self.repo._connection:
+            self.repo._connection.execute(
+                "DROP INDEX one_active_position_per_asset"
+            )
+            self.repo._connection.execute(
+                """
+                CREATE UNIQUE INDEX one_active_position_per_asset
+                ON positions(asset)
+                WHERE status IN ('opening', 'open', 'closing') AND 0
+                """
+            )
+
+        with self.assertRaises(UnsupportedSchemaError):
+            self.repo.migrate()
+
+        self.assertEqual(self.repo.schema_version(), 1)
+
     def test_order_intent_client_id_is_unique(self) -> None:
         self.repo.migrate()
         intent = sample_intent(client_order_id="ht-btc-20260730")
