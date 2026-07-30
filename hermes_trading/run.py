@@ -8,6 +8,8 @@ from pathlib import Path
 import yaml
 
 from hermes_trading.loop import parse_assets, run_loop
+from hermes_trading.persistence.artifacts import ArtifactProjector
+from hermes_trading.persistence.repository import StateRepository
 
 
 DEFAULT_GOAL = {
@@ -46,6 +48,12 @@ def ensure_state_files(state_dir: Path) -> None:
     funds_alert_path = state_dir / "funds_alert.json"
     if not funds_alert_path.exists():
         funds_alert_path.write_text('{"status":"ok"}\n')
+    repository = StateRepository.open(state_dir / "trading.db")
+    try:
+        repository.migrate()
+        ArtifactProjector(state_dir).rebuild_missing(repository)
+    finally:
+        repository.close()
 
 
 def main() -> None:

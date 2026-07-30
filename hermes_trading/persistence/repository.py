@@ -42,6 +42,16 @@ class StateRepository:
         connection.execute("PRAGMA busy_timeout=5000")
         return cls(connection)
 
+    @classmethod
+    def open_read_only(cls, path: str | Path) -> StateRepository:
+        database_uri = Path(path).resolve().as_uri() + "?mode=ro"
+        connection = sqlite3.connect(database_uri, uri=True)
+        connection.row_factory = sqlite3.Row
+        connection.execute("PRAGMA query_only=ON")
+        connection.execute("PRAGMA foreign_keys=ON")
+        connection.execute("PRAGMA busy_timeout=5000")
+        return cls(connection)
+
     def close(self) -> None:
         self._connection.close()
 
@@ -210,6 +220,38 @@ class StateRepository:
             (asset,),
         ).fetchone()
         return self._position_from_row(row) if row is not None else None
+
+    def export_open_positions(self) -> list[dict[str, str | None]]:
+        rows = self._connection.execute(
+            """
+            SELECT position_id, asset, status, quantity, entry_price, stop_price,
+                   strategy_version, opened_at, closed_at, realized_pnl, fees
+            FROM positions
+            WHERE status IN ('opening', 'open', 'closing')
+            ORDER BY opened_at, position_id
+            """
+        )
+        return [dict(row) for row in rows]
+
+    def export_open_orders(self) -> list[dict[str, str | None]]:
+        rows = self._connection.execute(
+            """
+            SELECT order_id, client_order_id, exchange_order_id, asset, side, order_type,
+                   status, requested_quantity, filled_quantity, average_fill_price, fees,
+                   created_at, updated_at
+            FROM orders
+            WHERE status IN ('intent', 'validated', 'submitted', 'open', 'partially_filled')
+            ORDER BY updated_at, order_id
+            """
+        )
+        return [dict(row) for row in rows]
+
+    def export_system_status(self) -> dict[str, int | str]:
+        return {
+            "integrity": self.integrity_check(),
+            "journal_mode": self.journal_mode(),
+            "schema_version": self.schema_version(),
+        }
 
     def mark_candle_processed(self, asset: str, timeframe: str, close_timestamp: str) -> None:
         candle_id = f"{asset}:{timeframe}:{close_timestamp}"
