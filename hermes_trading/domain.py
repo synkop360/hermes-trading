@@ -32,6 +32,14 @@ def decimal_from(value: str | int | Decimal) -> Decimal:
     return value if isinstance(value, Decimal) else Decimal(str(value))
 
 
+def _reject_binary_floats(**values: Decimal | None) -> None:
+    for field_name, value in values.items():
+        if isinstance(value, float):
+            raise TypeError(
+                f"{field_name}: binary float is forbidden for financial values"
+            )
+
+
 @dataclass(frozen=True)
 class Decision:
     decision_id: str
@@ -42,6 +50,9 @@ class Decision:
     strategy_version: str
     reference_price: Decimal
     decided_at: str
+
+    def __post_init__(self) -> None:
+        _reject_binary_floats(reference_price=self.reference_price)
 
 
 @dataclass(frozen=True)
@@ -56,6 +67,13 @@ class OrderIntent:
     created_at: str
     position_id: str | None = None
     stop_price: Decimal | None = None
+
+    def __post_init__(self) -> None:
+        _reject_binary_floats(
+            quantity=self.quantity,
+            reference_price=self.reference_price,
+            stop_price=self.stop_price,
+        )
 
 
 @dataclass(frozen=True)
@@ -74,6 +92,14 @@ class OrderRecord:
     updated_at: str
     exchange_order_id: str | None = None
 
+    def __post_init__(self) -> None:
+        _reject_binary_floats(
+            requested_quantity=self.requested_quantity,
+            filled_quantity=self.filled_quantity,
+            average_fill_price=self.average_fill_price,
+            fees=self.fees,
+        )
+
 
 @dataclass(frozen=True)
 class Fill:
@@ -85,6 +111,13 @@ class Fill:
     price: Decimal
     fee: Decimal
     filled_at: str
+
+    def __post_init__(self) -> None:
+        _reject_binary_floats(
+            quantity=self.quantity,
+            price=self.price,
+            fee=self.fee,
+        )
 
 
 @dataclass(frozen=True)
@@ -101,8 +134,19 @@ class Position:
     realized_pnl: Decimal = Decimal("0")
     fees: Decimal = Decimal("0")
 
+    def __post_init__(self) -> None:
+        _reject_binary_floats(
+            quantity=self.quantity,
+            entry_price=self.entry_price,
+            stop_price=self.stop_price,
+            realized_pnl=self.realized_pnl,
+            fees=self.fees,
+        )
+
 
 def json_value(value: Any) -> Any:
+    if isinstance(value, float):
+        raise TypeError("binary float is forbidden for financial values")
     if is_dataclass(value) and not isinstance(value, type):
         return json_value(asdict(value))
     if isinstance(value, Enum):
