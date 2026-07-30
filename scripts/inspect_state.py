@@ -16,6 +16,7 @@ def _export_payload(repository: StateRepository) -> dict[str, object]:
         "positions": repository.export_open_positions(),
         "open_orders": repository.export_open_orders(),
         "system_status": repository.export_system_status(),
+        "tables": repository.export_canonical_tables(),
     }
 
 
@@ -89,7 +90,7 @@ def main(argv: list[str] | None = None) -> int:
 def _matches_snapshot(path: Path, expected: object) -> bool:
     try:
         return json.loads(path.read_text(encoding="utf-8")) == expected
-    except (FileNotFoundError, json.JSONDecodeError):
+    except (OSError, UnicodeError, json.JSONDecodeError):
         return False
 
 

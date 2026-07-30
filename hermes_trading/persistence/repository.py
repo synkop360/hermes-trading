@@ -14,7 +14,11 @@ from hermes_trading.domain import (
     Position,
     PositionStatus,
 )
-from hermes_trading.persistence.migrations import UnsupportedSchemaError, migrate
+from hermes_trading.persistence.migrations import (
+    V1_COLUMNS,
+    UnsupportedSchemaError,
+    migrate,
+)
 
 
 class DuplicateIntentError(ValueError):
@@ -251,6 +255,17 @@ class StateRepository:
             "integrity": self.integrity_check(),
             "journal_mode": self.journal_mode(),
             "schema_version": self.schema_version(),
+        }
+
+    def export_canonical_tables(self) -> dict[str, list[dict[str, object]]]:
+        return {
+            table_name: [
+                dict(row)
+                for row in self._connection.execute(
+                    f'SELECT * FROM "{table_name}" ORDER BY 1'
+                )
+            ]
+            for table_name in V1_COLUMNS
         }
 
     def mark_candle_processed(self, asset: str, timeframe: str, close_timestamp: str) -> None:
