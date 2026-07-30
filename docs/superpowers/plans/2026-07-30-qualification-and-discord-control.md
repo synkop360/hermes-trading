@@ -571,7 +571,7 @@ Expected: mutation policies and confirmation flow are missing.
 - [ ] **Step 3: Implement short-lived Discord confirmations**
 
 Bind each challenge to guild, channel, user, command, normalized parameters
-and request id. Expire after two minutes. Only the initiating allowed user can
+and request id. Expire after five minutes. Only the initiating allowed user can
 confirm. Disable the buttons after success, rejection or expiry.
 
 - [ ] **Step 4: Implement TOTP without storing the seed in the bot database**

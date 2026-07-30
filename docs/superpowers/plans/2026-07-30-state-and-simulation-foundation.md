@@ -183,7 +183,7 @@ Expected: repository imports are missing.
 
 - [ ] **Step 3: Implement migration version 1**
 
-The SQL in `migrations.py` must create the 15 tables named in the design. The
+The SQL in `migrations.py` must create the 16 tables named in the design. The
 first plan actively uses `schema_migrations`, `candles_processed`, `decisions`,
 `order_intents`, `orders`, `order_fills`, `positions`, `risk_state` and
 `incidents`; the remaining tables are created empty for later plans.
