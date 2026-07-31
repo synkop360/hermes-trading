@@ -6,7 +6,7 @@ from pathlib import Path
 import tempfile
 import unittest
 
-from hermes_trading.domain import Decision, OrderIntent, OrderStatus
+from hermes_trading.domain import Decision, OrderIntent, OrderStatus, Position, PositionStatus
 from hermes_trading.exchange import KrakenGateway
 from hermes_trading.persistence import StateRepository
 from hermes_trading.reconciliation import ReconciliationService
@@ -138,6 +138,7 @@ class ReconciliationTests(unittest.IsolatedAsyncioTestCase):
         first = await service.run(KrakenGateway(lambda: fake))
         second = await service.run(KrakenGateway(lambda: fake))
         fake._orders[order_id].update(status="closed", filled="0.0001", remaining="0")
+        fake._balances["free"]["BTC"] = "0.0001"
         terminal = await service.run(KrakenGateway(lambda: fake))
 
         self.assertEqual(first.next_reconciliation_seconds, 5)
@@ -224,3 +225,39 @@ class ReconciliationTests(unittest.IsolatedAsyncioTestCase):
         status = json.loads((self.state_dir / "system_status.json").read_text(encoding="utf-8"))
         self.assertFalse(status["reconciliation"]["safe_for_new_entries"])
         self.assertEqual(status["reconciliation"]["issues"][0]["code"], "unknown_remote_order")
+
+    async def test_filled_sell_closes_position_once_after_restart(self) -> None:
+        decision, entry = pending_intent("ht-entry")
+        self.repository.persist_execution_intent(decision, entry)
+        self.repository.save_position(Position("position-ht-entry", "BTC/USDT", PositionStatus.OPEN, Decimal("0.0001"), Decimal("65000"), Decimal("64000"), "69", "2026-07-30T12:00:00+00:00", fees=Decimal("0.01")))
+        exit_decision = Decision("decision-exit", "BTC/USDT", "exit", "exit", "exit-candle", "69", Decimal("66000"), "2026-07-30T13:00:00+00:00")
+        self.repository.persist_execution_intent(exit_decision, OrderIntent("ht-exit", "decision-exit", "BTC/USDT", "sell", "market", Decimal("0.0001"), Decimal("66000"), "2026-07-30T13:00:00+00:00", "position-ht-entry"))
+        self.repository.close(); self.repository = StateRepository.open(self.db_path); self.repository.migrate()
+        fake = FakeKrakenExchange(); fake.seed_order(client_order_id="ht-exit", side="sell", status="closed", filled="0.0001", fee="0.02")
+        next(iter(fake._orders.values()))["average"] = "66000"
+        fake._balances = {"free": {"USDT": "21.40", "BTC": "0"}}
+        service = ReconciliationService(self.repository)
+        await service.run(KrakenGateway(lambda: fake)); await service.run(KrakenGateway(lambda: fake))
+        position = self.repository.export_canonical_tables()["positions"][0]
+        self.assertEqual(position["status"], "closed")
+        self.assertEqual(position["realized_pnl"], "0.0700")
+
+    async def test_cancelled_order_is_terminal_and_returns_normal_cadence(self) -> None:
+        decision, intent = pending_intent("ht-cancelled"); self.repository.persist_execution_intent(decision, intent)
+        fake = FakeKrakenExchange(); fake.seed_order(client_order_id="ht-cancelled", status="canceled")
+        report = await ReconciliationService(self.repository).run(KrakenGateway(lambda: fake))
+        self.assertTrue(report.safe_for_new_entries); self.assertEqual(report.next_reconciliation_seconds, 60)
+
+    async def test_balance_shortfall_for_open_position_blocks_entries(self) -> None:
+        decision, intent = pending_intent("ht-shortfall"); self.repository.persist_execution_intent(decision, intent)
+        self.repository.save_position(Position("position-ht-shortfall", "BTC/USDT", PositionStatus.OPEN, Decimal("0.0001"), Decimal("65000"), Decimal("64000"), "69", "2026-07-30T12:00:00+00:00"))
+        fake = FakeKrakenExchange(); fake.seed_order(client_order_id="ht-shortfall", status="closed", filled="0.0001"); fake._balances = {"free": {"USDT": "14.82", "BTC": "0.00001"}}
+        report = await ReconciliationService(self.repository).run(KrakenGateway(lambda: fake))
+        self.assertFalse(report.safe_for_new_entries); self.assertEqual(report.issues[0].code, "balance_shortfall")
+
+    async def test_duplicate_remote_client_id_uses_fast_backoff(self) -> None:
+        decision, intent = pending_intent("ht-ambiguous"); self.repository.persist_execution_intent(decision, intent)
+        fake = FakeKrakenExchange(); fake.seed_order(client_order_id="ht-ambiguous", exchange_order_id="K1"); fake.seed_order(client_order_id="ht-ambiguous", exchange_order_id="K2")
+        service = ReconciliationService(self.repository)
+        first = await service.run(KrakenGateway(lambda: fake)); second = await service.run(KrakenGateway(lambda: fake))
+        self.assertEqual(first.next_reconciliation_seconds, 5); self.assertEqual(second.next_reconciliation_seconds, 10)

@@ -208,6 +208,10 @@ class StateRepository:
         )
         return tuple(self._position_from_row(row) for row in rows)
 
+    def position_by_id(self, position_id: str) -> Position | None:
+        row = self._connection.execute("SELECT * FROM positions WHERE position_id = ?", (position_id,)).fetchone()
+        return self._position_from_row(row) if row is not None else None
+
     def persist_execution_intent(self, decision: Decision, intent: OrderIntent) -> bool:
         """Commit an execution decision and its idempotency key together.
 

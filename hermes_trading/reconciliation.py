@@ -113,7 +113,7 @@ class ReconciliationService:
                 remote,
                 reconstruct_position=not any(issue.blocking for issue in comparison_issues),
             )
-            if remote.status not in _TERMINAL_STATUSES:
+            if _canonical_status(remote.status) not in _TERMINAL_STATUSES:
                 issues.append(
                     ReconciliationIssue(
                         "transient_remote_order",
@@ -124,7 +124,7 @@ class ReconciliationService:
                     )
                 )
 
-        issues.extend(_balance_issues(balances, self.repository.active_positions()))
+        issues.extend(_balance_issues(balances, self.repository.active_positions(), remote_orders))
         self._persist_issues(issues)
         issues.extend(self._persistent_blockers(issues))
         safe = not any(issue.blocking for issue in issues)
@@ -186,6 +186,22 @@ class ReconciliationService:
                     fees=remote.fee,
                 )
             )
+        if reconstruct_position and remote.filled > 0 and remote.side == "sell" and intent.position_id is not None:
+            previous = self.repository.position_by_id(intent.position_id)
+            if previous is not None and previous.status in {PositionStatus.OPENING, PositionStatus.OPEN, PositionStatus.CLOSING}:
+                quantity = min(previous.quantity, remote.filled)
+                remaining = previous.quantity - quantity
+                exit_fee = remote.fee
+                allocated_entry_fee = previous.fees * quantity / previous.quantity
+                realized = previous.realized_pnl + quantity * (remote.average_price - previous.entry_price) - allocated_entry_fee - exit_fee
+                self.repository.save_position(Position(
+                    previous.position_id, previous.asset,
+                    PositionStatus.CLOSED if remaining == 0 else PositionStatus.OPEN,
+                    remaining if remaining > 0 else previous.quantity,
+                    previous.entry_price, previous.stop_price, previous.strategy_version,
+                    previous.opened_at, remote.updated_at if remaining == 0 else None,
+                    realized, previous.fees + exit_fee,
+                ))
 
     def _persist_issues(self, issues: list[ReconciliationIssue]) -> None:
         active_ids: set[str] = set()
@@ -228,7 +244,7 @@ class ReconciliationService:
         return blockers
 
     def _next_cadence(self, issues: list[ReconciliationIssue]) -> int:
-        transient = [issue for issue in issues if issue.code in {"transient_remote_order", "missing_remote_order"}]
+        transient = [issue for issue in issues if issue.code in {"transient_remote_order", "missing_remote_order", "duplicate_remote_client_id", "unknown_remote_order", "unknown_remote_order_status"}]
         if not transient:
             return self.normal_cadence_seconds
         revisions = []
@@ -294,12 +310,30 @@ def _order_mismatches(asset: str, side: str, quantity: Decimal, local: OrderReco
     return [ReconciliationIssue("remote_order_mismatch", "critical", "Remote order identity, side, or quantity differs from persisted intent.", client_order_id=remote.client_order_id, exchange_order_id=remote.exchange_order_id)]
 
 
-def _balance_issues(balances: dict[str, Decimal], positions: tuple[Position, ...]) -> list[ReconciliationIssue]:
+def _balance_issues(balances: dict[str, Decimal], positions: tuple[Position, ...], remote_orders: tuple[ExchangeOrder, ...]) -> list[ReconciliationIssue]:
     issues: list[ReconciliationIssue] = []
+    tolerance = Decimal("0.000000000001")
+    expected: dict[str, Decimal] = {}
     for position in positions:
         base, _, quote = position.asset.partition("/")
         if not quote or base not in balances or quote not in balances:
             issues.append(ReconciliationIssue("missing_balance", "critical", f"Balance required to reconcile {position.asset} is unavailable."))
+            continue
+        expected[base] = expected.get(base, Decimal("0")) + position.quantity
+    reserved: dict[str, Decimal] = {}
+    for order in remote_orders:
+        if order.side == "sell" and _canonical_status(order.status) not in _TERMINAL_STATUSES:
+            base = order.asset.partition("/")[0]
+            reserved[base] = reserved.get(base, Decimal("0")) + (order.amount - order.filled)
+    for base, quantity in expected.items():
+        available = balances[base] + reserved.get(base, Decimal("0"))
+        if available + tolerance < quantity:
+            issues.append(ReconciliationIssue("balance_shortfall", "critical", f"Remote {base} balance is below the reconciled position quantity."))
+    expected_bases = set(expected)
+    quote_currencies = {"USDT", "USD", "EUR"} | {position.asset.partition("/")[2] for position in positions}
+    for currency, quantity in balances.items():
+        if currency not in expected_bases and currency not in quote_currencies and quantity > tolerance:
+            issues.append(ReconciliationIssue("unexpected_remote_balance", "critical", f"Remote {currency} balance has no reconciled position."))
     return issues
 
 

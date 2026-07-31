@@ -72,6 +72,11 @@ class FakeKrakenExchange:
             "lastTradeDatetime": timestamp,
             "info": {"cl_ord_id": client_order_id},
         }
+        base = asset.split("/", 1)[0]
+        if Decimal(filled) > 0:
+            available = Decimal(self._balances["free"].get(base, "0"))
+            change = Decimal(filled) if side == "buy" else -Decimal(filled)
+            self._balances["free"][base] = str(max(Decimal("0"), available + change))
         return order_id
 
     def seed_unmatched_open_order(self, *, asset: str = "BTC/USDT") -> str:
