@@ -385,6 +385,8 @@ git commit -m "feat: evaluate each closed candle once"
 **Files:**
 - Create: `hermes_trading/strategy.py`
 - Create: `hermes_trading/positions.py`
+- Modify: `hermes_trading/persistence/repository.py`
+- Modify: `hermes_trading/persistence/artifacts.py`
 - Modify: `hermes_trading/loop.py`
 - Test: `tests/test_positions.py`
 - Test: `tests/test_training_loop.py`
@@ -488,6 +490,6 @@ Expected: all legacy and new tests pass.
 Run: `graphify update .`
 
 ```bash
-git add hermes_trading/strategy.py hermes_trading/positions.py hermes_trading/loop.py tests/test_positions.py tests/test_training_loop.py graphify-out
+git add hermes_trading/strategy.py hermes_trading/positions.py hermes_trading/persistence/repository.py hermes_trading/persistence/artifacts.py hermes_trading/loop.py tests/test_positions.py tests/test_training_loop.py
 git commit -m "feat: model complete simulated positions"
 ```
