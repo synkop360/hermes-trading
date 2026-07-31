@@ -66,8 +66,9 @@ class RiskDecisionRecord:
 
 
 class StateRepository:
-    def __init__(self, connection: sqlite3.Connection) -> None:
+    def __init__(self, connection: sqlite3.Connection, database_path: Path | None = None) -> None:
         self._connection = connection
+        self._database_path = database_path
 
     @classmethod
     def open(cls, path: str | Path) -> StateRepository:
@@ -76,7 +77,7 @@ class StateRepository:
         connection.execute("PRAGMA journal_mode=WAL")
         connection.execute("PRAGMA foreign_keys=ON")
         connection.execute("PRAGMA busy_timeout=5000")
-        return cls(connection)
+        return cls(connection, Path(path))
 
     @classmethod
     def open_read_only(cls, path: str | Path) -> StateRepository:
@@ -86,7 +87,11 @@ class StateRepository:
         connection.execute("PRAGMA query_only=ON")
         connection.execute("PRAGMA foreign_keys=ON")
         connection.execute("PRAGMA busy_timeout=5000")
-        return cls(connection)
+        return cls(connection, Path(path))
+
+    @property
+    def database_path(self) -> Path | None:
+        return self._database_path
 
     def close(self) -> None:
         self._connection.close()
@@ -169,6 +174,39 @@ class StateRepository:
             "SELECT * FROM order_intents WHERE client_order_id = ?", (client_order_id,)
         ).fetchone()
         return self._intent_from_row(row) if row is not None else None
+
+    def order_by_client_id(self, client_order_id: str) -> OrderRecord | None:
+        row = self._connection.execute(
+            "SELECT * FROM orders WHERE client_order_id = ? ORDER BY updated_at DESC LIMIT 1",
+            (client_order_id,),
+        ).fetchone()
+        return self._order_from_row(row) if row is not None else None
+
+    def decision_strategy_version(self, decision_id: str) -> str:
+        row = self._connection.execute(
+            "SELECT strategy_version FROM decisions WHERE decision_id = ?", (decision_id,)
+        ).fetchone()
+        if row is None:
+            raise RelatedRecordNotFoundError("decision is missing")
+        return str(row["strategy_version"])
+
+    def order_intents(self) -> tuple[OrderIntent, ...]:
+        rows = self._connection.execute(
+            "SELECT * FROM order_intents ORDER BY created_at, client_order_id"
+        )
+        return tuple(self._intent_from_row(row) for row in rows)
+
+    def active_positions(self) -> tuple[Position, ...]:
+        rows = self._connection.execute(
+            """
+            SELECT position_id, asset, status, quantity, entry_price, stop_price,
+                   strategy_version, opened_at, closed_at, realized_pnl, fees
+            FROM positions
+            WHERE status IN ('opening', 'open', 'closing')
+            ORDER BY opened_at, position_id
+            """
+        )
+        return tuple(self._position_from_row(row) for row in rows)
 
     def persist_execution_intent(self, decision: Decision, intent: OrderIntent) -> bool:
         """Commit an execution decision and its idempotency key together.
@@ -1026,6 +1064,28 @@ class StateRepository:
             closed_at=row["closed_at"],
             realized_pnl=Decimal(row["realized_pnl"]),
             fees=Decimal(row["fees"]),
+        )
+
+    @staticmethod
+    def _order_from_row(row: sqlite3.Row) -> OrderRecord:
+        return OrderRecord(
+            order_id=row["order_id"],
+            client_order_id=row["client_order_id"],
+            exchange_order_id=row["exchange_order_id"],
+            asset=row["asset"],
+            side=row["side"],
+            order_type=row["order_type"],
+            status=OrderStatus(row["status"]),
+            requested_quantity=Decimal(row["requested_quantity"]),
+            filled_quantity=Decimal(row["filled_quantity"]),
+            average_fill_price=(
+                Decimal(row["average_fill_price"])
+                if row["average_fill_price"] is not None
+                else None
+            ),
+            fees=Decimal(row["fees"]),
+            created_at=row["created_at"],
+            updated_at=row["updated_at"],
         )
 
     @staticmethod
