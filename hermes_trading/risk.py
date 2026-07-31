@@ -5,6 +5,7 @@ from datetime import UTC, datetime, timedelta
 from decimal import Decimal, InvalidOperation
 import os
 from typing import Callable, Mapping, Protocol
+from uuid import uuid4
 
 from hermes_trading.config import ExecutionQualityLimits, resolve_execution_quality_limits
 from hermes_trading.domain import json_value
@@ -67,6 +68,7 @@ class RiskContext:
 
 @dataclass(frozen=True)
 class RiskDecision:
+    risk_decision_id: str
     allowed: bool
     reason_code: str
     notional: Decimal | None
@@ -113,9 +115,13 @@ class RiskEngine:
             context, stop_loss_pct, position_size_r, exchange_min_cost, now
         )
         if reason is not None:
-            if reason in {"daily_loss_limit", "drawdown_limit"}:
-                self.activate_kill_switch(reason)
-            return self._record_decision(False, reason, None, now)
+            return self._record_decision(
+                False,
+                reason,
+                None,
+                now,
+                activate_kill_switch=reason in {"daily_loss_limit", "drawdown_limit"},
+            )
 
         assert context.equity is not None
         assert context.free_quote is not None
@@ -210,9 +216,13 @@ class RiskEngine:
             return "drawdown_limit"
         if not context.spread_available or context.spread_bps is None:
             return "spread_unavailable"
+        if context.spread_bps < 0:
+            return "invalid_spread"
         if context.spread_observed_at is None:
             return "spread_stale"
         observed_at = context.spread_observed_at.astimezone(UTC)
+        if observed_at > now:
+            return "spread_future"
         if now - observed_at > timedelta(seconds=self.limits.max_spread_age_seconds):
             return "spread_stale"
         quality = self._quality_limits(context.symbol)
@@ -220,14 +230,43 @@ class RiskEngine:
             return "spread_limit"
         return None
 
+    def recover_pending_projections(self) -> int:
+        """Retry only views whose canonical risk decision was already committed."""
+        count = 0
+        for record in self.repository.risk_decisions(pending_only=True):
+            decision = RiskDecision(
+                record.risk_decision_id,
+                record.allowed,
+                record.reason_code,
+                record.notional,
+                record.decided_at,
+            )
+            self._project_status(decision, acknowledge=True)
+            count += 1
+        return count
+
     def _record_decision(
-        self, allowed: bool, reason_code: str, notional: Decimal | None, now: datetime
+        self,
+        allowed: bool,
+        reason_code: str,
+        notional: Decimal | None,
+        now: datetime,
+        *,
+        activate_kill_switch: bool = False,
     ) -> RiskDecision:
-        decision = RiskDecision(allowed, reason_code, notional, now.isoformat())
-        self._project_status(decision)
+        decision = RiskDecision(str(uuid4()), allowed, reason_code, notional, now.isoformat())
+        self.repository.record_risk_decision(
+            risk_decision_id=decision.risk_decision_id,
+            allowed=decision.allowed,
+            reason_code=decision.reason_code,
+            notional=decision.notional,
+            decided_at=now,
+            activate_kill_switch=activate_kill_switch,
+        )
+        self._project_status(decision, acknowledge=True)
         return decision
 
-    def _project_status(self, decision: RiskDecision | None) -> None:
+    def _project_status(self, decision: RiskDecision | None, *, acknowledge: bool = False) -> None:
         if self.projector is None:
             return
         if decision is not None:
@@ -246,6 +285,8 @@ class RiskEngine:
                 "last_decision": json_value(decision) if decision is not None else None,
             },
         )
+        if acknowledge and decision is not None:
+            self.repository.acknowledge_risk_decision_projection(decision.risk_decision_id)
 
     def _utc_now(self) -> datetime:
         value = self._now()

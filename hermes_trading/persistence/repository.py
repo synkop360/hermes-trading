@@ -54,6 +54,17 @@ class RiskState:
     updated_at: str | None
 
 
+@dataclass(frozen=True)
+class RiskDecisionRecord:
+    risk_decision_id: str
+    allowed: bool
+    reason_code: str
+    notional: Decimal | None
+    risk_state_revision: int
+    decided_at: str
+    projected_at: str | None
+
+
 class StateRepository:
     def __init__(self, connection: sqlite3.Connection) -> None:
         self._connection = connection
@@ -395,6 +406,91 @@ class StateRepository:
             and completed_at <= utc_now
             and (utc_now - completed_at).total_seconds() <= max_age_seconds
         )
+
+    def record_risk_decision(
+        self,
+        *,
+        risk_decision_id: str,
+        allowed: bool,
+        reason_code: str,
+        notional: Decimal | None,
+        decided_at: datetime,
+        activate_kill_switch: bool = False,
+    ) -> RiskDecisionRecord:
+        """Commit a decision and any automatic portfolio halt together."""
+        timestamp = decided_at.astimezone(UTC).isoformat()
+        try:
+            self._connection.execute("BEGIN IMMEDIATE")
+            if activate_kill_switch:
+                self._connection.execute(
+                    """
+                    INSERT INTO risk_state (risk_state_id, status, reason, revision, updated_at)
+                    VALUES ('portfolio', 'halted', ?, 1, ?)
+                    ON CONFLICT(risk_state_id) DO UPDATE SET
+                        status = 'halted', reason = excluded.reason,
+                        revision = risk_state.revision + 1, updated_at = excluded.updated_at
+                    """,
+                    (reason_code, timestamp),
+                )
+            state = self._connection.execute(
+                "SELECT revision FROM risk_state WHERE risk_state_id = 'portfolio'"
+            ).fetchone()
+            revision = int(state["revision"]) if state is not None else 0
+            self._connection.execute(
+                """
+                INSERT INTO risk_decisions (
+                    risk_decision_id, allowed, reason_code, notional,
+                    risk_state_revision, decided_at, projected_at
+                ) VALUES (?, ?, ?, ?, ?, ?, NULL)
+                """,
+                (
+                    risk_decision_id,
+                    int(allowed),
+                    reason_code,
+                    self._decimal_text(notional),
+                    revision,
+                    timestamp,
+                ),
+            )
+            self._connection.commit()
+        except BaseException:
+            self._connection.rollback()
+            raise
+        record = self.risk_decision(risk_decision_id)
+        if record is None:
+            raise RuntimeError("risk decision commit returned no record")
+        return record
+
+    def risk_decision(self, risk_decision_id: str) -> RiskDecisionRecord | None:
+        row = self._connection.execute(
+            "SELECT * FROM risk_decisions WHERE risk_decision_id = ?",
+            (risk_decision_id,),
+        ).fetchone()
+        return self._risk_decision_from_row(row) if row is not None else None
+
+    def risk_decisions(self, *, pending_only: bool = False) -> list[RiskDecisionRecord]:
+        query = "SELECT * FROM risk_decisions"
+        if pending_only:
+            query += " WHERE projected_at IS NULL"
+        query += " ORDER BY decided_at, risk_decision_id"
+        return [self._risk_decision_from_row(row) for row in self._connection.execute(query)]
+
+    def pending_risk_decision_count(self) -> int:
+        row = self._connection.execute(
+            "SELECT COUNT(*) FROM risk_decisions WHERE projected_at IS NULL"
+        ).fetchone()
+        return int(row[0])
+
+    def acknowledge_risk_decision_projection(
+        self, risk_decision_id: str, projected_at: datetime | None = None
+    ) -> None:
+        timestamp = (projected_at or datetime.now(UTC)).isoformat()
+        with self._connection:
+            self._connection.execute(
+                """UPDATE risk_decisions SET projected_at = ?
+                WHERE risk_decision_id = ? AND projected_at IS NULL""",
+                (timestamp, risk_decision_id),
+            )
 
     def export_canonical_tables(self) -> dict[str, list[dict[str, object]]]:
         return {
@@ -867,12 +963,25 @@ class StateRepository:
             fees=Decimal(row["fees"]),
         )
 
+    @staticmethod
+    def _risk_decision_from_row(row: sqlite3.Row) -> RiskDecisionRecord:
+        return RiskDecisionRecord(
+            risk_decision_id=row["risk_decision_id"],
+            allowed=bool(row["allowed"]),
+            reason_code=row["reason_code"],
+            notional=Decimal(row["notional"]) if row["notional"] is not None else None,
+            risk_state_revision=int(row["risk_state_revision"]),
+            decided_at=row["decided_at"],
+            projected_at=row["projected_at"],
+        )
+
 
 __all__ = [
     "ActivePositionExists",
     "DuplicateIntentError",
     "RelatedRecordNotFoundError",
     "RiskState",
+    "RiskDecisionRecord",
     "StateRepository",
     "UnsupportedSchemaError",
 ]

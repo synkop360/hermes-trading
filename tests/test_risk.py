@@ -6,7 +6,7 @@ import unittest
 
 from hermes_trading.persistence import StateRepository
 from hermes_trading.persistence.artifacts import ArtifactProjector
-from hermes_trading.config import resolve_execution_quality_limits
+from hermes_trading.config import ExecutionQualityLimits, resolve_execution_quality_limits
 from hermes_trading.risk import (
     RiskContext,
     RiskEngine,
@@ -99,6 +99,23 @@ class RiskEngineTests(unittest.TestCase):
         self.assertEqual(missing.reason_code, "spread_unavailable")
         self.assertEqual(stale.reason_code, "spread_stale")
 
+    def test_negative_or_future_spread_observation_is_no_trade(self) -> None:
+        negative = self.engine.authorize_entry(
+            context=self.context(spread_bps=Decimal("-0.01")),
+            stop_loss_pct=Decimal("0.01"),
+            position_size_r=Decimal("1"),
+            exchange_min_cost=Decimal("5"),
+        )
+        future = self.engine.authorize_entry(
+            context=self.context(spread_observed_at=self.now + timedelta(seconds=1)),
+            stop_loss_pct=Decimal("0.01"),
+            position_size_r=Decimal("1"),
+            exchange_min_cost=Decimal("5"),
+        )
+
+        self.assertEqual(negative.reason_code, "invalid_spread")
+        self.assertEqual(future.reason_code, "spread_future")
+
     def test_rejects_invalid_risk_inputs_and_unknown_or_active_state(self) -> None:
         cases = (
             (self.context(), Decimal("0"), Decimal("1"), "invalid_stop_loss"),
@@ -167,6 +184,48 @@ class RiskEngineTests(unittest.TestCase):
         self.assertEqual(payload["state"]["kill_switch"], False)
         self.assertEqual(payload["last_decision"]["notional"], "5")
 
+    def test_decision_is_canonical_before_projection_and_recovers_after_projection_failure(self) -> None:
+        class FailingProjector:
+            def __init__(self, state_dir: Path) -> None:
+                self.delegate = ArtifactProjector(state_dir)
+
+            def append_event(self, name: str, payload: object) -> None:
+                self.delegate.append_event(name, payload)
+
+            def write_snapshot(self, name: str, payload: object) -> None:
+                raise OSError("artifact unavailable")
+
+        failing = RiskEngine(self.repository, FailingProjector(self.state_dir), now=lambda: self.now)
+        with self.assertRaisesRegex(OSError, "artifact unavailable"):
+            failing.authorize_entry(
+                context=self.context(daily_pnl=Decimal("-5.01")),
+                stop_loss_pct=Decimal("0.01"),
+                position_size_r=Decimal("1"),
+                exchange_min_cost=Decimal("5"),
+            )
+
+        records = self.repository.risk_decisions()
+        self.assertEqual(len(records), 1)
+        self.assertEqual(records[0].reason_code, "daily_loss_limit")
+        self.assertEqual(records[0].risk_state_revision, self.repository.risk_state().revision)
+        self.assertEqual(self.repository.pending_risk_decision_count(), 1)
+
+        self.repository.close()
+        self.repository = StateRepository.open(self.state_dir / "trading.db")
+        self.repository.migrate()
+        self.assertEqual(self.repository.risk_decisions()[0].reason_code, "daily_loss_limit")
+
+        recovered = RiskEngine(
+            self.repository,
+            ArtifactProjector(self.state_dir),
+            now=lambda: self.now,
+        )
+        self.assertEqual(recovered.recover_pending_projections(), 1)
+        self.assertEqual(self.repository.pending_risk_decision_count(), 0)
+        journal = (self.state_dir / "risk_decisions.jsonl")
+        self.assertTrue(journal.exists())
+        self.assertEqual(len(journal.read_text(encoding="utf-8").splitlines()), 1)
+
     def test_limits_are_decimal_and_environment_overrides_are_strict(self) -> None:
         limits = resolve_risk_limits({"HERMES_TRADING_MAX_ORDER_USDT": "7.50"})
 
@@ -183,6 +242,23 @@ class RiskEngineTests(unittest.TestCase):
 
         self.assertEqual(btc.max_spread_bps, Decimal("17"))
         self.assertEqual(shib.max_spread_bps, Decimal("30"))
+
+    def test_quality_limit_constructor_rejects_binary_float_with_validation_error(self) -> None:
+        with self.assertRaisesRegex(ValueError, "finite Decimal"):
+            ExecutionQualityLimits(1.0, Decimal("10"))
+
+    def test_environment_cannot_weaken_shib_quality_profile(self) -> None:
+        values = {
+            "HERMES_TRADING_MAX_SPREAD_BPS": "100",
+            "HERMES_TRADING_MODELED_SLIPPAGE_BPS": "1",
+            "HERMES_TRADING_SHIB_MAX_SPREAD_BPS": "100",
+            "HERMES_TRADING_SHIB_MODELED_SLIPPAGE_BPS": "1",
+        }
+
+        shib = resolve_execution_quality_limits(values, "SHIB/USDT")
+
+        self.assertEqual(shib.max_spread_bps, Decimal("30"))
+        self.assertEqual(shib.modeled_slippage_bps, Decimal("20"))
 
     def test_negative_balances_are_not_authorized(self) -> None:
         decision = self.engine.authorize_entry(

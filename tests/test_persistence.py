@@ -118,11 +118,11 @@ class PersistenceTests(unittest.TestCase):
             self.repo._connection.execute("PRAGMA busy_timeout").fetchone()[0],
             5000,
         )
-        self.assertEqual(self.repo.schema_version(), 2)
+        self.assertEqual(self.repo.schema_version(), 3)
 
         self.repo.migrate()
 
-        self.assertEqual(self.repo.schema_version(), 2)
+        self.assertEqual(self.repo.schema_version(), 3)
         self.assertEqual(self.repo.integrity_check(), "ok")
 
     def test_sql_normalization_preserves_escaped_literal_quotes(self) -> None:
@@ -158,6 +158,7 @@ class PersistenceTests(unittest.TestCase):
                 "qualification_checks",
                 "qualification_runs",
                 "risk_state",
+                "risk_decisions",
                 "schema_migrations",
                 "strategy_versions",
             },
@@ -168,11 +169,11 @@ class PersistenceTests(unittest.TestCase):
         self.repo.record_decision(sample_decision())
         with self.repo._connection:
             self.repo._connection.execute("DROP TABLE projection_payloads")
-            self.repo._connection.execute("DELETE FROM schema_migrations WHERE version = 2")
+            self.repo._connection.execute("DELETE FROM schema_migrations WHERE version IN (2, 3)")
 
         self.repo.migrate()
 
-        self.assertEqual(self.repo.schema_version(), 2)
+        self.assertEqual(self.repo.schema_version(), 3)
         self.assertIn("projection_payloads", self.repo.table_names())
         payload = self.repo._connection.execute(
             "SELECT payload FROM projection_payloads WHERE decision_id = ?",
@@ -228,7 +229,7 @@ class PersistenceTests(unittest.TestCase):
         with self.assertRaises(UnsupportedSchemaError):
             self.repo.migrate()
 
-        self.assertEqual(self.repo.schema_version(), 2)
+        self.assertEqual(self.repo.schema_version(), 3)
 
     def test_recorded_v1_is_rejected_when_a_table_is_incompatible(self) -> None:
         self.repo.migrate()
@@ -241,7 +242,7 @@ class PersistenceTests(unittest.TestCase):
         with self.assertRaises(UnsupportedSchemaError):
             self.repo.migrate()
 
-        self.assertEqual(self.repo.schema_version(), 2)
+        self.assertEqual(self.repo.schema_version(), 3)
 
     def test_recorded_v1_rejects_a_disabled_active_position_index(self) -> None:
         self.repo.migrate()
@@ -260,7 +261,7 @@ class PersistenceTests(unittest.TestCase):
         with self.assertRaises(UnsupportedSchemaError):
             self.repo.migrate()
 
-        self.assertEqual(self.repo.schema_version(), 2)
+        self.assertEqual(self.repo.schema_version(), 3)
 
     def test_recorded_v1_rejects_uppercase_active_status_literals(self) -> None:
         self.repo.migrate()
@@ -282,7 +283,7 @@ class PersistenceTests(unittest.TestCase):
         with self.assertRaises(UnsupportedSchemaError):
             self.repo.migrate()
 
-        self.assertEqual(self.repo.schema_version(), 2)
+        self.assertEqual(self.repo.schema_version(), 3)
 
     def test_order_intent_client_id_is_unique(self) -> None:
         self.repo.migrate()

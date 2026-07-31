@@ -194,6 +194,18 @@ V2_FOREIGN_KEYS = {
     },
 }
 
+V3_COLUMNS: dict[str, tuple[ColumnShape, ...]] = {
+    "risk_decisions": (
+        ("risk_decision_id", "TEXT", 0, 1),
+        ("allowed", "INTEGER", 1, 0),
+        ("reason_code", "TEXT", 1, 0),
+        ("notional", "TEXT", 0, 0),
+        ("risk_state_revision", "INTEGER", 1, 0),
+        ("decided_at", "TEXT", 1, 0),
+        ("projected_at", "TEXT", 0, 0),
+    ),
+}
+
 V1_INDEXES = {
     "unique_processed_candle": (
         "candles_processed",
@@ -446,6 +458,22 @@ MIGRATIONS: tuple[Migration, ...] = (
             """,
         ),
     ),
+    (
+        3,
+        (
+            """
+            CREATE TABLE IF NOT EXISTS risk_decisions (
+                risk_decision_id TEXT PRIMARY KEY,
+                allowed INTEGER NOT NULL,
+                reason_code TEXT NOT NULL,
+                notional TEXT,
+                risk_state_revision INTEGER NOT NULL,
+                decided_at TEXT NOT NULL,
+                projected_at TEXT
+            )
+            """,
+        ),
+    ),
 )
 
 
@@ -511,6 +539,8 @@ def _validate_schema(connection: sqlite3.Connection, version: int) -> None:
     if version >= 2:
         expected_columns.update(V2_COLUMNS)
         expected_foreign_keys.update(V2_FOREIGN_KEYS)
+    if version >= 3:
+        expected_columns.update(V3_COLUMNS)
     actual_tables = {
         row[0]
         for row in connection.execute(

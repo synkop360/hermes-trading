@@ -155,6 +155,8 @@ def _event_key(name: str, payload: Any) -> str | None:
         return _nonempty_key(payload, "order_id")
     if name == "fills.jsonl":
         return _nonempty_key(payload, "fill_id")
+    if name == "risk_decisions.jsonl":
+        return _nonempty_key(payload, "risk_decision_id")
     if name in {"positions.jsonl", "trades.jsonl"}:
         position_id = _nonempty_key(payload, "position_id")
         status = _nonempty_key(payload, "status")

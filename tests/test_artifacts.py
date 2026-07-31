@@ -241,7 +241,7 @@ class ArtifactTests(unittest.TestCase):
         export = self.run_cli("export")
 
         self.assertEqual(integrity.returncode, 0, integrity.stderr)
-        self.assertEqual(integrity.stdout.strip(), "integrity=ok schema_version=2")
+        self.assertEqual(integrity.stdout.strip(), "integrity=ok schema_version=3")
         self.assertEqual(export.returncode, 0, export.stderr)
         self.assertEqual(json.loads(export.stdout)["positions"][0]["asset"], "BTC/USDT")
         self.assertEqual(journal.read_text(), '{"legacy":true}\n')
@@ -288,7 +288,7 @@ class ArtifactTests(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertEqual(
                 json.loads(output_path.read_text())["system_status"]["schema_version"],
-                2,
+                3,
             )
         self.assertFalse((self.state_dir / "positions.json").exists())
 
