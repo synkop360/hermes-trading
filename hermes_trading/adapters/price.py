@@ -99,7 +99,13 @@ class PriceClient:
 
         async def bounded_fetch(asset: str) -> dict[str, Any]:
             async with semaphore:
-                return await self.fetch(asset, timeframe)
+                last_error: Exception | None = None
+                for _ in range(2):
+                    try:
+                        return await self.fetch(asset, timeframe)
+                    except Exception as error:
+                        last_error = error
+                raise last_error or RuntimeError("price fetch failed")
 
         tasks = {
             asset: asyncio.create_task(bounded_fetch(asset))

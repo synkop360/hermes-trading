@@ -5,6 +5,7 @@ import tempfile
 import unittest
 
 from hermes_trading.market_data import ClosedCandle, MarketSnapshot
+from hermes_trading.notifications import _build_periodic_summary_message
 from hermes_trading.persistence import StateRepository
 from hermes_trading.persistence.artifacts import ArtifactProjector
 from hermes_trading.positions import PositionEngine
@@ -108,6 +109,119 @@ class PositionEngineTests(unittest.TestCase):
         self.assertEqual(_jsonl_count(artifact_directory / "positions.jsonl"), 2)
         self.assertEqual(_jsonl_count(artifact_directory / "trades.jsonl"), 1)
 
+    def test_stale_closed_candle_persists_one_no_trade_decision(self) -> None:
+        stale = MarketSnapshot(**{**self.entry_candle.__dict__, "availability": "stale", "decision_action": "no_trade", "reason": "stale_closed_candle"})
+
+        first = self.engine.process_candle(stale, entry_strategy())
+        second = self.engine.process_candle(stale, entry_strategy())
+
+        self.assertTrue(first.processed)
+        self.assertEqual(first.decision.action, "no_trade")
+        self.assertEqual(first.orders, ())
+        self.assertFalse(second.processed)
+
+    def test_older_candle_cannot_close_open_position(self) -> None:
+        self.engine.process_candle(self.entry_candle, entry_strategy())
+        older = candle(datetime(2026, 7, 30, 19, tzinfo=UTC), open="80", low="60", close="70")
+
+        result = self.engine.process_candle(older, entry_strategy())
+
+        self.assertTrue(result.processed)
+        self.assertEqual(result.reason, "out_of_order_candle")
+        self.assertEqual(result.position.status.value, "open")
+        self.assertEqual(result.orders, ())
+
+    def test_simulation_rates_must_be_less_than_one(self) -> None:
+        for setting in ("slippage_rate", "taker_fee_rate", "maker_fee_rate"):
+            strategy = entry_strategy()
+            strategy["simulation"] = {setting: "1"}
+            with self.subTest(setting=setting), self.assertRaises(ValueError):
+                self.engine.process_candle(self.entry_candle, strategy)
+
+    def test_stop_always_uses_taker_fee_even_with_maker_explicit_exit(self) -> None:
+        strategy = entry_strategy()
+        strategy["exit"] = {"indicator": "rsi", "threshold": "70", "fee": "maker"}
+        strategy["simulation"] = {"taker_fee_rate": "0.01", "maker_fee_rate": "0.5"}
+        self.engine.process_candle(self.entry_candle, strategy)
+
+        result = self.engine.process_candle(
+            candle(datetime(2026, 7, 30, 21, tzinfo=UTC), open="100", low="70", close="90"),
+            strategy,
+        )
+
+        exit_order = result.orders[0]
+        self.assertEqual(exit_order.fees, exit_order.filled_quantity * exit_order.average_fill_price * Decimal("0.01"))
+
+    def test_projection_resumes_idempotently_after_each_output_step(self) -> None:
+        for fail_at in range(1, 9):
+            with self.subTest(fail_at=fail_at), tempfile.TemporaryDirectory() as directory:
+                repository = StateRepository.open(Path(directory) / "trading.db")
+                repository.migrate()
+                artifact_directory = Path(directory) / "artifacts"
+                PositionEngine(repository, ArtifactProjector(artifact_directory)).process_candle(self.entry_candle, entry_strategy())
+                projector = _FailingProjector(artifact_directory, fail_at)
+                projector.operations = -7  # Existing entry reconciliation performs seven idempotent checks.
+                close_result = PositionEngine(repository, projector).process_candle(
+                    candle(datetime(2026, 7, 30, 21, tzinfo=UTC), open="100", low="70", close="90"),
+                    entry_strategy(),
+                )
+                self.assertIsNotNone(close_result.projection_error)
+
+                PositionEngine(repository, ArtifactProjector(projector.state_dir)).process_candle(
+                    candle(datetime(2026, 7, 30, 21, tzinfo=UTC), open="100", low="70", close="90"),
+                    entry_strategy(),
+                )
+
+                self.assertEqual(_jsonl_count(projector.state_dir / "decisions.jsonl"), 2)
+                self.assertEqual(_jsonl_count(projector.state_dir / "orders.jsonl"), 2)
+                self.assertEqual(_jsonl_count(projector.state_dir / "fills.jsonl"), 2)
+                self.assertEqual(_jsonl_count(projector.state_dir / "positions.jsonl"), 2)
+                self.assertEqual(_jsonl_count(projector.state_dir / "trades.jsonl"), 1)
+                for snapshot_name in ArtifactProjector.SNAPSHOT_NAMES:
+                    self.assertTrue((projector.state_dir / snapshot_name).exists())
+                repository.close()
+
+    def test_canonical_jsonl_events_feed_periodic_summary(self) -> None:
+        artifact_directory = Path(self.temporary_directory.name) / "summary-artifacts"
+        engine = PositionEngine(self.state, ArtifactProjector(artifact_directory))
+        engine.process_candle(self.entry_candle, entry_strategy())
+        engine.process_candle(
+            candle(datetime(2026, 7, 30, 21, tzinfo=UTC), open="100", low="70", close="90"),
+            entry_strategy(),
+        )
+
+        summary = _build_periodic_summary_message(
+            artifact_directory,
+            "1h",
+            datetime(2026, 7, 30, 19, tzinfo=UTC),
+            datetime(2026, 7, 30, 22, tzinfo=UTC),
+        )
+
+        self.assertIn("Decisions: total=2", summary)
+        self.assertIn("Trades: total=1", summary)
+        self.assertIn("Orders: total=2", summary)
+        self.assertNotIn("total_pnl=0 |", summary)
+
 
 def _jsonl_count(path: Path) -> int:
     return len(path.read_text(encoding="utf-8").splitlines())
+
+
+class _FailingProjector(ArtifactProjector):
+    def __init__(self, state_dir: Path, fail_at: int) -> None:
+        super().__init__(state_dir)
+        self.fail_at = fail_at
+        self.operations = 0
+
+    def _maybe_fail(self) -> None:
+        self.operations += 1
+        if self.operations == self.fail_at:
+            raise OSError("injected projection failure")
+
+    def append_event(self, name: str, payload: object) -> None:
+        self._maybe_fail()
+        super().append_event(name, payload)
+
+    def write_snapshot(self, name: str, payload: object) -> None:
+        self._maybe_fail()
+        super().write_snapshot(name, payload)

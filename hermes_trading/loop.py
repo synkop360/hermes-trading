@@ -6,6 +6,7 @@ import os
 import re
 from dataclasses import dataclass
 from datetime import datetime, timezone
+from decimal import Decimal
 from pathlib import Path
 from typing import Any, Awaitable, Callable
 
@@ -178,7 +179,14 @@ async def _notify_all(messages: list[str], settings: NotificationSettings | None
 
 
 def _load_yaml(path: Path) -> dict[str, Any]:
-    return yaml.safe_load(path.read_text()) or {}
+    class DecimalSafeLoader(yaml.SafeLoader):
+        pass
+
+    def decimal_value(loader: yaml.SafeLoader, node: yaml.Node) -> Decimal:
+        return Decimal(loader.construct_scalar(node).replace("_", ""))
+
+    DecimalSafeLoader.add_constructor("tag:yaml.org,2002:float", decimal_value)
+    return yaml.load(path.read_text(), Loader=DecimalSafeLoader) or {}
 
 
 def _paper_trade(asset: str, market: dict[str, Any], strategy: dict[str, Any]) -> dict[str, Any] | None:
@@ -292,9 +300,6 @@ async def _run_training_loop(
     projector = ArtifactProjector(state_dir)
     market_data = MarketDataCoordinator(
         repository=state,
-        price_fetch=lambda watched_asset, timeframe: _retry(
-            "price", lambda: price.fetch(watched_asset)
-        ),
         news_fetch=lambda: _retry("news", news.fetch),
         macro_fetch=lambda: _retry("macro", macro.fetch),
         onchain_fetch=lambda: _retry("onchain", onchain.fetch),

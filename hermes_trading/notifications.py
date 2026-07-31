@@ -5,6 +5,7 @@ import os
 import re
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
+from decimal import Decimal, InvalidOperation
 from pathlib import Path
 from typing import Any, Awaitable, Callable
 
@@ -399,7 +400,15 @@ def _read_jsonl_between(path: Path, start: datetime, end: datetime) -> list[dict
             continue
         try:
             record = json.loads(line)
-            timestamp = _ensure_utc(datetime.fromisoformat(str(record.get("timestamp"))))
+            timestamp_value = next(
+                (
+                    record.get(field)
+                    for field in ("timestamp", "decided_at", "created_at", "filled_at", "closed_at", "opened_at")
+                    if record.get(field) is not None
+                ),
+                None,
+            )
+            timestamp = _ensure_utc(datetime.fromisoformat(str(timestamp_value)))
         except (ValueError, TypeError, json.JSONDecodeError):
             continue
         if start <= timestamp < end:
@@ -415,11 +424,16 @@ def _build_periodic_summary_message(state_dir: Path, frequency: str, start: date
     by_asset: dict[str, PnlBucket] = {}
     for trade in trades:
         asset = str(trade.get("asset"))
-        pnl = float(trade.get("realized_pnl_pct", 0.0) or 0.0)
+        pnl = _canonical_pnl_pct(trade)
         trade_bucket.add(pnl)
         by_asset.setdefault(asset, PnlBucket()).add(pnl)
 
-    no_trade = sum(1 for decision in decisions if not decision.get("trade_closed"))
+    no_trade = sum(
+        1
+        for decision in decisions
+        if decision.get("action") == "no_trade"
+        or ("action" not in decision and not decision.get("trade_closed"))
+    )
     order_statuses: dict[str, int] = {}
     for order in orders:
         status = str(order.get("status") or "unknown")
@@ -449,3 +463,13 @@ def _build_periodic_summary_message(state_dir: Path, frequency: str, start: date
             *symbol_lines,
         ]
     )
+
+
+def _canonical_pnl_pct(trade: dict[str, Any]) -> float:
+    if trade.get("realized_pnl_pct") is not None:
+        return float(trade["realized_pnl_pct"] or 0)
+    try:
+        cost = Decimal(str(trade["quantity"])) * Decimal(str(trade["entry_price"]))
+        return float(Decimal(str(trade["realized_pnl"])) / cost) if cost else 0.0
+    except (InvalidOperation, KeyError, TypeError, ValueError):
+        return 0.0

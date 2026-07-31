@@ -54,6 +54,16 @@ def price_payload(
 
 
 class MarketDataTests(unittest.IsolatedAsyncioTestCase):
+    async def test_shared_price_client_retries_one_transient_asset_failure(self) -> None:
+        client = price_adapter.PriceClient(exchange_factory=lambda config: FakeExchange())
+        payload = {"asset": "BTC/USDT"}
+        client.fetch = AsyncMock(side_effect=[RuntimeError("temporary"), payload])
+
+        result = await client.fetch_many(["BTC/USDT"], concurrency=1)
+        await client.close()
+
+        self.assertEqual(result["BTC/USDT"], payload)
+        self.assertEqual(client.fetch.await_count, 2)
     def setUp(self) -> None:
         self.temporary_directory = tempfile.TemporaryDirectory()
         self.db_path = Path(self.temporary_directory.name) / "trading.db"

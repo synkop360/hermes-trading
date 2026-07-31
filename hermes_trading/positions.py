@@ -33,8 +33,8 @@ class SimulationSettings:
         if values["quote_notional"] <= 0:
             raise ValueError("quote_notional must be greater than zero")
         for name in ("taker_fee_rate", "maker_fee_rate", "slippage_rate"):
-            if values[name] < 0:
-                raise ValueError(f"{name} must be zero or greater")
+            if values[name] < 0 or values[name] >= 1:
+                raise ValueError(f"{name} must be in [0, 1)")
         return cls(**values)
 
 
@@ -56,15 +56,28 @@ class PositionEngine:
 
     def process_candle(self, snapshot: MarketSnapshot, strategy: dict[str, Any]) -> PositionProcessResult:
         candle = snapshot.candle
-        if candle is None or snapshot.availability != "available":
+        if candle is None:
             return PositionProcessResult(False, snapshot.reason, None)
         identity = snapshot.candle_identity
         if self.state.is_candle_processed(identity.asset, identity.timeframe, identity.close_timestamp.isoformat()):
+            if self.projector is not None:
+                try:
+                    self.projector.reconcile(self.state)
+                except Exception:
+                    pass
             return PositionProcessResult(False, "duplicate_candle", self.state.open_position(snapshot.asset))
+        if self.projector is not None and self.state.export_canonical_tables()["decisions"]:
+            try:
+                self.projector.reconcile(self.state)
+            except Exception:
+                pass
 
         settings = SimulationSettings.from_strategy(strategy)
         existing = self.state.open_position(snapshot.asset)
-        signal = evaluate_strategy(snapshot, strategy, existing)
+        if existing is not None and identity.close_timestamp.isoformat() <= existing.opened_at:
+            signal = StrategySignal("no_trade", snapshot.asset, "out_of_order_candle", candle.close, identity.candle_id)
+        else:
+            signal = evaluate_strategy(snapshot, strategy, existing)
         now = identity.close_timestamp.isoformat()
         decision = Decision(
             decision_id=_identifier("decision", signal.candle_id, signal.action),
@@ -115,31 +128,36 @@ class PositionEngine:
         candle = snapshot.candle
         fill_price = candle.close * (Decimal("1") + settings.slippage_rate)
         quantity = settings.quote_notional / fill_price
+        _positive_finite(fill_price, "entry fill price")
+        _positive_finite(quantity, "entry quantity")
         fee = quantity * fill_price * settings.taker_fee_rate
         stop_pct = _decimal_setting(strategy.get("stop_loss_pct"), "stop_loss_pct")
         if stop_pct <= 0 or stop_pct >= 100:
             raise ValueError("stop_loss_pct must be greater than zero and less than 100")
         stop_price = fill_price * (Decimal("1") - stop_pct / Decimal("100"))
-        return self._records(decision, "buy", quantity, fill_price, fee, stop_price, strategy, PositionStatus.OPEN)
+        _positive_finite(stop_price, "stop price")
+        return self._records(decision, "buy", quantity, fill_price, fee, stop_price, strategy, PositionStatus.OPEN, order_type="market")
 
     def _exit(self, snapshot: MarketSnapshot, decision: Decision, strategy: dict[str, Any], settings: SimulationSettings, position: Position, signal: StrategySignal) -> tuple[Position, OrderIntent, OrderRecord, Fill]:
         candle = snapshot.candle
         base_price = min(candle.open, position.stop_price) if signal.reason == "stop_loss" else candle.close
         fill_price = base_price * (Decimal("1") - settings.slippage_rate)
         exit_rule = strategy.get("exit")
-        maker = isinstance(exit_rule, dict) and str(exit_rule.get("fee", "taker")).lower() == "maker"
+        maker = signal.reason == "explicit_exit" and isinstance(exit_rule, dict) and str(exit_rule.get("fee", "taker")).lower() == "maker"
         fee = position.quantity * fill_price * (settings.maker_fee_rate if maker else settings.taker_fee_rate)
-        closed, intent, order, fill = self._records(decision, "sell", position.quantity, fill_price, fee, position.stop_price, strategy, PositionStatus.CLOSED, previous=position)
+        _positive_finite(fill_price, "exit fill price")
+        _positive_finite(position.quantity, "exit quantity")
+        closed, intent, order, fill = self._records(decision, "sell", position.quantity, fill_price, fee, position.stop_price, strategy, PositionStatus.CLOSED, previous=position, order_type="limit" if maker else "market")
         return closed, intent, order, fill
 
-    def _records(self, decision: Decision, side: str, quantity: Decimal, fill_price: Decimal, fee: Decimal, stop_price: Decimal, strategy: dict[str, Any], status: PositionStatus, previous: Position | None = None) -> tuple[Position, OrderIntent, OrderRecord, Fill]:
+    def _records(self, decision: Decision, side: str, quantity: Decimal, fill_price: Decimal, fee: Decimal, stop_price: Decimal, strategy: dict[str, Any], status: PositionStatus, previous: Position | None = None, *, order_type: str) -> tuple[Position, OrderIntent, OrderRecord, Fill]:
         marker = f"{decision.candle_id}:{side}"
         position_id = previous.position_id if previous is not None else _identifier("position", decision.asset, decision.candle_id)
         client_order_id = _identifier("intent", marker)
         order_id = _identifier("order", marker)
         now = decision.decided_at
-        intent = OrderIntent(client_order_id, decision.decision_id, decision.asset, side, "market", quantity, fill_price, now, position_id, stop_price)
-        order = OrderRecord(order_id, client_order_id, decision.asset, side, "market", OrderStatus.FILLED, quantity, quantity, fill_price, fee, now, now)
+        intent = OrderIntent(client_order_id, decision.decision_id, decision.asset, side, order_type, quantity, fill_price, now, position_id, stop_price)
+        order = OrderRecord(order_id, client_order_id, decision.asset, side, order_type, OrderStatus.FILLED, quantity, quantity, fill_price, fee, now, now)
         fill = Fill(_identifier("fill", marker), order_id, decision.asset, side, quantity, fill_price, fee, now)
         if previous is None:
             position = Position(position_id, decision.asset, status, quantity, fill_price, stop_price, decision.strategy_version, now, fees=fee)
@@ -175,6 +193,11 @@ class PositionEngine:
 
 def _identifier(*parts: str) -> str:
     return str(uuid5(NAMESPACE_URL, "hermes-trading:" + ":".join(parts)))
+
+
+def _positive_finite(value: Decimal, name: str) -> None:
+    if not value.is_finite() or value <= 0:
+        raise ValueError(f"{name} must be positive and finite")
 
 
 __all__ = ["PositionEngine", "PositionProcessResult", "SimulationSettings"]

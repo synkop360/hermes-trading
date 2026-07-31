@@ -23,12 +23,22 @@ class ArtifactProjector:
     def append_event(self, name: str, payload: Any) -> None:
         path = self._artifact_path(name, ".jsonl")
         self.state_dir.mkdir(parents=True, exist_ok=True)
+        normalized = json_value(payload)
         event_line = json.dumps(
-            json_value(payload),
+            normalized,
             separators=(",", ":"),
             sort_keys=True,
         )
+        event_key = _event_key(name, normalized)
         with _artifact_lock(path):
+            if path.exists() and event_key is not None:
+                for line in path.read_text(encoding="utf-8").splitlines():
+                    try:
+                        existing = json.loads(line)
+                    except json.JSONDecodeError:
+                        continue
+                    if _event_key(name, existing) == event_key:
+                        return
             with path.open("a", encoding="utf-8") as handle:
                 handle.write(event_line)
                 handle.write("\n")
@@ -91,6 +101,21 @@ class ArtifactProjector:
             self.append_event("trades.jsonl", position)
         self.rebuild_all(repository)
 
+    def reconcile(self, repository: StateRepository) -> None:
+        """Resume human projections idempotently from canonical SQLite state."""
+        records = repository.export_canonical_tables()
+        for decision in records["decisions"]:
+            self.append_event("decisions.jsonl", decision)
+        for order in records["orders"]:
+            self.append_event("orders.jsonl", order)
+        for fill in records["order_fills"]:
+            self.append_event("fills.jsonl", fill)
+        for position in records["positions"]:
+            self.append_event("positions.jsonl", position)
+            if position["status"] == "closed":
+                self.append_event("trades.jsonl", position)
+        self.rebuild_all(repository)
+
     @staticmethod
     def snapshot_payloads(repository: StateRepository) -> dict[str, dict[str, Any]]:
         return {
@@ -107,6 +132,20 @@ class ArtifactProjector:
 
 
 __all__ = ["ArtifactProjector"]
+
+
+def _event_key(name: str, payload: Any) -> str | None:
+    if not isinstance(payload, dict):
+        return None
+    if name == "decisions.jsonl":
+        return str(payload.get("decision_id"))
+    if name == "orders.jsonl":
+        return str(payload.get("order_id"))
+    if name == "fills.jsonl":
+        return str(payload.get("fill_id"))
+    if name in {"positions.jsonl", "trades.jsonl"}:
+        return f"{payload.get('position_id')}:{payload.get('status')}"
+    return None
 
 
 def _fsync_directory(directory: Path) -> bool:

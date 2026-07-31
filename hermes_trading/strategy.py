@@ -21,8 +21,10 @@ def evaluate_strategy(
     snapshot: MarketSnapshot, strategy: dict[str, Any], position: Position | None
 ) -> StrategySignal:
     candle = snapshot.candle
-    if candle is None or snapshot.availability != "available":
+    if candle is None:
         return StrategySignal("no_trade", snapshot.asset, snapshot.reason, Decimal("0"), "")
+    if snapshot.availability != "available":
+        return StrategySignal("no_trade", snapshot.asset, snapshot.reason, candle.close, snapshot.candle_identity.candle_id)
 
     candle_id = snapshot.candle_identity.candle_id
     if position is not None:

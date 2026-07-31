@@ -55,7 +55,7 @@ class TrainingDecimalJournalTests(unittest.IsolatedAsyncioTestCase):
                 "  indicator: rsi\n"
                 "  threshold: '30'\n"
                 "  direction: long\n"
-                "stop_loss_pct: '2'\n",
+                "stop_loss_pct: 0.5\n",
                 encoding="utf-8",
             )
             with (
@@ -81,8 +81,8 @@ class TrainingDecimalJournalTests(unittest.IsolatedAsyncioTestCase):
             heartbeat = json.loads((state / "heartbeat.json").read_text(encoding="utf-8"))
 
         entry_price = "100.2235802458013580245801358"
-        stop_price = "98.21910864088533086408853308"
-        exit_price = "98.12088953224444553322444455"
+        stop_price = "99.72246234457235123445723512"
+        exit_price = "99.62273988222777888322277788"
         self.assertEqual(decisions[0]["reference_price"], str(exact_price))
         self.assertEqual(decisions[1]["reference_price"], stop_price)
         self.assertEqual(orders[0]["average_fill_price"], entry_price)
