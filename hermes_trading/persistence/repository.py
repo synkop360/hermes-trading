@@ -44,6 +44,16 @@ class ProjectionItem:
     decision_id: str
 
 
+@dataclass(frozen=True)
+class RiskState:
+    """The durable, process-independent portfolio risk switch."""
+
+    kill_switch: bool
+    reason: str | None
+    revision: int
+    updated_at: str | None
+
+
 class StateRepository:
     def __init__(self, connection: sqlite3.Connection) -> None:
         self._connection = connection
@@ -269,6 +279,122 @@ class StateRepository:
             "journal_mode": self.journal_mode(),
             "schema_version": self.schema_version(),
         }
+
+    def risk_state(self) -> RiskState:
+        row = self._connection.execute(
+            """SELECT status, reason, revision, updated_at FROM risk_state
+            WHERE risk_state_id = 'portfolio'"""
+        ).fetchone()
+        if row is None:
+            return RiskState(False, None, 0, None)
+        return RiskState(
+            kill_switch=row["status"] == "halted",
+            reason=row["reason"],
+            revision=int(row["revision"]),
+            updated_at=row["updated_at"],
+        )
+
+    def set_risk_state(
+        self,
+        *,
+        kill_switch: bool,
+        reason: str | None,
+        updated_at: datetime | None = None,
+    ) -> RiskState:
+        timestamp = (updated_at or datetime.now(UTC)).isoformat()
+        status = "halted" if kill_switch else "active"
+        with self._connection:
+            self._connection.execute(
+                """
+                INSERT INTO risk_state (risk_state_id, status, reason, revision, updated_at)
+                VALUES ('portfolio', ?, ?, 1, ?)
+                ON CONFLICT(risk_state_id) DO UPDATE SET
+                    status = excluded.status,
+                    reason = excluded.reason,
+                    revision = risk_state.revision + 1,
+                    updated_at = excluded.updated_at
+                """,
+                (status, reason, timestamp),
+            )
+        return self.risk_state()
+
+    def open_incident(
+        self,
+        incident_id: str,
+        reason: str,
+        *,
+        severity: str = "warning",
+        opened_at: datetime | None = None,
+    ) -> None:
+        timestamp = (opened_at or datetime.now(UTC)).isoformat()
+        with self._connection:
+            self._connection.execute(
+                """
+                INSERT INTO incidents (
+                    incident_id, status, reason, severity, revision, opened_at, resolved_at
+                ) VALUES (?, 'open', ?, ?, 1, ?, NULL)
+                ON CONFLICT(incident_id) DO UPDATE SET
+                    status = 'open', reason = excluded.reason, severity = excluded.severity,
+                    revision = incidents.revision + 1, resolved_at = NULL
+                """,
+                (incident_id, reason, severity, timestamp),
+            )
+
+    def resolve_incident(self, incident_id: str, *, resolved_at: datetime | None = None) -> None:
+        timestamp = (resolved_at or datetime.now(UTC)).isoformat()
+        with self._connection:
+            self._connection.execute(
+                """UPDATE incidents
+                SET status = 'resolved', reason = 'resolved', resolved_at = ?
+                WHERE incident_id = ? AND status != 'resolved'""",
+                (timestamp, incident_id),
+            )
+
+    def has_unresolved_incidents(self) -> bool:
+        row = self._connection.execute(
+            "SELECT 1 FROM incidents WHERE status = 'open' LIMIT 1"
+        ).fetchone()
+        return row is not None
+
+    def mark_reconciliation_complete(self, completed_at: datetime | None = None) -> None:
+        timestamp = (completed_at or datetime.now(UTC)).isoformat()
+        with self._connection:
+            self._connection.execute(
+                """
+                INSERT INTO incidents (
+                    incident_id, status, reason, severity, revision, opened_at, resolved_at
+                ) VALUES ('reconciliation:latest', 'resolved', 'completed', 'info', 1, ?, ?)
+                ON CONFLICT(incident_id) DO UPDATE SET
+                    status = 'resolved', reason = 'completed', severity = 'info',
+                    revision = incidents.revision + 1, opened_at = excluded.opened_at,
+                    resolved_at = excluded.resolved_at
+                """,
+                (timestamp, timestamp),
+            )
+
+    def has_fresh_reconciliation(
+        self,
+        *,
+        since: datetime,
+        now: datetime,
+        max_age_seconds: int,
+    ) -> bool:
+        row = self._connection.execute(
+            """SELECT resolved_at FROM incidents
+            WHERE incident_id = 'reconciliation:latest' AND status = 'resolved'"""
+        ).fetchone()
+        if row is None or row["resolved_at"] is None:
+            return False
+        completed_at = datetime.fromisoformat(row["resolved_at"])
+        if completed_at.tzinfo is None:
+            return False
+        completed_at = completed_at.astimezone(UTC)
+        utc_now = now.astimezone(UTC)
+        return (
+            completed_at >= since.astimezone(UTC)
+            and completed_at <= utc_now
+            and (utc_now - completed_at).total_seconds() <= max_age_seconds
+        )
 
     def export_canonical_tables(self) -> dict[str, list[dict[str, object]]]:
         return {
@@ -746,6 +872,7 @@ __all__ = [
     "ActivePositionExists",
     "DuplicateIntentError",
     "RelatedRecordNotFoundError",
+    "RiskState",
     "StateRepository",
     "UnsupportedSchemaError",
 ]
