@@ -5,7 +5,14 @@ from decimal import Decimal
 import hashlib
 from typing import Literal
 
-from hermes_trading.domain import Decision, OrderIntent, Position, PositionStatus
+from hermes_trading.domain import (
+    Decision,
+    OrderIntent,
+    OrderRecord,
+    OrderStatus,
+    Position,
+    PositionStatus,
+)
 from hermes_trading.exchange import ExchangeGateway, ExchangeOrder
 from hermes_trading.persistence.repository import StateRepository
 from hermes_trading.risk import RiskDecision
@@ -122,7 +129,7 @@ class ExecutionService:
             )
         except Exception as error:
             return ExecutionResult("reconciliation_required", identifier, type(error).__name__)
-        return _result_for_exchange_order(identifier, order)
+        return self._record_exchange_result(identifier, order)
 
     async def _submit_market(
         self,
@@ -155,7 +162,7 @@ class ExecutionService:
             )
         except Exception as error:
             return ExecutionResult("reconciliation_required", identifier, type(error).__name__)
-        return _result_for_exchange_order(identifier, order)
+        return self._record_exchange_result(identifier, order)
 
     def _persist_intent(
         self,
@@ -182,6 +189,42 @@ class ExecutionService:
         )
         return intent if self.repository.persist_execution_intent(signal, intent) else None
 
+    def _record_exchange_result(
+        self, identifier: str, exchange_order: ExchangeOrder
+    ) -> ExecutionResult:
+        status = _canonical_order_status(exchange_order.status)
+        try:
+            self.repository.upsert_order(
+                OrderRecord(
+                    order_id=f"kraken:{exchange_order.exchange_order_id}",
+                    client_order_id=identifier,
+                    exchange_order_id=exchange_order.exchange_order_id,
+                    asset=exchange_order.asset,
+                    side=exchange_order.side,
+                    order_type=exchange_order.order_type,
+                    status=status,
+                    requested_quantity=exchange_order.amount,
+                    filled_quantity=exchange_order.filled,
+                    average_fill_price=exchange_order.average_price,
+                    fees=exchange_order.fee,
+                    created_at=exchange_order.created_at,
+                    updated_at=exchange_order.updated_at,
+                )
+            )
+            if status is OrderStatus.REJECTED:
+                self.repository.open_incident(
+                    f"execution:{identifier}",
+                    "exchange_rejected",
+                    severity="critical" if exchange_order.order_type == "stop-loss" else "warning",
+                )
+        except Exception as error:
+            return ExecutionResult("reconciliation_required", identifier, type(error).__name__, exchange_order)
+        if status is OrderStatus.REJECTED:
+            return ExecutionResult("rejected", identifier, "exchange_rejected", exchange_order)
+        if exchange_order.status == "unknown":
+            return ExecutionResult("reconciliation_required", identifier, "unknown_exchange_status", exchange_order)
+        return ExecutionResult("submitted", identifier, exchange_order=exchange_order)
+
     @staticmethod
     def _validate_position(signal: Decision, position: Position) -> None:
         if position.asset != signal.asset:
@@ -196,10 +239,16 @@ def _positive_decimal(value: Decimal | None, name: str) -> Decimal:
     return value
 
 
-def _result_for_exchange_order(identifier: str, order: ExchangeOrder) -> ExecutionResult:
-    if order.status == "unknown":
-        return ExecutionResult("reconciliation_required", identifier, "unknown_exchange_status", order)
-    return ExecutionResult("submitted", identifier, exchange_order=order)
+def _canonical_order_status(status: object) -> OrderStatus:
+    if isinstance(status, OrderStatus):
+        return status
+    if status == "pending":
+        return OrderStatus.SUBMITTED
+    if status == "cancelled":
+        return OrderStatus.CANCELED
+    if status == "unknown":
+        return OrderStatus.ERROR
+    raise ValueError(f"unsupported exchange order status {status!r}")
 
 
 __all__ = ["ExecutionResult", "ExecutionService", "client_order_id"]

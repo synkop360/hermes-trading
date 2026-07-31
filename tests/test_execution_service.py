@@ -6,7 +6,7 @@ from pathlib import Path
 import tempfile
 import unittest
 
-from hermes_trading.domain import Decision, Position, PositionStatus
+from hermes_trading.domain import Decision, OrderStatus, Position, PositionStatus
 from hermes_trading.execution import ExecutionService, client_order_id
 from hermes_trading.exchange import ExchangeOrder, KrakenGateway
 from hermes_trading.persistence import StateRepository
@@ -86,6 +86,33 @@ class UnknownStatusGateway(InspectingGateway):
         )
 
 
+class RejectedMarketGateway(InspectingGateway):
+    async def create_market_order(self, *, asset, side, amount, client_order_id):
+        self._assert_before_call(client_order_id)
+        self.market_calls += 1
+        return _order(
+            client_order_id=client_order_id,
+            asset=asset,
+            side=side,
+            amount=amount,
+            status=OrderStatus.REJECTED,
+        )
+
+
+class RejectedStopGateway(InspectingGateway):
+    async def create_stop_order(self, *, asset, side, amount, stop_price, client_order_id):
+        self._assert_before_call(client_order_id)
+        self.stop_calls += 1
+        return _order(
+            client_order_id=client_order_id,
+            asset=asset,
+            side=side,
+            amount=amount,
+            order_type="stop-loss",
+            status=OrderStatus.REJECTED,
+        )
+
+
 def _order(
     *,
     client_order_id: str,
@@ -145,6 +172,7 @@ class ExecutionServiceTests(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(result.status, "submitted")
         self.assertEqual(gateway.market_calls, 1)
+        self.assertEqual(self.repository.export_canonical_tables()["orders"][0]["status"], "submitted")
 
     async def test_default_service_is_inert_without_an_explicit_submission_guard(self) -> None:
         gateway = InspectingGateway(lambda identifier: self.fail("exchange must not be called"))
@@ -177,6 +205,35 @@ class ExecutionServiceTests(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(result.status, "reconciliation_required")
         self.assertEqual(gateway.market_calls, 1)
+        self.assertEqual(self.repository.export_canonical_tables()["orders"][0]["status"], "error")
+
+    async def test_explicit_market_rejection_is_durable_and_terminal(self) -> None:
+        gateway = RejectedMarketGateway(
+            lambda identifier: self.assertIsNotNone(self.repository.intent_by_client_id(identifier))
+        )
+
+        result = await self.service.submit_entry(sample_signal(), sample_risk_decision(), gateway)
+
+        self.assertEqual(result.status, "rejected")
+        self.assertEqual(result.reason, "exchange_rejected")
+        tables = self.repository.export_canonical_tables()
+        self.assertEqual(tables["orders"][0]["status"], "rejected")
+        self.assertEqual(tables["incidents"][0]["reason"], "exchange_rejected")
+
+    async def test_explicit_protective_stop_rejection_is_durable_and_terminal(self) -> None:
+        gateway = RejectedStopGateway(
+            lambda identifier: self.assertIsNotNone(self.repository.intent_by_client_id(identifier))
+        )
+
+        result = await self.service.ensure_protective_stop(
+            sample_signal(action="protective_stop"), sample_position(), gateway
+        )
+
+        self.assertEqual(result.status, "rejected")
+        self.assertEqual(result.reason, "exchange_rejected")
+        tables = self.repository.export_canonical_tables()
+        self.assertEqual(tables["orders"][0]["status"], "rejected")
+        self.assertEqual(tables["incidents"][0]["reason"], "exchange_rejected")
 
     async def test_rejected_risk_decision_never_submits_an_order(self) -> None:
         gateway = InspectingGateway(lambda identifier: self.fail("exchange must not be called"))
