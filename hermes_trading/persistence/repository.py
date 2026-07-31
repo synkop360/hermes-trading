@@ -164,6 +164,71 @@ class StateRepository:
             self._raise_related_record_not_found(error, "order intent")
             raise
 
+    def intent_by_client_id(self, client_order_id: str) -> OrderIntent | None:
+        row = self._connection.execute(
+            "SELECT * FROM order_intents WHERE client_order_id = ?", (client_order_id,)
+        ).fetchone()
+        return self._intent_from_row(row) if row is not None else None
+
+    def persist_execution_intent(self, decision: Decision, intent: OrderIntent) -> bool:
+        """Commit an execution decision and its idempotency key together.
+
+        ``False`` means the client order identifier was already committed.  A
+        caller must reconcile that intent rather than submit a second order.
+        """
+        try:
+            self._connection.execute("BEGIN IMMEDIATE")
+            existing = self._connection.execute(
+                "SELECT 1 FROM order_intents WHERE client_order_id = ?",
+                (intent.client_order_id,),
+            ).fetchone()
+            if existing is not None:
+                self._connection.rollback()
+                return False
+            self._connection.execute(
+                """
+                INSERT OR IGNORE INTO decisions (
+                    decision_id, asset, action, reason, candle_id, strategy_version,
+                    reference_price, decided_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    decision.decision_id,
+                    decision.asset,
+                    decision.action,
+                    decision.reason,
+                    decision.candle_id,
+                    decision.strategy_version,
+                    str(decision.reference_price),
+                    decision.decided_at,
+                ),
+            )
+            self._connection.execute(
+                """
+                INSERT INTO order_intents (
+                    client_order_id, decision_id, position_id, asset, side, order_type,
+                    quantity, reference_price, stop_price, created_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    intent.client_order_id,
+                    intent.decision_id,
+                    intent.position_id,
+                    intent.asset,
+                    intent.side,
+                    intent.order_type,
+                    str(intent.quantity),
+                    str(intent.reference_price),
+                    self._decimal_text(intent.stop_price),
+                    intent.created_at,
+                ),
+            )
+            self._connection.commit()
+        except BaseException:
+            self._connection.rollback()
+            raise
+        return True
+
     def upsert_order(self, order: OrderRecord) -> None:
         try:
             with self._connection:
@@ -961,6 +1026,21 @@ class StateRepository:
             closed_at=row["closed_at"],
             realized_pnl=Decimal(row["realized_pnl"]),
             fees=Decimal(row["fees"]),
+        )
+
+    @staticmethod
+    def _intent_from_row(row: sqlite3.Row) -> OrderIntent:
+        return OrderIntent(
+            client_order_id=row["client_order_id"],
+            decision_id=row["decision_id"],
+            position_id=row["position_id"],
+            asset=row["asset"],
+            side=row["side"],
+            order_type=row["order_type"],
+            quantity=Decimal(row["quantity"]),
+            reference_price=Decimal(row["reference_price"]),
+            stop_price=Decimal(row["stop_price"]) if row["stop_price"] is not None else None,
+            created_at=row["created_at"],
         )
 
     @staticmethod

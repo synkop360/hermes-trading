@@ -8,6 +8,8 @@ from typing import Any
 import ccxt.async_support as ccxt
 
 from hermes_trading.config import LIVE_CONFIRM_PHRASE
+from hermes_trading.execution import ExecutionService
+from hermes_trading.persistence.repository import StateRepository
 
 
 class ExecutionSafetyError(RuntimeError):
@@ -20,6 +22,11 @@ class ExecutionSettings:
     executor: str
     validate_only: bool
     allow_real_orders: bool
+
+
+def execution_service(repository: StateRepository) -> ExecutionService:
+    """Expose the new intent-first service without changing legacy loop wiring."""
+    return ExecutionService(repository)
 
 
 def _truthy(value: str | None) -> bool:
