@@ -103,6 +103,10 @@ class ReconciliationService:
                             client_order_id=client_order_id,
                         )
                     )
+                elif local.side == "buy" and local.status is OrderStatus.FILLED:
+                    position_id = intent.position_id or f"kraken:{intent.client_order_id}"
+                    if self.repository.position_by_id(position_id) is None:
+                        issues.append(ReconciliationIssue("missing_expected_position", "critical", "A terminal buy has no persisted local position.", client_order_id=client_order_id))
                 continue
             comparison_issues = _order_mismatches(
                 intent.asset, intent.side, intent.quantity, local, remote
@@ -149,6 +153,11 @@ class ReconciliationService:
     def _persist_remote_order(
         self, intent, remote: ExchangeOrder, *, reconstruct_position: bool
     ) -> None:
+        previous_order = self.repository.order_by_client_id(intent.client_order_id)
+        previous_filled = previous_order.filled_quantity if previous_order is not None else Decimal("0")
+        previous_fees = previous_order.fees if previous_order is not None else Decimal("0")
+        filled_delta = remote.filled - previous_filled
+        fee_delta = remote.fee - previous_fees
         status = _canonical_status(remote.status)
         self.repository.upsert_order(
             OrderRecord(
@@ -186,12 +195,12 @@ class ReconciliationService:
                     fees=remote.fee,
                 )
             )
-        if reconstruct_position and remote.filled > 0 and remote.side == "sell" and intent.position_id is not None:
+        if reconstruct_position and filled_delta > 0 and remote.side == "sell" and intent.position_id is not None and remote.average_price is not None:
             previous = self.repository.position_by_id(intent.position_id)
             if previous is not None and previous.status in {PositionStatus.OPENING, PositionStatus.OPEN, PositionStatus.CLOSING}:
-                quantity = min(previous.quantity, remote.filled)
+                quantity = min(previous.quantity, filled_delta)
                 remaining = previous.quantity - quantity
-                exit_fee = remote.fee
+                exit_fee = fee_delta
                 allocated_entry_fee = previous.fees * quantity / previous.quantity
                 realized = previous.realized_pnl + quantity * (remote.average_price - previous.entry_price) - allocated_entry_fee - exit_fee
                 self.repository.save_position(Position(
@@ -200,7 +209,7 @@ class ReconciliationService:
                     remaining if remaining > 0 else previous.quantity,
                     previous.entry_price, previous.stop_price, previous.strategy_version,
                     previous.opened_at, remote.updated_at if remaining == 0 else None,
-                    realized, previous.fees + exit_fee,
+                    realized, previous.fees + exit_fee if remaining == 0 else previous.fees - allocated_entry_fee,
                 ))
 
     def _persist_issues(self, issues: list[ReconciliationIssue]) -> None:

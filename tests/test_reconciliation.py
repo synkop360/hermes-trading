@@ -6,7 +6,7 @@ from pathlib import Path
 import tempfile
 import unittest
 
-from hermes_trading.domain import Decision, OrderIntent, OrderStatus, Position, PositionStatus
+from hermes_trading.domain import Decision, OrderIntent, OrderRecord, OrderStatus, Position, PositionStatus
 from hermes_trading.exchange import KrakenGateway
 from hermes_trading.persistence import StateRepository
 from hermes_trading.reconciliation import ReconciliationService
@@ -261,3 +261,23 @@ class ReconciliationTests(unittest.IsolatedAsyncioTestCase):
         service = ReconciliationService(self.repository)
         first = await service.run(KrakenGateway(lambda: fake)); second = await service.run(KrakenGateway(lambda: fake))
         self.assertEqual(first.next_reconciliation_seconds, 5); self.assertEqual(second.next_reconciliation_seconds, 10)
+
+    async def test_repeated_partial_sell_snapshot_applies_only_its_fill_delta_after_restart(self) -> None:
+        decision, entry = pending_intent("ht-partial-entry"); self.repository.persist_execution_intent(decision, entry)
+        self.repository.save_position(Position("position-ht-partial-entry", "BTC/USDT", PositionStatus.OPEN, Decimal("0.0001"), Decimal("65000"), Decimal("64000"), "69", "2026-07-30T12:00:00+00:00", fees=Decimal("0.01")))
+        exit_decision = Decision("decision-partial-exit", "BTC/USDT", "exit", "exit", "partial-exit", "69", Decimal("66000"), "2026-07-30T13:00:00+00:00")
+        self.repository.persist_execution_intent(exit_decision, OrderIntent("ht-partial-exit", exit_decision.decision_id, "BTC/USDT", "sell", "market", Decimal("0.0001"), Decimal("66000"), "2026-07-30T13:00:00+00:00", "position-ht-partial-entry"))
+        fake = FakeKrakenExchange(); fake.seed_order(client_order_id="ht-partial-exit", side="sell", status="open", filled="0.00005", fee="0.01"); next(iter(fake._orders.values()))["average"] = "66000"
+        fake._balances = {"free": {"USDT": "18", "BTC": "0.00005"}}
+        await ReconciliationService(self.repository).run(KrakenGateway(lambda: fake))
+        self.repository.close(); self.repository = StateRepository.open(self.db_path); self.repository.migrate()
+        await ReconciliationService(self.repository).run(KrakenGateway(lambda: fake))
+        position = self.repository.position_by_id("position-ht-partial-entry")
+        self.assertEqual(position.quantity, Decimal("0.00005")); self.assertEqual(position.realized_pnl, Decimal("0.035"))
+
+    async def test_absent_terminal_buy_without_position_is_critical_even_with_zero_base_balance(self) -> None:
+        decision, intent = pending_intent("ht-lost-position"); self.repository.persist_execution_intent(decision, intent)
+        self.repository.upsert_order(OrderRecord("kraken:lost", "ht-lost-position", "BTC/USDT", "buy", "market", OrderStatus.FILLED, Decimal("0.0001"), Decimal("0.0001"), Decimal("65000"), Decimal("0"), "2026-07-30T12:00:00+00:00", "2026-07-30T12:00:00+00:00", "lost"))
+        fake = FakeKrakenExchange(); fake._balances = {"free": {"USDT": "14", "BTC": "0"}}
+        report = await ReconciliationService(self.repository).run(KrakenGateway(lambda: fake))
+        self.assertFalse(report.safe_for_new_entries); self.assertEqual(report.issues[0].code, "missing_expected_position")
