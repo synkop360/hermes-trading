@@ -372,11 +372,35 @@ class StateRepository:
                 VALUES (?, ?, ?, ?, ?)""",
                 (candle_id, asset, timeframe, close_timestamp, self._utc_now()),
             )
+            self._connection.execute(
+                """
+                INSERT INTO incidents (incident_id, status, reason, severity, revision, opened_at, resolved_at)
+                VALUES ('projection:pending', 'open', 'canonical_commit_pending_projection', 'warning', 1, ?, NULL)
+                ON CONFLICT(incident_id) DO UPDATE SET
+                    status = 'open', reason = excluded.reason, severity = excluded.severity,
+                    revision = incidents.revision + 1, resolved_at = NULL
+                """,
+                (self._utc_now(),),
+            )
             self._connection.commit()
         except BaseException:
             self._connection.rollback()
             raise
         return True
+
+    def projection_pending(self) -> bool:
+        row = self._connection.execute(
+            "SELECT status FROM incidents WHERE incident_id = 'projection:pending'"
+        ).fetchone()
+        return row is not None and row["status"] == "open"
+
+    def clear_projection_pending(self) -> None:
+        with self._connection:
+            self._connection.execute(
+                """UPDATE incidents SET status = 'resolved', reason = 'resolved', resolved_at = ?
+                WHERE incident_id = 'projection:pending' AND status = 'open'""",
+                (self._utc_now(),),
+            )
 
     def is_candle_processed(self, asset: str, timeframe: str, close_timestamp: str) -> bool:
         row = self._connection.execute(

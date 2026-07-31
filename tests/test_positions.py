@@ -160,7 +160,6 @@ class PositionEngineTests(unittest.TestCase):
                 artifact_directory = Path(directory) / "artifacts"
                 PositionEngine(repository, ArtifactProjector(artifact_directory)).process_candle(self.entry_candle, entry_strategy())
                 projector = _FailingProjector(artifact_directory, fail_at)
-                projector.operations = -7  # Existing entry reconciliation performs seven idempotent checks.
                 close_result = PositionEngine(repository, projector).process_candle(
                     candle(datetime(2026, 7, 30, 21, tzinfo=UTC), open="100", low="70", close="90"),
                     entry_strategy(),
@@ -180,6 +179,30 @@ class PositionEngineTests(unittest.TestCase):
                 for snapshot_name in ArtifactProjector.SNAPSHOT_NAMES:
                     self.assertTrue((projector.state_dir / snapshot_name).exists())
                 repository.close()
+
+    def test_healthy_duplicate_does_not_reconcile(self) -> None:
+        projector = _CountingProjector(Path(self.temporary_directory.name) / "counting")
+        engine = PositionEngine(self.state, projector)
+        engine.process_candle(self.entry_candle, entry_strategy())
+
+        duplicate = engine.process_candle(self.entry_candle, entry_strategy())
+
+        self.assertIsNone(duplicate.projection_error)
+        self.assertEqual(projector.reconcile_calls, 0)
+
+    def test_failed_projection_retries_only_while_pending_and_surfaces_error(self) -> None:
+        directory = Path(self.temporary_directory.name) / "pending"
+        failed = _FailingProjector(directory, 1)
+        first = PositionEngine(self.state, failed).process_candle(self.entry_candle, entry_strategy())
+        self.assertIsNotNone(first.projection_error)
+
+        retrying = _PersistentFailProjector(directory)
+        second = PositionEngine(self.state, retrying).process_candle(self.entry_candle, entry_strategy())
+        third = PositionEngine(self.state, retrying).process_candle(self.entry_candle, entry_strategy())
+
+        self.assertIsNotNone(second.projection_error)
+        self.assertIsNotNone(third.projection_error)
+        self.assertEqual(retrying.reconcile_calls, 2)
 
     def test_canonical_jsonl_events_feed_periodic_summary(self) -> None:
         artifact_directory = Path(self.temporary_directory.name) / "summary-artifacts"
@@ -225,3 +248,19 @@ class _FailingProjector(ArtifactProjector):
     def write_snapshot(self, name: str, payload: object) -> None:
         self._maybe_fail()
         super().write_snapshot(name, payload)
+
+
+class _CountingProjector(ArtifactProjector):
+    def __init__(self, state_dir: Path) -> None:
+        super().__init__(state_dir)
+        self.reconcile_calls = 0
+
+    def reconcile(self, repository: StateRepository) -> None:
+        self.reconcile_calls += 1
+        super().reconcile(repository)
+
+
+class _PersistentFailProjector(_CountingProjector):
+    def reconcile(self, repository: StateRepository) -> None:
+        self.reconcile_calls += 1
+        raise OSError("projection storage still unavailable")

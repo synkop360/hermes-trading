@@ -59,18 +59,9 @@ class PositionEngine:
         if candle is None:
             return PositionProcessResult(False, snapshot.reason, None)
         identity = snapshot.candle_identity
+        resume_error = self._resume_projection()
         if self.state.is_candle_processed(identity.asset, identity.timeframe, identity.close_timestamp.isoformat()):
-            if self.projector is not None:
-                try:
-                    self.projector.reconcile(self.state)
-                except Exception:
-                    pass
-            return PositionProcessResult(False, "duplicate_candle", self.state.open_position(snapshot.asset))
-        if self.projector is not None and self.state.export_canonical_tables()["decisions"]:
-            try:
-                self.projector.reconcile(self.state)
-            except Exception:
-                pass
+            return PositionProcessResult(False, "duplicate_candle", self.state.open_position(snapshot.asset), projection_error=resume_error)
 
         settings = SimulationSettings.from_strategy(strategy)
         existing = self.state.open_position(snapshot.asset)
@@ -120,9 +111,24 @@ class PositionEngine:
             positions=positions,
         )
         if not committed:
-            return PositionProcessResult(False, "duplicate_candle", self.state.open_position(snapshot.asset))
+            return PositionProcessResult(False, "duplicate_candle", self.state.open_position(snapshot.asset), projection_error=resume_error)
         projection_error = self._project(decision, orders, fills, positions, closed)
+        if projection_error is None and resume_error is None:
+            self.state.clear_projection_pending()
+        projection_error = resume_error or projection_error
         return PositionProcessResult(True, signal.reason, current, closed, decision, tuple(orders), projection_error)
+
+    def _resume_projection(self) -> str | None:
+        if not self.state.projection_pending():
+            return None
+        if self.projector is None:
+            return "projection pending but no projector is configured"
+        try:
+            self.projector.reconcile(self.state)
+            self.state.clear_projection_pending()
+        except Exception as error:
+            return str(error)
+        return None
 
     def _entry(self, snapshot: MarketSnapshot, decision: Decision, strategy: dict[str, Any], settings: SimulationSettings) -> tuple[Position, OrderIntent, OrderRecord, Fill]:
         candle = snapshot.candle
