@@ -84,6 +84,46 @@ class KrakenGatewayTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(rules.min_cost, Decimal("5"))
         self.assertEqual(balances["USDT"], Decimal("14.82"))
 
+    async def test_kraken_null_trade_timestamp_uses_last_update_timestamp(self) -> None:
+        fake = FakeKrakenExchange()
+        order_id = fake.seed_order(client_order_id="ht-kraken-shaped")
+        fake._orders[order_id]["lastTradeTimestamp"] = None
+        fake._orders[order_id]["lastUpdateTimestamp"] = "2026-07-30T12:05:00Z"
+        gateway = KrakenGateway(lambda: fake)
+
+        fetched = await gateway.fetch_order(order_id, "BTC/USDT")
+        listed = (await gateway.fetch_orders("BTC/USDT"))[0]
+        recovered = await gateway.fetch_order_by_client_id("ht-kraken-shaped", "BTC/USDT")
+
+        self.assertEqual(fetched.updated_at, "2026-07-30T12:05:00+00:00")
+        self.assertEqual(listed.updated_at, "2026-07-30T12:05:00+00:00")
+        self.assertIsNotNone(recovered)
+        self.assertEqual(recovered.updated_at, "2026-07-30T12:05:00+00:00")
+
+    async def test_stop_order_uses_kraken_stop_loss_price_parameter(self) -> None:
+        fake = FakeKrakenExchange()
+        gateway = KrakenGateway(lambda: fake)
+
+        await gateway.create_stop_order(
+            asset="BTC/USDT",
+            side="sell",
+            amount=Decimal("0.0001"),
+            stop_price=Decimal("64000"),
+            client_order_id="ht-btc-stop",
+        )
+
+        self.assertEqual(
+            fake.create_order_requests[0],
+            {
+                "symbol": "BTC/USDT",
+                "type": "stop-loss",
+                "side": "sell",
+                "amount": "0.0001",
+                "price": None,
+                "params": {"cl_ord_id": "ht-btc-stop", "stopLossPrice": "64000"},
+            },
+        )
+
     async def test_context_manager_closes_exchange_after_cancellation(self) -> None:
         fake = FakeKrakenExchange()
         gateway = KrakenGateway(lambda: fake)

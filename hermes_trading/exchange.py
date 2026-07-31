@@ -236,7 +236,7 @@ class KrakenGateway:
             amount=amount,
             price=None,
             client_order_id=client_order_id,
-            extra_params={"triggerPrice": str(_positive_decimal(stop_price, "stop price"))},
+            extra_params={"stopLossPrice": str(_positive_decimal(stop_price, "stop price"))},
         )
 
     async def cancel_order(self, exchange_order_id: str, asset: str) -> ExchangeOrder:
@@ -295,9 +295,17 @@ def _order(payload: object, fallback_asset: str | None) -> ExchangeOrder:
     info = raw_info if isinstance(raw_info, Mapping) else {}
     amount = _decimal(raw.get("amount"), "order amount")
     filled = _decimal(raw.get("filled", "0"), "order filled quantity")
-    created_at = _timestamp(raw.get("datetime", raw.get("timestamp")), "order timestamp")
+    created_at = _timestamp(_first_present(raw, "datetime", "timestamp"), "order timestamp")
     updated_at = _timestamp(
-        raw.get("lastTradeTimestamp", raw.get("lastTradeDatetime", raw.get("datetime", raw.get("timestamp")))),
+        _first_present(
+            raw,
+            "lastTradeTimestamp",
+            "lastUpdateTimestamp",
+            "lastTradeDatetime",
+            "lastUpdateDatetime",
+            "datetime",
+            "timestamp",
+        ),
         "order update timestamp",
     )
     return ExchangeOrder(
@@ -348,6 +356,14 @@ def _mapping(value: object, name: str) -> Mapping[str, Any]:
     if not isinstance(value, Mapping):
         raise ExchangePayloadError(f"{name} must be an object")
     return value
+
+
+def _first_present(payload: Mapping[str, Any], *names: str) -> object | None:
+    for name in names:
+        value = payload.get(name)
+        if value is not None:
+            return value
+    return None
 
 
 def _decimal(value: object, name: str) -> Decimal:
