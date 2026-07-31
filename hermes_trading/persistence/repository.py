@@ -280,6 +280,104 @@ class StateRepository:
                 (candle_id, asset, timeframe, close_timestamp, self._utc_now()),
             )
 
+    def persist_candle_outcome(
+        self,
+        asset: str,
+        timeframe: str,
+        close_timestamp: str,
+        decision: Decision,
+        *,
+        intents: list[OrderIntent] | tuple[OrderIntent, ...] = (),
+        orders: list[OrderRecord] | tuple[OrderRecord, ...] = (),
+        fills: list[Fill] | tuple[Fill, ...] = (),
+        positions: list[Position] | tuple[Position, ...] = (),
+    ) -> bool:
+        """Atomically persist a candle's canonical decision and financial outcome.
+
+        The return value is false when another worker already committed this candle.
+        Callers must project JSONL or snapshots only after a true return.
+        """
+        candle_id = f"{asset}:{timeframe}:{close_timestamp}"
+        try:
+            self._connection.execute("BEGIN IMMEDIATE")
+            duplicate = self._connection.execute(
+                "SELECT 1 FROM candles_processed WHERE asset = ? AND timeframe = ? AND close_timestamp = ?",
+                (asset, timeframe, close_timestamp),
+            ).fetchone()
+            if duplicate is not None:
+                self._connection.rollback()
+                return False
+            self._connection.execute(
+                """
+                INSERT INTO decisions (
+                    decision_id, asset, action, reason, candle_id, strategy_version,
+                    reference_price, decided_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    decision.decision_id, decision.asset, decision.action, decision.reason,
+                    decision.candle_id, decision.strategy_version, str(decision.reference_price),
+                    decision.decided_at,
+                ),
+            )
+            for intent in intents:
+                self._connection.execute(
+                    """
+                    INSERT INTO order_intents (
+                        client_order_id, decision_id, position_id, asset, side, order_type,
+                        quantity, reference_price, stop_price, created_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        intent.client_order_id, intent.decision_id, intent.position_id,
+                        intent.asset, intent.side, intent.order_type, str(intent.quantity),
+                        str(intent.reference_price), self._decimal_text(intent.stop_price), intent.created_at,
+                    ),
+                )
+            for order in orders:
+                self._connection.execute(
+                    """
+                    INSERT INTO orders (
+                        order_id, client_order_id, exchange_order_id, asset, side, order_type,
+                        status, requested_quantity, filled_quantity, average_fill_price, fees,
+                        created_at, updated_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ON CONFLICT(order_id) DO UPDATE SET
+                        status = excluded.status, filled_quantity = excluded.filled_quantity,
+                        average_fill_price = excluded.average_fill_price, fees = excluded.fees,
+                        updated_at = excluded.updated_at
+                    """,
+                    self._order_values(order),
+                )
+            for fill in fills:
+                self._connection.execute(
+                    """INSERT INTO order_fills (fill_id, order_id, asset, side, quantity, price, fee, filled_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+                    (fill.fill_id, fill.order_id, fill.asset, fill.side, str(fill.quantity), str(fill.price), str(fill.fee), fill.filled_at),
+                )
+            for position in positions:
+                self._connection.execute(
+                    """
+                    INSERT INTO positions (position_id, asset, status, quantity, entry_price, stop_price,
+                        strategy_version, opened_at, closed_at, realized_pnl, fees)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ON CONFLICT(position_id) DO UPDATE SET
+                        status = excluded.status, closed_at = excluded.closed_at,
+                        realized_pnl = excluded.realized_pnl, fees = excluded.fees
+                    """,
+                    self._position_values(position),
+                )
+            self._connection.execute(
+                """INSERT INTO candles_processed (candle_id, asset, timeframe, close_timestamp, processed_at)
+                VALUES (?, ?, ?, ?, ?)""",
+                (candle_id, asset, timeframe, close_timestamp, self._utc_now()),
+            )
+            self._connection.commit()
+        except BaseException:
+            self._connection.rollback()
+            raise
+        return True
+
     def is_candle_processed(self, asset: str, timeframe: str, close_timestamp: str) -> bool:
         row = self._connection.execute(
             """

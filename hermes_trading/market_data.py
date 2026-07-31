@@ -61,7 +61,7 @@ class MarketSnapshot:
     decision_action: str
     reason: str
     candle: ClosedCandle | None = None
-    price: Mapping[str, Decimal] | None = None
+    price: Mapping[str, Any] | None = None
     news: Mapping[str, Any] | None = None
     macro: Mapping[str, Any] | None = None
     onchain: Mapping[str, Any] | None = None
@@ -377,7 +377,7 @@ def _closed_candle(raw_candle: object, interval: timedelta) -> ClosedCandle:
     return candle
 
 
-def _normalized_price(payload: Mapping[str, Any]) -> dict[str, Decimal]:
+def _normalized_price(payload: Mapping[str, Any]) -> dict[str, Any]:
     missing = [
         field
         for field in ("last", "bid", "ask")
@@ -391,6 +391,10 @@ def _normalized_price(payload: Mapping[str, Any]) -> dict[str, Decimal]:
     }
     if values["bid"] > values["ask"]:
         raise ValueError("ticker bid exceeds ask")
+    raw_closes = payload.get("closes")
+    if isinstance(raw_closes, (list, tuple)):
+        # Retain normalized historical closes for pure indicator evaluation.
+        values["closes"] = tuple(_decimal(value) for value in raw_closes)
     return values
 
 

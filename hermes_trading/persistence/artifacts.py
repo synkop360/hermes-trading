@@ -69,6 +69,22 @@ class ArtifactProjector:
             if not (self.state_dir / name).exists():
                 self.write_snapshot(name, payload)
 
+    def project_candle_outcome(
+        self,
+        repository: StateRepository,
+        *,
+        decision: Any,
+        orders: tuple[Any, ...],
+        closed_positions: tuple[Any, ...],
+    ) -> None:
+        """Project a committed candle outcome without participating in SQLite state."""
+        self.append_event("decisions.jsonl", decision)
+        for order in orders:
+            self.append_event("orders.jsonl", order)
+        for position in closed_positions:
+            self.append_event("trades.jsonl", position)
+        self.rebuild_all(repository)
+
     @staticmethod
     def snapshot_payloads(repository: StateRepository) -> dict[str, dict[str, Any]]:
         return {

@@ -16,8 +16,12 @@ from hermes_trading.adapters import SchemaError
 from hermes_trading.adapters import macro, news, onchain, price
 from hermes_trading.adapters.execution import execute_signal, resolve_execution_settings
 from hermes_trading.config import LIVE_CONFIRM_PHRASE
-from hermes_trading.domain import json_value
+from hermes_trading.domain import Position, json_value
 from hermes_trading.funds import build_due_funds_alert, resolve_funds_alert_settings
+from hermes_trading.market_data import MarketDataCoordinator
+from hermes_trading.persistence.artifacts import ArtifactProjector
+from hermes_trading.persistence.repository import StateRepository
+from hermes_trading.positions import PositionEngine, PositionProcessResult
 from hermes_trading.notifications import (
     PnlSummaryCounter,
     build_cycle_notifications,
@@ -38,6 +42,32 @@ class TradingConfig:
     mode: str
     execution: str
     accepts_real_orders: bool
+
+
+@dataclass(frozen=True)
+class CycleResult:
+    results: tuple[PositionProcessResult, ...]
+    mode: str
+
+    @property
+    def decisions(self) -> tuple[object, ...]:
+        return tuple(result.decision for result in self.results if result.decision is not None)
+
+    @property
+    def orders(self) -> tuple[object, ...]:
+        return tuple(order for result in self.results for order in result.orders)
+
+    @property
+    def closed_positions(self) -> tuple[Position, ...]:
+        return tuple(position for result in self.results for position in result.closed_positions)
+
+    @property
+    def processed_count(self) -> int:
+        return sum(result.processed for result in self.results)
+
+    @property
+    def degraded(self) -> bool:
+        return any(result.projection_error is not None for result in self.results)
 
 
 def resolve_trading_config(env: dict[str, str] | None = None) -> TradingConfig:
@@ -211,6 +241,112 @@ async def _evaluate_asset(asset: str, strategy: dict[str, Any]) -> tuple[dict[st
     return market, _paper_trade(asset, market, strategy)
 
 
+async def run_cycle(
+    assets: list[str],
+    state: StateRepository,
+    projector: ArtifactProjector,
+    market_data: MarketDataCoordinator,
+    strategy: dict[str, Any],
+    mode: str,
+) -> CycleResult:
+    """Process one closed-candle batch through the canonical training engine."""
+    if mode != "training":
+        raise TradingModeError("run_cycle is available only in training mode")
+    snapshots = await market_data.collect(assets)
+    engine = PositionEngine(state, projector)
+    results = tuple(
+        engine.process_candle(snapshots[asset], resolve_asset_strategy(strategy, asset))
+        for asset in assets
+    )
+    return CycleResult(results=results, mode=mode)
+
+
+def _cycle_trades(cycle: CycleResult) -> list[dict[str, Any]]:
+    trades = []
+    for position in cycle.closed_positions:
+        entry_cost = position.quantity * position.entry_price
+        realized_pct = position.realized_pnl / entry_cost if entry_cost else 0
+        trades.append(
+            {
+                "timestamp": position.closed_at,
+                "asset": position.asset,
+                "strategy_version": position.strategy_version,
+                "mode": cycle.mode,
+                "realized_pnl_pct": realized_pct,
+            }
+        )
+    return trades
+
+
+def _cycle_orders(cycle: CycleResult) -> list[dict[str, Any]]:
+    return [json_value(order) for order in cycle.orders]
+
+
+async def _run_training_loop(
+    assets: list[str], state_dir: Path, interval_seconds: int, trading: TradingConfig,
+    notification_settings: NotificationSettings, funds_alert_settings: Any,
+    pnl_summary: PnlSummaryCounter,
+) -> None:
+    state = StateRepository.open(state_dir / "trading.db")
+    state.migrate()
+    projector = ArtifactProjector(state_dir)
+    market_data = MarketDataCoordinator(
+        repository=state,
+        price_fetch=lambda watched_asset, timeframe: _retry(
+            "price", lambda: price.fetch(watched_asset)
+        ),
+        news_fetch=lambda: _retry("news", news.fetch),
+        macro_fetch=lambda: _retry("macro", macro.fetch),
+        onchain_fetch=lambda: _retry("onchain", onchain.fetch),
+    )
+    consecutive_failures = 0
+    try:
+        while True:
+            started_at = datetime.now(timezone.utc)
+            try:
+                funds_alert = await build_due_funds_alert(state_dir, funds_alert_settings, started_at)
+                if funds_alert:
+                    await _notify_all([funds_alert], notification_settings)
+                strategy = _load_yaml(state_dir / "strategy.yaml")
+                cycle = await run_cycle(assets, state, projector, market_data, strategy, trading.mode)
+                trades = _cycle_trades(cycle)
+                orders = _cycle_orders(cycle)
+                await _write_json(
+                    state_dir / "heartbeat.json",
+                    {
+                        "timestamp": started_at.isoformat(), "assets": assets,
+                        "strategy_version": strategy.get("version", "01"), "mode": trading.mode,
+                        "execution": trading.execution,
+                        "status": "degraded" if cycle.degraded else "ok",
+                        "decision_count": len(cycle.decisions),
+                        "closed_trade_count": len(trades), "order_count": len(orders),
+                        "trade_closed": bool(trades), "projection_degraded": cycle.degraded,
+                    },
+                )
+                messages = build_cycle_notifications(trades, orders, notification_settings)
+                messages.extend(build_summary_notifications(state_dir, trades, notification_settings, pnl_summary, started_at))
+                await _notify_all(messages, notification_settings)
+                consecutive_failures = 0
+            except SchemaError:
+                raise
+            except Exception as exc:
+                consecutive_failures += 1
+                await _write_json(state_dir / "heartbeat.json", {
+                    "timestamp": started_at.isoformat(), "assets": assets, "mode": trading.mode,
+                    "execution": trading.execution, "status": "error", "error": str(exc),
+                    "consecutive_failures": consecutive_failures,
+                })
+                await _notify_all([build_error_notification(exc, consecutive_failures)], notification_settings)
+                funds_alert = await build_due_funds_alert(state_dir, funds_alert_settings, started_at)
+                if funds_alert:
+                    await _notify_all([funds_alert], notification_settings)
+                if consecutive_failures >= 5:
+                    raise RuntimeError("circuit breaker opened after 5 consecutive failures") from exc
+            await asyncio.sleep(interval_seconds)
+    finally:
+        state.close()
+
+
 async def run_loop(asset: str | list[str], state_dir: Path, interval_seconds: int = 60) -> None:
     trading = resolve_trading_config()
     execution_settings = resolve_execution_settings()
@@ -220,6 +356,12 @@ async def run_loop(asset: str | list[str], state_dir: Path, interval_seconds: in
 
     assets = [asset] if isinstance(asset, str) else asset
     print(f"Booting hermes-trading worker for {', '.join(assets)} in {trading.mode} mode", flush=True)
+    if trading.mode == "training":
+        await _run_training_loop(
+            assets, state_dir, interval_seconds, trading, notification_settings,
+            funds_alert_settings, pnl_summary,
+        )
+        return
     consecutive_failures = 0
     state_dir.mkdir(parents=True, exist_ok=True)
 
