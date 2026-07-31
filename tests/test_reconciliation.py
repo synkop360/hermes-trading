@@ -7,9 +7,11 @@ import tempfile
 import unittest
 
 from hermes_trading.domain import Decision, OrderIntent, OrderRecord, OrderStatus, Position, PositionStatus
+from hermes_trading.execution import ExecutionService
 from hermes_trading.exchange import KrakenGateway
 from hermes_trading.persistence import StateRepository
 from hermes_trading.reconciliation import ReconciliationService
+from hermes_trading.risk import RiskDecision
 from tests.fakes.kraken import FakeKrakenExchange
 
 
@@ -295,3 +297,62 @@ class ReconciliationTests(unittest.IsolatedAsyncioTestCase):
         await ReconciliationService(self.repository).run(KrakenGateway(lambda: fake))
         position=self.repository.position_by_id("position-ht-fee-entry")
         self.assertEqual(position.status, PositionStatus.CLOSED, repr(position)); self.assertEqual(position.quantity, Decimal("0.0001")); self.assertEqual(position.realized_pnl, Decimal("0.070")); self.assertEqual(position.fees, Decimal("0.03"))
+
+    async def test_execution_entry_partial_exit_restart_and_final_exit_preserve_fees_once(self) -> None:
+        fake = FakeKrakenExchange()
+        gateway = KrakenGateway(lambda: fake)
+        execution = ExecutionService(self.repository, allow_submission=True)
+        entry = Decision(
+            "decision-real-entry", "BTC/USDT", "enter", "rsi_entry",
+            "BTC/USDT:1h:2026-07-30T12:00:00Z", "69", Decimal("65000"),
+            "2026-07-30T12:00:00+00:00",
+        )
+        risk = RiskDecision(
+            "risk-real-entry", True, "authorized", Decimal("6.5"),
+            "2026-07-30T12:00:00+00:00",
+        )
+
+        entry_result = await execution.submit_entry(entry, risk, gateway)
+        entry_id = entry_result.client_order_id
+        self.assertIsNotNone(entry_id)
+        entry_exchange_id = entry_result.exchange_order.exchange_order_id
+        fake._orders[entry_exchange_id].update(
+            status="closed", filled="0.0001", remaining="0", average="65000"
+        )
+        fake._orders[entry_exchange_id]["fee"]["cost"] = "0.01"
+        fake._balances["free"]["BTC"] = "0.0001"
+        await ReconciliationService(self.repository).run(gateway)
+
+        position_id = f"kraken:{entry_id}"
+        position = self.repository.position_by_id(position_id)
+        exit_decision = Decision(
+            "decision-real-exit", "BTC/USDT", "exit", "signal_exit",
+            "BTC/USDT:1h:2026-07-30T13:00:00Z", "69", Decimal("66000"),
+            "2026-07-30T13:00:00+00:00",
+        )
+        exit_result = await execution.submit_exit(exit_decision, position, gateway)
+        exit_exchange_id = exit_result.exchange_order.exchange_order_id
+        fake._orders[exit_exchange_id].update(
+            status="open", filled="0.00005", remaining="0.00005", average="66000"
+        )
+        fake._orders[exit_exchange_id]["fee"]["cost"] = "0.01"
+        fake._balances["free"]["BTC"] = "0.00005"
+        await ReconciliationService(self.repository).run(gateway)
+
+        self.repository.close()
+        self.repository = StateRepository.open(self.db_path)
+        self.repository.migrate()
+        fake._orders[exit_exchange_id].update(status="closed", filled="0.0001", remaining="0")
+        fake._orders[exit_exchange_id]["fee"]["cost"] = "0.02"
+        fake._balances["free"]["BTC"] = "0"
+        restarted = ReconciliationService(self.repository)
+        await restarted.run(gateway)
+        position = self.repository.position_by_id(position_id)
+        self.assertEqual(position.status, PositionStatus.CLOSED, repr(position))
+        self.assertEqual(position.quantity, Decimal("0.0001"))
+        self.assertEqual(position.realized_pnl, Decimal("0.070"))
+        self.assertEqual(position.fees, Decimal("0.03"))
+
+        await restarted.run(gateway)
+        repeated = self.repository.position_by_id(position_id)
+        self.assertEqual(repeated, position)

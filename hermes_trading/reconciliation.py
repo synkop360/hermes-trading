@@ -7,6 +7,7 @@ from typing import Literal
 
 from hermes_trading.domain import OrderRecord, OrderStatus, Position, PositionStatus, json_value
 from hermes_trading.exchange import ExchangeGateway, ExchangeOrder
+from hermes_trading.identifiers import reconciled_entry_position_id
 from hermes_trading.persistence.artifacts import ArtifactProjector
 from hermes_trading.persistence.repository import StateRepository
 
@@ -104,7 +105,7 @@ class ReconciliationService:
                         )
                     )
                 elif local.side == "buy" and local.status is OrderStatus.FILLED:
-                    position_id = intent.position_id or f"kraken:{intent.client_order_id}"
+                    position_id = intent.position_id or reconciled_entry_position_id(intent.client_order_id)
                     if self.repository.position_by_id(position_id) is None:
                         issues.append(ReconciliationIssue("missing_expected_position", "critical", "A terminal buy has no persisted local position.", client_order_id=client_order_id))
                 continue
@@ -182,19 +183,21 @@ class ReconciliationService:
             and remote.side == "buy"
             and remote.average_price is not None
         ):
-            self.repository.save_position(
-                Position(
-                    position_id=intent.position_id or f"kraken:{intent.client_order_id}",
-                    asset=remote.asset,
-                    status=PositionStatus.OPEN,
-                    quantity=remote.filled,
-                    entry_price=remote.average_price,
-                    stop_price=intent.stop_price or remote.average_price,
-                    strategy_version=self.repository.decision_strategy_version(intent.decision_id),
-                    opened_at=remote.updated_at,
-                    fees=remote.fee,
+            position_id = intent.position_id or reconciled_entry_position_id(intent.client_order_id)
+            if filled_delta > 0 or self.repository.position_by_id(position_id) is None:
+                self.repository.save_position(
+                    Position(
+                        position_id=position_id,
+                        asset=remote.asset,
+                        status=PositionStatus.OPEN,
+                        quantity=remote.filled,
+                        entry_price=remote.average_price,
+                        stop_price=intent.stop_price or remote.average_price,
+                        strategy_version=self.repository.decision_strategy_version(intent.decision_id),
+                        opened_at=remote.updated_at,
+                        fees=remote.fee,
+                    )
                 )
-            )
         if reconstruct_position and filled_delta > 0 and remote.side == "sell" and intent.position_id is not None and remote.average_price is not None:
             previous = self.repository.position_by_id(intent.position_id)
             if previous is not None and previous.status in {PositionStatus.OPENING, PositionStatus.OPEN, PositionStatus.CLOSING}:

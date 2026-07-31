@@ -17,6 +17,7 @@ from hermes_trading.domain import (
     PositionStatus,
     json_value,
 )
+from hermes_trading.identifiers import entry_client_order_id
 from hermes_trading.persistence.migrations import (
     V1_COLUMNS,
     UnsupportedSchemaError,
@@ -213,10 +214,14 @@ class StateRepository:
         return self._position_from_row(row) if row is not None else None
 
     def entry_order_for_position(self, position_id: str) -> OrderRecord | None:
+        derived_client_order_id = entry_client_order_id(position_id)
         row = self._connection.execute(
             """SELECT o.* FROM orders o JOIN order_intents i ON i.client_order_id = o.client_order_id
-            WHERE i.position_id = ? AND i.side = 'buy' ORDER BY o.updated_at LIMIT 1""",
-            (position_id,),
+            WHERE i.side = 'buy'
+              AND (i.position_id = ? OR (i.position_id IS NULL AND i.client_order_id = ?))
+            ORDER BY CASE WHEN i.position_id = ? THEN 0 ELSE 1 END, o.updated_at
+            LIMIT 1""",
+            (position_id, derived_client_order_id, position_id),
         ).fetchone()
         return self._order_from_row(row) if row is not None else None
 
