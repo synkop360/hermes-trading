@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Any, Iterator
 
 from hermes_trading.domain import json_value
-from hermes_trading.persistence.repository import StateRepository
+from hermes_trading.persistence.repository import ProjectionItem, StateRepository
 
 
 class ArtifactProjector:
@@ -115,6 +115,18 @@ class ArtifactProjector:
             if position["status"] == "closed":
                 self.append_event("trades.jsonl", position)
         self.rebuild_all(repository)
+
+    def project_pending_item(self, repository: StateRepository, item: ProjectionItem) -> None:
+        """Project one durable outbox item, leaving acknowledgement to the caller."""
+        outcome = repository.projection_outcome(item)
+        self.project_candle_outcome(
+            repository,
+            decision=outcome["decision"],
+            orders=outcome["orders"],
+            fills=outcome["fills"],
+            positions=outcome["positions"],
+            closed_positions=outcome["closed_positions"],
+        )
 
     @staticmethod
     def snapshot_payloads(repository: StateRepository) -> dict[str, dict[str, Any]]:

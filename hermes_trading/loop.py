@@ -260,10 +260,16 @@ async def run_cycle(
     """Process one closed-candle batch through the canonical training engine."""
     if mode != "training":
         raise TradingModeError("run_cycle is available only in training mode")
-    snapshots = await market_data.collect(assets)
     engine = PositionEngine(state, projector)
+    recovery_error = engine.recover_pending_projections()
+    snapshots = await market_data.collect(assets)
     results = tuple(
-        engine.process_candle(snapshots[asset], resolve_asset_strategy(strategy, asset))
+        engine.process_candle(
+            snapshots[asset],
+            resolve_asset_strategy(strategy, asset),
+            recovery_error=recovery_error,
+            recover_pending=False,
+        )
         for asset in assets
     )
     return CycleResult(results=results, mode=mode)

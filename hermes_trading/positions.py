@@ -8,7 +8,7 @@ from uuid import NAMESPACE_URL, uuid5
 from hermes_trading.domain import Decision, Fill, OrderIntent, OrderRecord, OrderStatus, Position, PositionStatus
 from hermes_trading.market_data import MarketSnapshot
 from hermes_trading.persistence.artifacts import ArtifactProjector
-from hermes_trading.persistence.repository import StateRepository
+from hermes_trading.persistence.repository import ProjectionItem, StateRepository
 from hermes_trading.strategy import StrategySignal, _decimal_setting, evaluate_strategy
 
 
@@ -54,12 +54,19 @@ class PositionEngine:
         self.state = state
         self.projector = projector
 
-    def process_candle(self, snapshot: MarketSnapshot, strategy: dict[str, Any]) -> PositionProcessResult:
+    def process_candle(
+        self,
+        snapshot: MarketSnapshot,
+        strategy: dict[str, Any],
+        *,
+        recovery_error: str | None = None,
+        recover_pending: bool = True,
+    ) -> PositionProcessResult:
+        resume_error = self.recover_pending_projections() if recover_pending else recovery_error
         candle = snapshot.candle
         if candle is None:
-            return PositionProcessResult(False, snapshot.reason, None)
+            return PositionProcessResult(False, snapshot.reason, None, projection_error=resume_error)
         identity = snapshot.candle_identity
-        resume_error = self._resume_projection()
         if self.state.is_candle_processed(identity.asset, identity.timeframe, identity.close_timestamp.isoformat()):
             return PositionProcessResult(False, "duplicate_candle", self.state.open_position(snapshot.asset), projection_error=resume_error)
 
@@ -112,20 +119,36 @@ class PositionEngine:
         )
         if not committed:
             return PositionProcessResult(False, "duplicate_candle", self.state.open_position(snapshot.asset), projection_error=resume_error)
-        projection_error = self._project(decision, orders, fills, positions, closed)
-        if projection_error is None and resume_error is None:
-            self.state.clear_projection_pending()
+        projection_error = self._project_pending_item(decision.decision_id)
         projection_error = resume_error or projection_error
         return PositionProcessResult(True, signal.reason, current, closed, decision, tuple(orders), projection_error)
 
-    def _resume_projection(self) -> str | None:
-        if not self.state.projection_pending():
+    def recover_pending_projections(self) -> str | None:
+        """Retry a bounded batch of durable artifact work before market handling."""
+        items = self.state.pending_projection_items()
+        if not items:
             return None
         if self.projector is None:
-            return "projection pending but no projector is configured"
+            return "no artifact projector is configured"
+        for item in items:
+            error = self._project_item(item)
+            if error is not None:
+                return error
+        return None
+
+    def _project_pending_item(self, decision_id: str) -> str | None:
+        return self._project_item_id(f"projection:item:{decision_id}")
+
+    def _project_item_id(self, item_id: str) -> str | None:
+        item = self.state.pending_projection_item(item_id)
+        return self._project_item(item) if item is not None else None
+
+    def _project_item(self, item: ProjectionItem) -> str | None:
+        if self.projector is None:
+            return "no artifact projector is configured"
         try:
-            self.projector.reconcile(self.state)
-            self.state.clear_projection_pending()
+            self.projector.project_pending_item(self.state, item)
+            self.state.acknowledge_projection_item(item.item_id)
         except Exception as error:
             return str(error)
         return None
@@ -172,30 +195,6 @@ class PositionEngine:
             pnl = previous.quantity * (fill_price - previous.entry_price) - total_fees
             position = Position(position_id, previous.asset, status, previous.quantity, previous.entry_price, previous.stop_price, previous.strategy_version, previous.opened_at, now, pnl, total_fees)
         return position, intent, order, fill
-
-    def _project(
-        self,
-        decision: Decision,
-        orders: list[OrderRecord],
-        fills: list[Fill],
-        positions: list[Position],
-        closed: tuple[Position, ...],
-    ) -> str | None:
-        if self.projector is None:
-            return None
-        try:
-            self.projector.project_candle_outcome(
-                self.state,
-                decision=decision,
-                orders=tuple(orders),
-                fills=tuple(fills),
-                positions=tuple(positions),
-                closed_positions=closed,
-            )
-        except Exception as error:
-            return str(error)
-        return None
-
 
 def _identifier(*parts: str) -> str:
     return str(uuid5(NAMESPACE_URL, "hermes-trading:" + ":".join(parts)))

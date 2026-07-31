@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from dataclasses import dataclass
 from decimal import Decimal
 from pathlib import Path
 import sqlite3
@@ -33,6 +34,14 @@ class RelatedRecordNotFoundError(ValueError):
     """Raised when a write references a missing canonical parent record."""
 
 
+@dataclass(frozen=True)
+class ProjectionItem:
+    """One committed canonical outcome awaiting its human-readable projection."""
+
+    item_id: str
+    decision_id: str
+
+
 class StateRepository:
     def __init__(self, connection: sqlite3.Connection) -> None:
         self._connection = connection
@@ -61,6 +70,7 @@ class StateRepository:
 
     def migrate(self) -> None:
         migrate(self._connection, self._utc_now())
+        self._upgrade_legacy_projection_marker()
 
     def journal_mode(self) -> str:
         return str(self._connection.execute("PRAGMA journal_mode").fetchone()[0]).lower()
@@ -372,15 +382,17 @@ class StateRepository:
                 VALUES (?, ?, ?, ?, ?)""",
                 (candle_id, asset, timeframe, close_timestamp, self._utc_now()),
             )
+            projection_item_id = self._projection_item_id(decision.decision_id)
             self._connection.execute(
                 """
                 INSERT INTO incidents (incident_id, status, reason, severity, revision, opened_at, resolved_at)
-                VALUES ('projection:pending', 'open', 'canonical_commit_pending_projection', 'warning', 1, ?, NULL)
-                ON CONFLICT(incident_id) DO UPDATE SET
-                    status = 'open', reason = excluded.reason, severity = excluded.severity,
-                    revision = incidents.revision + 1, resolved_at = NULL
+                VALUES (?, 'open', ?, 'warning', 1, ?, NULL)
                 """,
-                (self._utc_now(),),
+                (
+                    projection_item_id,
+                    f"canonical_commit_pending_projection:{decision.decision_id}",
+                    self._utc_now(),
+                ),
             )
             self._connection.commit()
         except BaseException:
@@ -390,17 +402,124 @@ class StateRepository:
 
     def projection_pending(self) -> bool:
         row = self._connection.execute(
-            "SELECT status FROM incidents WHERE incident_id = 'projection:pending'"
+            """SELECT 1 FROM incidents
+            WHERE incident_id LIKE 'projection:item:%' AND status = 'open' LIMIT 1"""
         ).fetchone()
-        return row is not None and row["status"] == "open"
+        return row is not None
 
-    def clear_projection_pending(self) -> None:
+    def pending_projection_items(self, limit: int = 8) -> tuple[ProjectionItem, ...]:
+        if limit <= 0:
+            raise ValueError("projection recovery limit must be positive")
+        rows = self._connection.execute(
+            """SELECT incident_id FROM incidents
+            WHERE incident_id LIKE 'projection:item:%' AND status = 'open'
+            ORDER BY opened_at, incident_id LIMIT ?""",
+            (limit,),
+        )
+        prefix = "projection:item:"
+        return tuple(
+            ProjectionItem(row["incident_id"], row["incident_id"][len(prefix):])
+            for row in rows
+        )
+
+    def acknowledge_projection_item(self, item_id: str) -> bool:
+        """Resolve only this outbox item after its own artifacts are durable."""
+        if not item_id.startswith("projection:item:"):
+            raise ValueError("invalid projection item id")
         with self._connection:
-            self._connection.execute(
+            cursor = self._connection.execute(
                 """UPDATE incidents SET status = 'resolved', reason = 'resolved', resolved_at = ?
-                WHERE incident_id = 'projection:pending' AND status = 'open'""",
-                (self._utc_now(),),
+                WHERE incident_id = ? AND status = 'open'""",
+                (self._utc_now(), item_id),
             )
+        return cursor.rowcount == 1
+
+    def pending_projection_item(self, item_id: str) -> ProjectionItem | None:
+        if not item_id.startswith("projection:item:"):
+            raise ValueError("invalid projection item id")
+        row = self._connection.execute(
+            """SELECT incident_id FROM incidents
+            WHERE incident_id = ? AND status = 'open'""",
+            (item_id,),
+        ).fetchone()
+        if row is None:
+            return None
+        prefix = "projection:item:"
+        return ProjectionItem(row["incident_id"], row["incident_id"][len(prefix):])
+
+    def projection_outcome(self, item: ProjectionItem) -> dict[str, object]:
+        """Return the exact canonical records belonging to one projection item."""
+        decision = self._connection.execute(
+            "SELECT * FROM decisions WHERE decision_id = ?", (item.decision_id,)
+        ).fetchone()
+        if decision is None:
+            raise RelatedRecordNotFoundError(f"projection decision {item.decision_id}")
+        orders = list(self._connection.execute(
+            """SELECT orders.* FROM orders
+            JOIN order_intents ON order_intents.client_order_id = orders.client_order_id
+            WHERE order_intents.decision_id = ? ORDER BY orders.order_id""",
+            (item.decision_id,),
+        ))
+        fills = list(self._connection.execute(
+            """SELECT order_fills.* FROM order_fills
+            JOIN orders ON orders.order_id = order_fills.order_id
+            JOIN order_intents ON order_intents.client_order_id = orders.client_order_id
+            WHERE order_intents.decision_id = ? ORDER BY order_fills.fill_id""",
+            (item.decision_id,),
+        ))
+        positions = list(self._connection.execute(
+            """SELECT DISTINCT positions.* FROM positions
+            JOIN order_intents ON order_intents.position_id = positions.position_id
+            WHERE order_intents.decision_id = ? ORDER BY positions.position_id""",
+            (item.decision_id,),
+        ))
+        return {
+            "decision": dict(decision),
+            "orders": tuple(dict(row) for row in orders),
+            "fills": tuple(dict(row) for row in fills),
+            "positions": tuple(dict(row) for row in positions),
+            "closed_positions": tuple(dict(row) for row in positions if row["status"] == "closed"),
+        }
+
+    @staticmethod
+    def _projection_item_id(decision_id: str) -> str:
+        return f"projection:item:{decision_id}"
+
+    def _upgrade_legacy_projection_marker(self) -> None:
+        """Turn the former global recovery flag into independently acked items.
+
+        Replaying all canonical decisions is deliberate: JSONL event keys make it
+        idempotent, while a legacy marker has no trustworthy ownership boundary.
+        """
+        legacy = self._connection.execute(
+            "SELECT 1 FROM incidents WHERE incident_id = 'projection:pending' AND status = 'open'"
+        ).fetchone()
+        if legacy is None:
+            return
+        now = self._utc_now()
+        try:
+            self._connection.execute("BEGIN IMMEDIATE")
+            for row in self._connection.execute("SELECT decision_id FROM decisions ORDER BY decision_id"):
+                decision_id = row["decision_id"]
+                self._connection.execute(
+                    """INSERT OR IGNORE INTO incidents
+                    (incident_id, status, reason, severity, revision, opened_at, resolved_at)
+                    VALUES (?, 'open', ?, 'warning', 1, ?, NULL)""",
+                    (
+                        self._projection_item_id(decision_id),
+                        f"canonical_commit_pending_projection:{decision_id}",
+                        now,
+                    ),
+                )
+            self._connection.execute(
+                """UPDATE incidents SET status = 'resolved', reason = 'superseded_by_projection_outbox',
+                resolved_at = ? WHERE incident_id = 'projection:pending' AND status = 'open'""",
+                (now,),
+            )
+            self._connection.commit()
+        except BaseException:
+            self._connection.rollback()
+            raise
 
     def is_candle_processed(self, asset: str, timeframe: str, close_timestamp: str) -> bool:
         row = self._connection.execute(

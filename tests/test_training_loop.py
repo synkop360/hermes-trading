@@ -8,6 +8,7 @@ from hermes_trading.loop import run_cycle
 from hermes_trading.market_data import ClosedCandle, MarketSnapshot
 from hermes_trading.persistence import StateRepository
 from hermes_trading.persistence.artifacts import ArtifactProjector
+from hermes_trading.positions import PositionEngine
 
 
 class StaticMarketData:
@@ -18,6 +19,11 @@ class StaticMarketData:
     async def collect(self, assets: list[str]) -> dict[str, MarketSnapshot]:
         self.calls += 1
         return {asset: self.snapshot for asset in assets}
+
+
+class FailingProjector(ArtifactProjector):
+    def project_pending_item(self, repository: StateRepository, item: object) -> None:
+        raise OSError("audit storage unavailable")
 
 
 class TrainingLoopTests(unittest.TestCase):
@@ -45,3 +51,28 @@ class TrainingLoopTests(unittest.TestCase):
         self.assertEqual(len(second.orders), 0)
         self.assertEqual(second.results[0].reason, "duplicate_candle")
         self.assertEqual(market_data.calls, 2)
+
+    def test_cycle_reports_pending_projection_when_market_has_no_candle(self) -> None:
+        close_at = datetime(2026, 7, 30, 20, tzinfo=UTC)
+        available = MarketSnapshot(
+            asset="BTC/USDT", timeframe="1h", availability="available",
+            decision_action="evaluate", reason="closed_candle_available",
+            candle=ClosedCandle(close_at - timedelta(hours=1), close_at, Decimal("100"), Decimal("100"), Decimal("79"), Decimal("80"), Decimal("1")),
+            price={"closes": tuple(Decimal("100") for _ in range(15)) + (Decimal("80"),)},
+        )
+        unavailable = MarketSnapshot(**{
+            **available.__dict__, "availability": "unavailable", "decision_action": "no_trade",
+            "reason": "price_unavailable", "candle": None,
+        })
+        strategy = {"version": "test", "entry": {"indicator": "rsi", "threshold": "30", "direction": "long"}, "stop_loss_pct": "0.5"}
+        with tempfile.TemporaryDirectory() as directory:
+            state = StateRepository.open(Path(directory) / "trading.db")
+            state.migrate()
+            PositionEngine(state).process_candle(available, strategy)
+            cycle = __import__("asyncio").run(run_cycle(
+                ["BTC/USDT"], state, FailingProjector(directory), StaticMarketData(unavailable), strategy, "training"
+            ))
+            state.close()
+
+        self.assertTrue(cycle.degraded)
+        self.assertEqual(cycle.results[0].projection_error, "audit storage unavailable")

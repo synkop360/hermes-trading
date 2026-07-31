@@ -1,5 +1,6 @@
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 import tempfile
 import unittest
@@ -190,6 +191,100 @@ class PositionEngineTests(unittest.TestCase):
         self.assertIsNone(duplicate.projection_error)
         self.assertEqual(projector.reconcile_calls, 0)
 
+    def test_each_committed_outcome_has_its_own_projection_acknowledgement(self) -> None:
+        directory = Path(self.temporary_directory.name) / "concurrent-outbox"
+        failing = _PersistentFailProjector(directory)
+        first = PositionEngine(self.state, failing).process_candle(self.entry_candle, entry_strategy())
+        second_snapshot = MarketSnapshot(**{
+            **self.entry_candle.__dict__,
+            "asset": "ETH/USDT",
+            "candle": ClosedCandle(
+                self.entry_candle.candle.open_timestamp,
+                self.entry_candle.candle.close_timestamp,
+                self.entry_candle.candle.open,
+                self.entry_candle.candle.high,
+                self.entry_candle.candle.low,
+                self.entry_candle.candle.close,
+                self.entry_candle.candle.volume,
+            ),
+        })
+        second = PositionEngine(self.state, failing).process_candle(second_snapshot, entry_strategy())
+
+        self.assertIsNotNone(first.projection_error)
+        self.assertIsNotNone(second.projection_error)
+        pending = self.state.pending_projection_items()
+        self.assertEqual(len(pending), 2)
+
+        database_path = Path(self.temporary_directory.name) / "trading.db"
+        def acknowledge(item_id: str) -> bool:
+            repository = StateRepository.open(database_path)
+            try:
+                return repository.acknowledge_projection_item(item_id)
+            finally:
+                repository.close()
+
+        with ThreadPoolExecutor(max_workers=2) as executor:
+            acknowledgements = list(executor.map(acknowledge, [item.item_id for item in pending]))
+        self.assertEqual(acknowledgements, [True, True])
+        remaining = self.state.pending_projection_items()
+        self.assertEqual(remaining, ())
+
+    def test_pending_projection_is_retried_when_snapshot_has_no_candle(self) -> None:
+        directory = Path(self.temporary_directory.name) / "no-candle-recovery"
+        failing = _FailingProjector(directory, 1)
+        first = PositionEngine(self.state, failing).process_candle(self.entry_candle, entry_strategy())
+        self.assertIsNotNone(first.projection_error)
+
+        unavailable = MarketSnapshot(**{
+            **self.entry_candle.__dict__,
+            "availability": "unavailable",
+            "decision_action": "no_trade",
+            "reason": "price_unavailable",
+            "candle": None,
+        })
+        retry = PositionEngine(self.state, _PersistentFailProjector(directory)).process_candle(
+            unavailable, entry_strategy()
+        )
+
+        self.assertIsNotNone(retry.projection_error)
+        self.assertTrue(self.state.pending_projection_items())
+
+    def test_missing_projector_never_acknowledges_canonical_projection(self) -> None:
+        result = self.engine.process_candle(self.entry_candle, entry_strategy())
+
+        self.assertEqual(result.projection_error, "no artifact projector is configured")
+        self.assertEqual(len(self.state.pending_projection_items()), 1)
+
+    def test_restart_projects_one_pending_item_without_duplicate_events(self) -> None:
+        directory = Path(self.temporary_directory.name) / "restart-outbox"
+        failed = PositionEngine(self.state, _FailingProjector(directory, 2))
+        failed.process_candle(self.entry_candle, entry_strategy())
+        self.assertEqual(len(self.state.pending_projection_items()), 1)
+
+        resumed = PositionEngine(self.state, ArtifactProjector(directory))
+        retry = resumed.process_candle(self.entry_candle, entry_strategy())
+        duplicate = resumed.process_candle(self.entry_candle, entry_strategy())
+
+        self.assertIsNone(retry.projection_error)
+        self.assertIsNone(duplicate.projection_error)
+        self.assertFalse(self.state.pending_projection_items())
+        self.assertEqual(_jsonl_count(directory / "decisions.jsonl"), 1)
+
+    def test_migration_converts_legacy_global_projection_marker_to_items(self) -> None:
+        self.engine.process_candle(self.entry_candle, entry_strategy())
+        with self.state._connection:
+            self.state._connection.execute(
+                """INSERT INTO incidents (incident_id, status, reason, severity, revision, opened_at, resolved_at)
+                VALUES ('projection:pending', 'open', 'legacy', 'warning', 1, '2026-07-30T20:00:00+00:00', NULL)"""
+            )
+
+        self.state.migrate()
+
+        self.assertFalse(self.state._connection.execute(
+            "SELECT 1 FROM incidents WHERE incident_id = 'projection:pending' AND status = 'open'"
+        ).fetchone())
+        self.assertTrue(self.state.pending_projection_items())
+
     def test_failed_projection_retries_only_while_pending_and_surfaces_error(self) -> None:
         directory = Path(self.temporary_directory.name) / "pending"
         failed = _FailingProjector(directory, 1)
@@ -261,6 +356,6 @@ class _CountingProjector(ArtifactProjector):
 
 
 class _PersistentFailProjector(_CountingProjector):
-    def reconcile(self, repository: StateRepository) -> None:
+    def project_pending_item(self, repository: StateRepository, item: object) -> None:
         self.reconcile_calls += 1
         raise OSError("projection storage still unavailable")
