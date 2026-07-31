@@ -288,7 +288,7 @@ class ArtifactTests(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertEqual(
                 json.loads(output_path.read_text())["system_status"]["schema_version"],
-                1,
+                2,
             )
         self.assertFalse((self.state_dir / "positions.json").exists())
 
