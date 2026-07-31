@@ -164,6 +164,21 @@ class ArtifactTests(unittest.TestCase):
             '{"asset":"BTC/USDT","quantity":"0.001"}\n',
         )
 
+    def test_events_without_nonempty_canonical_key_are_never_deduplicated(self) -> None:
+        projector = ArtifactProjector(self.state_dir)
+        cases = (
+            ("decisions.jsonl", [{"event_id": "one"}, {"event_id": "two"}, {"decision_id": ""}]),
+            ("orders.jsonl", [{"event_id": "one"}, {"event_id": "two"}, {"order_id": None}]),
+            ("fills.jsonl", [{"event_id": "one"}, {"event_id": "two"}, {"fill_id": ""}]),
+            ("positions.jsonl", [{"event_id": "one"}, {"position_id": "p", "status": ""}]),
+            ("trades.jsonl", [{"event_id": "one"}, {"position_id": "", "status": "closed"}]),
+        )
+
+        for name, events in cases:
+            for event in events:
+                projector.append_event(name, event)
+            self.assertEqual(len((self.state_dir / name).read_text().splitlines()), len(events))
+
     def test_concurrent_process_appends_preserve_every_complete_event(self) -> None:
         worker_count = 8
         events_per_worker = 10

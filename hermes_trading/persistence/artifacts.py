@@ -138,14 +138,24 @@ def _event_key(name: str, payload: Any) -> str | None:
     if not isinstance(payload, dict):
         return None
     if name == "decisions.jsonl":
-        return str(payload.get("decision_id"))
+        return _nonempty_key(payload, "decision_id")
     if name == "orders.jsonl":
-        return str(payload.get("order_id"))
+        return _nonempty_key(payload, "order_id")
     if name == "fills.jsonl":
-        return str(payload.get("fill_id"))
+        return _nonempty_key(payload, "fill_id")
     if name in {"positions.jsonl", "trades.jsonl"}:
-        return f"{payload.get('position_id')}:{payload.get('status')}"
+        position_id = _nonempty_key(payload, "position_id")
+        status = _nonempty_key(payload, "status")
+        return f"{position_id}:{status}" if position_id is not None and status is not None else None
     return None
+
+
+def _nonempty_key(payload: dict[str, Any], field: str) -> str | None:
+    value = payload.get(field)
+    if value is None:
+        return None
+    text = str(value).strip()
+    return text or None
 
 
 def _fsync_directory(directory: Path) -> bool:
