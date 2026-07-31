@@ -168,6 +168,7 @@ class PersistenceTests(unittest.TestCase):
         self.repo.migrate()
         self.repo.record_decision(sample_decision())
         with self.repo._connection:
+            self.repo._connection.execute("DROP TABLE risk_decisions")
             self.repo._connection.execute("DROP TABLE projection_payloads")
             self.repo._connection.execute("DELETE FROM schema_migrations WHERE version IN (2, 3)")
 
@@ -180,6 +181,15 @@ class PersistenceTests(unittest.TestCase):
             ("decision-btc-1",),
         ).fetchone()
         self.assertIn('"decision_id":"decision-btc-1"', payload["payload"])
+        self.assertIn("risk_decisions", self.repo.table_names())
+
+    def test_migration_rejects_v1_marker_with_a_future_table_present(self) -> None:
+        self.repo.migrate()
+        with self.repo._connection:
+            self.repo._connection.execute("DELETE FROM schema_migrations WHERE version IN (2, 3)")
+
+        with self.assertRaises(UnsupportedSchemaError):
+            self.repo.migrate()
 
     def test_migration_rejects_an_unknown_schema_version(self) -> None:
         with self.repo._connection:
