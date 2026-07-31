@@ -6,6 +6,7 @@ import unittest
 
 from hermes_trading.market_data import ClosedCandle, MarketSnapshot
 from hermes_trading.persistence import StateRepository
+from hermes_trading.persistence.artifacts import ArtifactProjector
 from hermes_trading.positions import PositionEngine
 
 
@@ -92,3 +93,21 @@ class PositionEngineTests(unittest.TestCase):
 
         self.assertTrue(result.processed)
         self.assertEqual(result.position.status.value, "open")
+
+    def test_projection_records_fills_and_positions_once_per_committed_candle(self) -> None:
+        artifact_directory = Path(self.temporary_directory.name) / "artifacts"
+        engine = PositionEngine(self.state, ArtifactProjector(artifact_directory))
+        engine.process_candle(self.entry_candle, entry_strategy())
+        engine.process_candle(self.entry_candle, entry_strategy())
+        engine.process_candle(
+            candle(datetime(2026, 7, 30, 21, tzinfo=UTC), open="100", low="70", close="90"),
+            entry_strategy(),
+        )
+
+        self.assertEqual(_jsonl_count(artifact_directory / "fills.jsonl"), 2)
+        self.assertEqual(_jsonl_count(artifact_directory / "positions.jsonl"), 2)
+        self.assertEqual(_jsonl_count(artifact_directory / "trades.jsonl"), 1)
+
+
+def _jsonl_count(path: Path) -> int:
+    return len(path.read_text(encoding="utf-8").splitlines())

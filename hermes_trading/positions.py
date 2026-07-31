@@ -108,7 +108,7 @@ class PositionEngine:
         )
         if not committed:
             return PositionProcessResult(False, "duplicate_candle", self.state.open_position(snapshot.asset))
-        projection_error = self._project(decision, orders, closed)
+        projection_error = self._project(decision, orders, fills, positions, closed)
         return PositionProcessResult(True, signal.reason, current, closed, decision, tuple(orders), projection_error)
 
     def _entry(self, snapshot: MarketSnapshot, decision: Decision, strategy: dict[str, Any], settings: SimulationSettings) -> tuple[Position, OrderIntent, OrderRecord, Fill]:
@@ -149,7 +149,14 @@ class PositionEngine:
             position = Position(position_id, previous.asset, status, previous.quantity, previous.entry_price, previous.stop_price, previous.strategy_version, previous.opened_at, now, pnl, total_fees)
         return position, intent, order, fill
 
-    def _project(self, decision: Decision, orders: list[OrderRecord], closed: tuple[Position, ...]) -> str | None:
+    def _project(
+        self,
+        decision: Decision,
+        orders: list[OrderRecord],
+        fills: list[Fill],
+        positions: list[Position],
+        closed: tuple[Position, ...],
+    ) -> str | None:
         if self.projector is None:
             return None
         try:
@@ -157,6 +164,8 @@ class PositionEngine:
                 self.state,
                 decision=decision,
                 orders=tuple(orders),
+                fills=tuple(fills),
+                positions=tuple(positions),
                 closed_positions=closed,
             )
         except Exception as error:

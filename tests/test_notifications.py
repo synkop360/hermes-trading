@@ -412,7 +412,7 @@ class LoopNotificationTests(unittest.IsolatedAsyncioTestCase):
             messages.append(content)
             return True
 
-        async def failing_evaluate_asset(asset, strategy):
+        async def failing_market_collection(_, assets):
             raise RuntimeError("price adapter offline")
 
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -428,7 +428,10 @@ class LoopNotificationTests(unittest.IsolatedAsyncioTestCase):
                 },
                 clear=False,
             ):
-                with patch("hermes_trading.loop._evaluate_asset", failing_evaluate_asset):
+                with patch(
+                    "hermes_trading.loop.MarketDataCoordinator.collect",
+                    failing_market_collection,
+                ):
                     with patch("hermes_trading.loop.send_notification", fake_send):
                         task = asyncio.create_task(run_loop("BTC/USDT", state, interval_seconds=60))
                         for _ in range(20):

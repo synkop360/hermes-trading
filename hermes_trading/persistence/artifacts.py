@@ -75,12 +75,18 @@ class ArtifactProjector:
         *,
         decision: Any,
         orders: tuple[Any, ...],
+        fills: tuple[Any, ...],
+        positions: tuple[Any, ...],
         closed_positions: tuple[Any, ...],
     ) -> None:
         """Project a committed candle outcome without participating in SQLite state."""
         self.append_event("decisions.jsonl", decision)
         for order in orders:
             self.append_event("orders.jsonl", order)
+        for fill in fills:
+            self.append_event("fills.jsonl", fill)
+        for position in positions:
+            self.append_event("positions.jsonl", position)
         for position in closed_positions:
             self.append_event("trades.jsonl", position)
         self.rebuild_all(repository)
