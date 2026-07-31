@@ -180,6 +180,20 @@ V1_FOREIGN_KEYS = {
     },
 }
 
+V2_COLUMNS: dict[str, tuple[ColumnShape, ...]] = {
+    "projection_payloads": (
+        ("decision_id", "TEXT", 0, 1),
+        ("payload", "TEXT", 1, 0),
+        ("created_at", "TEXT", 1, 0),
+    ),
+}
+
+V2_FOREIGN_KEYS = {
+    "projection_payloads": {
+        ("decisions", "decision_id", "decision_id", "NO ACTION", "NO ACTION")
+    },
+}
+
 V1_INDEXES = {
     "unique_processed_candle": (
         "candles_processed",
@@ -419,6 +433,19 @@ MIGRATIONS: tuple[Migration, ...] = (
             """,
         ),
     ),
+    (
+        2,
+        (
+            """
+            CREATE TABLE IF NOT EXISTS projection_payloads (
+                decision_id TEXT PRIMARY KEY,
+                payload TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                FOREIGN KEY (decision_id) REFERENCES decisions(decision_id)
+            )
+            """,
+        ),
+    ),
 )
 
 
@@ -478,7 +505,12 @@ def _normalize_sql(sql: str) -> str:
     return "".join(normalized).strip()
 
 
-def _validate_v1_schema(connection: sqlite3.Connection) -> None:
+def _validate_schema(connection: sqlite3.Connection, version: int) -> None:
+    expected_columns = dict(V1_COLUMNS)
+    expected_foreign_keys = dict(V1_FOREIGN_KEYS)
+    if version >= 2:
+        expected_columns.update(V2_COLUMNS)
+        expected_foreign_keys.update(V2_FOREIGN_KEYS)
     actual_tables = {
         row[0]
         for row in connection.execute(
@@ -486,27 +518,27 @@ def _validate_v1_schema(connection: sqlite3.Connection) -> None:
             "WHERE type = 'table' AND name NOT LIKE 'sqlite_%'"
         )
     }
-    expected_tables = set(V1_COLUMNS)
+    expected_tables = set(expected_columns)
     if actual_tables != expected_tables:
         raise UnsupportedSchemaError(
-            "schema v1 table mismatch: "
+            f"schema v{version} table mismatch: "
             f"missing={sorted(expected_tables - actual_tables)}, "
             f"unexpected={sorted(actual_tables - expected_tables)}"
         )
 
-    for table_name, expected_columns in V1_COLUMNS.items():
+    for table_name, expected_shape in expected_columns.items():
         actual_columns = _table_columns(connection, table_name)
-        if actual_columns != expected_columns:
+        if actual_columns != expected_shape:
             raise UnsupportedSchemaError(
-                f"schema v1 column mismatch for {table_name}"
+                f"schema v{version} column mismatch for {table_name}"
             )
 
-    for table_name in V1_COLUMNS:
-        expected_foreign_keys = V1_FOREIGN_KEYS.get(table_name, set())
+    for table_name in expected_columns:
+        expected_keys = expected_foreign_keys.get(table_name, set())
         actual_foreign_keys = _foreign_keys(connection, table_name)
-        if actual_foreign_keys != expected_foreign_keys:
+        if actual_foreign_keys != expected_keys:
             raise UnsupportedSchemaError(
-                f"schema v1 foreign key mismatch for {table_name}"
+                f"schema v{version} foreign key mismatch for {table_name}"
             )
 
     for index_name, (
@@ -520,7 +552,7 @@ def _validate_v1_schema(connection: sqlite3.Connection) -> None:
         ).fetchall()
         matching_rows = [row for row in index_row if row[1] == index_name]
         if len(matching_rows) != 1:
-            raise UnsupportedSchemaError(f"schema v1 index missing: {index_name}")
+            raise UnsupportedSchemaError(f"schema v{version} index missing: {index_name}")
         row = matching_rows[0]
         actual_columns = tuple(
             item[2]
@@ -532,7 +564,7 @@ def _validate_v1_schema(connection: sqlite3.Connection) -> None:
             or row[4] != expected_partial
         ):
             raise UnsupportedSchemaError(
-                f"schema v1 index mismatch for {index_name}"
+                f"schema v{version} index mismatch for {index_name}"
             )
 
         index_sql = connection.execute(
@@ -542,11 +574,11 @@ def _validate_v1_schema(connection: sqlite3.Connection) -> None:
         normalized_sql = _normalize_sql(index_sql[0])
         if normalized_sql != V1_INDEX_SQL[index_name]:
             raise UnsupportedSchemaError(
-                f"schema v1 index definition mismatch for {index_name}"
+                f"schema v{version} index definition mismatch for {index_name}"
             )
 
     if connection.execute("PRAGMA foreign_key_check").fetchone() is not None:
-        raise UnsupportedSchemaError("schema v1 contains orphan records")
+        raise UnsupportedSchemaError(f"schema v{version} contains orphan records")
 
 
 def migrate(connection: sqlite3.Connection, applied_at: str) -> None:
@@ -572,10 +604,11 @@ def migrate(connection: sqlite3.Connection, applied_at: str) -> None:
                 f"unsupported schema migration versions: {sorted(applied_versions - known_versions)}"
             )
 
+        latest_applied = max(applied_versions, default=0)
         for version, statements in MIGRATIONS:
             if version in applied_versions:
-                if version == 1:
-                    _validate_v1_schema(connection)
+                if version == latest_applied:
+                    _validate_schema(connection, version)
                 continue
             try:
                 for statement in statements:
@@ -584,8 +617,7 @@ def migrate(connection: sqlite3.Connection, applied_at: str) -> None:
                 raise UnsupportedSchemaError(
                     f"schema v{version} could not be applied"
                 ) from error
-            if version == 1:
-                _validate_v1_schema(connection)
+            _validate_schema(connection, version)
             connection.execute(
                 "INSERT INTO schema_migrations (version, applied_at) VALUES (?, ?)",
                 (version, applied_at),

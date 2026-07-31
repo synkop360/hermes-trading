@@ -1,6 +1,7 @@
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from concurrent.futures import ThreadPoolExecutor
+import json
 from pathlib import Path
 import tempfile
 import unittest
@@ -269,6 +270,35 @@ class PositionEngineTests(unittest.TestCase):
         self.assertIsNone(duplicate.projection_error)
         self.assertFalse(self.state.pending_projection_items())
         self.assertEqual(_jsonl_count(directory / "decisions.jsonl"), 1)
+
+    def test_recovery_projects_each_pending_position_transition_as_committed(self) -> None:
+        """A later close must not rewrite an earlier pending open transition."""
+        directory = Path(self.temporary_directory.name) / "immutable-outbox"
+        failed = PositionEngine(self.state, _PersistentFailProjector(directory))
+        entry = failed.process_candle(self.entry_candle, entry_strategy())
+        exit_result = failed.process_candle(
+            candle(datetime(2026, 7, 30, 21, tzinfo=UTC), open="100", low="70", close="90"),
+            entry_strategy(),
+        )
+        self.assertIsNotNone(entry.projection_error)
+        self.assertIsNotNone(exit_result.projection_error)
+        self.assertEqual(len(self.state.pending_projection_items()), 2)
+
+        resumed = PositionEngine(self.state, ArtifactProjector(directory))
+        self.assertIsNone(resumed.recover_pending_projections())
+
+        positions = [
+            json.loads(line)
+            for line in (directory / "positions.jsonl").read_text(encoding="utf-8").splitlines()
+        ]
+        trades = [
+            json.loads(line)
+            for line in (directory / "trades.jsonl").read_text(encoding="utf-8").splitlines()
+        ]
+        self.assertEqual([position["status"] for position in positions], ["open", "closed"])
+        self.assertEqual(len(trades), 1)
+        self.assertEqual(trades[0]["status"], "closed")
+        self.assertFalse(self.state.pending_projection_items())
 
     def test_migration_converts_legacy_global_projection_marker_to_items(self) -> None:
         self.engine.process_candle(self.entry_candle, entry_strategy())

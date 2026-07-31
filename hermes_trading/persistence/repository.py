@@ -4,6 +4,7 @@ from datetime import UTC, datetime
 from dataclasses import dataclass
 from decimal import Decimal
 from pathlib import Path
+import json
 import sqlite3
 
 from hermes_trading.domain import (
@@ -14,6 +15,7 @@ from hermes_trading.domain import (
     OrderStatus,
     Position,
     PositionStatus,
+    json_value,
 )
 from hermes_trading.persistence.migrations import (
     V1_COLUMNS,
@@ -70,6 +72,7 @@ class StateRepository:
 
     def migrate(self) -> None:
         migrate(self._connection, self._utc_now())
+        self._backfill_legacy_projection_payloads()
         self._upgrade_legacy_projection_marker()
 
     def journal_mode(self) -> str:
@@ -378,6 +381,15 @@ class StateRepository:
                     self._position_values(position),
                 )
             self._connection.execute(
+                """INSERT INTO projection_payloads (decision_id, payload, created_at)
+                VALUES (?, ?, ?)""",
+                (
+                    decision.decision_id,
+                    self._projection_payload(decision, intents, orders, fills, positions),
+                    self._utc_now(),
+                ),
+            )
+            self._connection.execute(
                 """INSERT INTO candles_processed (candle_id, asset, timeframe, close_timestamp, processed_at)
                 VALUES (?, ?, ?, ?, ?)""",
                 (candle_id, asset, timeframe, close_timestamp, self._utc_now()),
@@ -452,42 +464,111 @@ class StateRepository:
         return ProjectionItem(row["incident_id"], row["incident_id"][len(prefix):])
 
     def projection_outcome(self, item: ProjectionItem) -> dict[str, object]:
-        """Return the exact canonical records belonging to one projection item."""
-        decision = self._connection.execute(
-            "SELECT * FROM decisions WHERE decision_id = ?", (item.decision_id,)
+        """Return the immutable payload committed with one projection item."""
+        row = self._connection.execute(
+            "SELECT payload FROM projection_payloads WHERE decision_id = ?",
+            (item.decision_id,),
         ).fetchone()
-        if decision is None:
-            raise RelatedRecordNotFoundError(f"projection decision {item.decision_id}")
-        orders = list(self._connection.execute(
-            """SELECT orders.* FROM orders
-            JOIN order_intents ON order_intents.client_order_id = orders.client_order_id
-            WHERE order_intents.decision_id = ? ORDER BY orders.order_id""",
-            (item.decision_id,),
-        ))
-        fills = list(self._connection.execute(
-            """SELECT order_fills.* FROM order_fills
-            JOIN orders ON orders.order_id = order_fills.order_id
-            JOIN order_intents ON order_intents.client_order_id = orders.client_order_id
-            WHERE order_intents.decision_id = ? ORDER BY order_fills.fill_id""",
-            (item.decision_id,),
-        ))
-        positions = list(self._connection.execute(
-            """SELECT DISTINCT positions.* FROM positions
-            JOIN order_intents ON order_intents.position_id = positions.position_id
-            WHERE order_intents.decision_id = ? ORDER BY positions.position_id""",
-            (item.decision_id,),
-        ))
-        return {
-            "decision": dict(decision),
-            "orders": tuple(dict(row) for row in orders),
-            "fills": tuple(dict(row) for row in fills),
-            "positions": tuple(dict(row) for row in positions),
-            "closed_positions": tuple(dict(row) for row in positions if row["status"] == "closed"),
+        if row is None:
+            raise RelatedRecordNotFoundError(f"projection payload {item.decision_id}")
+        payload = json.loads(row["payload"])
+        if not isinstance(payload, dict):
+            raise RelatedRecordNotFoundError(f"invalid projection payload {item.decision_id}")
+        return payload
+
+    @staticmethod
+    def _projection_payload(
+        decision: Decision,
+        intents: list[OrderIntent] | tuple[OrderIntent, ...],
+        orders: list[OrderRecord] | tuple[OrderRecord, ...],
+        fills: list[Fill] | tuple[Fill, ...],
+        positions: list[Position] | tuple[Position, ...],
+    ) -> str:
+        normalized_positions = json_value(positions)
+        payload = {
+            "decision": json_value(decision),
+            "intents": json_value(intents),
+            "orders": json_value(orders),
+            "fills": json_value(fills),
+            "positions": normalized_positions,
+            "closed_positions": [
+                position for position in normalized_positions if position["status"] == "closed"
+            ],
         }
+        return json.dumps(payload, separators=(",", ":"), sort_keys=True)
 
     @staticmethod
     def _projection_item_id(decision_id: str) -> str:
         return f"projection:item:{decision_id}"
+
+    def _backfill_legacy_projection_payloads(self) -> None:
+        """Freeze a one-time payload for outcomes written before migration v2.
+
+        New outcomes never reconstruct their projection from mutable tables. A
+        v1 database has no historical transition payload, so this migration
+        records its current canonical representation once before any recovery.
+        """
+        decision_ids = [
+            row["decision_id"]
+            for row in self._connection.execute(
+                """SELECT decision_id FROM decisions
+                WHERE decision_id NOT IN (SELECT decision_id FROM projection_payloads)
+                ORDER BY decision_id"""
+            )
+        ]
+        if not decision_ids:
+            return
+        try:
+            self._connection.execute("BEGIN IMMEDIATE")
+            for decision_id in decision_ids:
+                decision = self._connection.execute(
+                    "SELECT * FROM decisions WHERE decision_id = ?", (decision_id,)
+                ).fetchone()
+                intents = list(self._connection.execute(
+                    "SELECT * FROM order_intents WHERE decision_id = ? ORDER BY client_order_id",
+                    (decision_id,),
+                ))
+                orders = list(self._connection.execute(
+                    """SELECT orders.* FROM orders
+                    JOIN order_intents ON order_intents.client_order_id = orders.client_order_id
+                    WHERE order_intents.decision_id = ? ORDER BY orders.order_id""",
+                    (decision_id,),
+                ))
+                fills = list(self._connection.execute(
+                    """SELECT order_fills.* FROM order_fills
+                    JOIN orders ON orders.order_id = order_fills.order_id
+                    JOIN order_intents ON order_intents.client_order_id = orders.client_order_id
+                    WHERE order_intents.decision_id = ? ORDER BY order_fills.fill_id""",
+                    (decision_id,),
+                ))
+                positions = list(self._connection.execute(
+                    """SELECT DISTINCT positions.* FROM positions
+                    JOIN order_intents ON order_intents.position_id = positions.position_id
+                    WHERE order_intents.decision_id = ? ORDER BY positions.position_id""",
+                    (decision_id,),
+                ))
+                if decision is None:
+                    raise RelatedRecordNotFoundError(f"legacy projection decision {decision_id}")
+                position_payloads = [dict(row) for row in positions]
+                payload = {
+                    "decision": dict(decision),
+                    "intents": [dict(row) for row in intents],
+                    "orders": [dict(row) for row in orders],
+                    "fills": [dict(row) for row in fills],
+                    "positions": position_payloads,
+                    "closed_positions": [
+                        position for position in position_payloads if position["status"] == "closed"
+                    ],
+                }
+                self._connection.execute(
+                    """INSERT OR IGNORE INTO projection_payloads (decision_id, payload, created_at)
+                    VALUES (?, ?, ?)""",
+                    (decision_id, json.dumps(payload, separators=(",", ":"), sort_keys=True), self._utc_now()),
+                )
+            self._connection.commit()
+        except BaseException:
+            self._connection.rollback()
+            raise
 
     def _upgrade_legacy_projection_marker(self) -> None:
         """Turn the former global recovery flag into independently acked items.
