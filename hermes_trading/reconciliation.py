@@ -201,15 +201,20 @@ class ReconciliationService:
                 quantity = min(previous.quantity, filled_delta)
                 remaining = previous.quantity - quantity
                 exit_fee = fee_delta
-                allocated_entry_fee = previous.fees * quantity / previous.quantity
+                entry_order = self.repository.entry_order_for_position(intent.position_id)
+                entry_fee = entry_order.fees if entry_order is not None else previous.fees
+                entry_quantity = entry_order.filled_quantity if entry_order is not None else previous.quantity
+                remaining_entry_fee = entry_fee * (entry_quantity - previous_filled) / entry_quantity
+                allocated_entry_fee = remaining_entry_fee * quantity / previous.quantity
                 realized = previous.realized_pnl + quantity * (remote.average_price - previous.entry_price) - allocated_entry_fee - exit_fee
+                total_fees = entry_fee + self.repository.other_exit_fees(intent.position_id, intent.client_order_id) + remote.fee
                 self.repository.save_position(Position(
                     previous.position_id, previous.asset,
                     PositionStatus.CLOSED if remaining == 0 else PositionStatus.OPEN,
-                    remaining if remaining > 0 else previous.quantity,
+                    remaining if remaining > 0 else entry_quantity,
                     previous.entry_price, previous.stop_price, previous.strategy_version,
                     previous.opened_at, remote.updated_at if remaining == 0 else None,
-                    realized, previous.fees + exit_fee if remaining == 0 else previous.fees - allocated_entry_fee,
+                    realized, total_fees,
                 ))
 
     def _persist_issues(self, issues: list[ReconciliationIssue]) -> None:

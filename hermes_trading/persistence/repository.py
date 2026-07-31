@@ -212,6 +212,23 @@ class StateRepository:
         row = self._connection.execute("SELECT * FROM positions WHERE position_id = ?", (position_id,)).fetchone()
         return self._position_from_row(row) if row is not None else None
 
+    def entry_order_for_position(self, position_id: str) -> OrderRecord | None:
+        row = self._connection.execute(
+            """SELECT o.* FROM orders o JOIN order_intents i ON i.client_order_id = o.client_order_id
+            WHERE i.position_id = ? AND i.side = 'buy' ORDER BY o.updated_at LIMIT 1""",
+            (position_id,),
+        ).fetchone()
+        return self._order_from_row(row) if row is not None else None
+
+    def other_exit_fees(self, position_id: str, client_order_id: str) -> Decimal:
+        rows = self._connection.execute(
+            """SELECT o.fees FROM orders o
+            JOIN order_intents i ON i.client_order_id = o.client_order_id
+            WHERE i.position_id = ? AND i.side = 'sell' AND i.client_order_id != ?""",
+            (position_id, client_order_id),
+        )
+        return sum((Decimal(row["fees"]) for row in rows), Decimal("0"))
+
     def persist_execution_intent(self, decision: Decision, intent: OrderIntent) -> bool:
         """Commit an execution decision and its idempotency key together.
 

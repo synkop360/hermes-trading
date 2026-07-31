@@ -281,3 +281,17 @@ class ReconciliationTests(unittest.IsolatedAsyncioTestCase):
         fake = FakeKrakenExchange(); fake._balances = {"free": {"USDT": "14", "BTC": "0"}}
         report = await ReconciliationService(self.repository).run(KrakenGateway(lambda: fake))
         self.assertFalse(report.safe_for_new_entries); self.assertEqual(report.issues[0].code, "missing_expected_position")
+
+    async def test_partial_then_final_exit_keeps_total_fees_after_restart(self) -> None:
+        decision, entry = pending_intent("ht-fee-entry"); self.repository.persist_execution_intent(decision, entry)
+        self.repository.upsert_order(OrderRecord("kraken:entry", "ht-fee-entry", "BTC/USDT", "buy", "market", OrderStatus.FILLED, Decimal("0.0001"), Decimal("0.0001"), Decimal("65000"), Decimal("0.01"), "2026-07-30T12:00:00+00:00", "2026-07-30T12:00:00+00:00", "entry"))
+        self.repository.save_position(Position("position-ht-fee-entry", "BTC/USDT", PositionStatus.OPEN, Decimal("0.0001"), Decimal("65000"), Decimal("64000"), "69", "2026-07-30T12:00:00+00:00", fees=Decimal("0.01")))
+        exit_decision = Decision("decision-fee-exit", "BTC/USDT", "exit", "exit", "fee-exit", "69", Decimal("66000"), "2026-07-30T13:00:00+00:00")
+        self.repository.persist_execution_intent(exit_decision, OrderIntent("ht-fee-exit", exit_decision.decision_id, "BTC/USDT", "sell", "market", Decimal("0.0001"), Decimal("66000"), "2026-07-30T13:00:00+00:00", "position-ht-fee-entry"))
+        fake = FakeKrakenExchange(); order_id=fake.seed_order(client_order_id="ht-fee-exit", side="sell", status="open", filled="0.00005", fee="0.01"); fake._orders[order_id]["average"]="66000"; fake._balances={"free":{"USDT":"18","BTC":"0.00005"}}
+        await ReconciliationService(self.repository).run(KrakenGateway(lambda: fake))
+        self.repository.close(); self.repository=StateRepository.open(self.db_path); self.repository.migrate()
+        fake._orders[order_id].update(status="closed", filled="0.0001", remaining="0"); fake._orders[order_id]["fee"]["cost"]="0.02"; fake._balances["free"]["BTC"]="0"
+        await ReconciliationService(self.repository).run(KrakenGateway(lambda: fake))
+        position=self.repository.position_by_id("position-ht-fee-entry")
+        self.assertEqual(position.status, PositionStatus.CLOSED, repr(position)); self.assertEqual(position.quantity, Decimal("0.0001")); self.assertEqual(position.realized_pnl, Decimal("0.070")); self.assertEqual(position.fees, Decimal("0.03"))
