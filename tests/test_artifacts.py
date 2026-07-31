@@ -1,5 +1,6 @@
 import json
 import multiprocessing
+import os
 import subprocess
 import sys
 import tempfile
@@ -205,6 +206,54 @@ class ArtifactTests(unittest.TestCase):
                 for event_index in range(events_per_worker)
             },
         )
+
+    @unittest.skipUnless(os.name == "nt", "Windows file locking behavior")
+    def test_append_event_retries_windows_deadlock_contention(self) -> None:
+        """A transient Windows lock contention must not drop the journal event."""
+        import msvcrt
+
+        projector = ArtifactProjector(self.state_dir)
+        native_locking = msvcrt.locking
+        attempts = 0
+
+        def deadlock_once_then_lock(*arguments: object) -> None:
+            nonlocal attempts
+            attempts += 1
+            if attempts == 1:
+                raise OSError(36, "Resource deadlock avoided")
+            native_locking(*arguments)
+
+        with patch("msvcrt.locking", side_effect=deadlock_once_then_lock):
+            projector.append_event("decisions.jsonl", {"decision_id": "retry-deadlock"})
+
+        self.assertEqual(attempts, 3)  # acquire, retry acquire, unlock
+        self.assertEqual(
+            (self.state_dir / "decisions.jsonl").read_text(),
+            '{"decision_id":"retry-deadlock"}\n',
+        )
+
+    @unittest.skipUnless(os.name == "nt", "Windows file locking behavior")
+    def test_append_event_times_out_after_persistent_windows_lock_contention(self) -> None:
+        """A bounded failure leaves no partial JSONL line or bogus unlock behind."""
+        import msvcrt
+
+        projector = ArtifactProjector(self.state_dir)
+        with (
+            patch(
+                "hermes_trading.persistence.artifacts._WINDOWS_LOCK_TIMEOUT_SECONDS",
+                0,
+                create=True,
+            ),
+            patch(
+                "msvcrt.locking",
+                side_effect=OSError(36, "Resource deadlock avoided"),
+            ) as locking,
+            self.assertRaisesRegex(TimeoutError, "timed out acquiring artifact lock"),
+        ):
+            projector.append_event("decisions.jsonl", {"decision_id": "must-not-write"})
+
+        self.assertEqual(locking.call_count, 1)
+        self.assertFalse((self.state_dir / "decisions.jsonl").exists())
 
     def test_rebuild_writes_all_snapshots_without_replacing_legacy_journals(self) -> None:
         repository = seeded_repository(self.state_dir / "trading.db")

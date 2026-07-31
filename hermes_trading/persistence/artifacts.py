@@ -4,12 +4,26 @@ import errno
 import json
 import os
 import tempfile
+import time
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Any, Iterator
 
 from hermes_trading.domain import json_value
 from hermes_trading.persistence.repository import ProjectionItem, StateRepository
+
+
+_WINDOWS_LOCK_TIMEOUT_SECONDS = 10.0
+_WINDOWS_LOCK_INITIAL_RETRY_SECONDS = 0.01
+_WINDOWS_LOCK_MAX_RETRY_SECONDS = 0.25
+_WINDOWS_LOCK_CONTENTION_ERRNOS = frozenset(
+    {
+        errno.EACCES,
+        errno.EAGAIN,
+        getattr(errno, "EDEADLK", 36),
+        36,  # Windows may report ERROR_LOCK_VIOLATION as this POSIX errno.
+    }
+)
 
 
 class ArtifactProjector:
@@ -223,7 +237,7 @@ def _artifact_lock(artifact_path: Path) -> Iterator[None]:
         if os.name == "nt":
             import msvcrt
 
-            msvcrt.locking(lock_handle.fileno(), msvcrt.LK_LOCK, 1)
+            _acquire_windows_lock(lock_handle, msvcrt)
             try:
                 yield
             finally:
@@ -237,3 +251,29 @@ def _artifact_lock(artifact_path: Path) -> Iterator[None]:
                 yield
             finally:
                 fcntl.flock(lock_handle.fileno(), fcntl.LOCK_UN)
+
+
+def _acquire_windows_lock(lock_handle: Any, msvcrt: Any) -> None:
+    """Acquire a one-byte Windows lock without msvcrt's coarse blocking retry.
+
+    `LK_LOCK` may surface transient deadlock errors while several spawned
+    processes contend for an artifact. Retrying `LK_NBLCK` ourselves keeps the
+    wait bounded and lets interruption propagate instead of masking it.
+    """
+    deadline = time.monotonic() + _WINDOWS_LOCK_TIMEOUT_SECONDS
+    delay = _WINDOWS_LOCK_INITIAL_RETRY_SECONDS
+    while True:
+        try:
+            msvcrt.locking(lock_handle.fileno(), msvcrt.LK_NBLCK, 1)
+            return
+        except OSError as error:
+            if error.errno not in _WINDOWS_LOCK_CONTENTION_ERRNOS:
+                raise
+
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                raise TimeoutError(
+                    f"timed out acquiring artifact lock: {lock_handle.name}"
+                ) from error
+            time.sleep(min(delay, remaining))
+            delay = min(delay * 2, _WINDOWS_LOCK_MAX_RETRY_SECONDS)
