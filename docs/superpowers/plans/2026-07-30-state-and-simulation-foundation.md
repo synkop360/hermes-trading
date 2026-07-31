@@ -310,6 +310,7 @@ git commit -m "feat: project durable state to readable artifacts"
 **Files:**
 - Create: `hermes_trading/market_data.py`
 - Modify: `hermes_trading/adapters/price.py`
+- Modify: `hermes_trading/persistence/repository.py`
 - Test: `tests/test_market_data.py`
 
 **Interfaces:**
@@ -329,6 +330,7 @@ class MarketDataTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_shared_adapters_run_once_for_four_assets(self):
         coordinator = MarketDataCoordinator(
+            repository=self.repo,
             price_fetch=AsyncMock(side_effect=prices_for_four_assets()),
             news_fetch=AsyncMock(return_value={"schema_version": 1}),
             macro_fetch=AsyncMock(return_value={"schema_version": 1}),
@@ -374,7 +376,7 @@ Expected: all tests pass.
 - [ ] **Step 6: Commit the market coordinator**
 
 ```bash
-git add hermes_trading/market_data.py hermes_trading/adapters/price.py tests/test_market_data.py
+git add hermes_trading/market_data.py hermes_trading/adapters/price.py hermes_trading/persistence/repository.py tests/test_market_data.py
 git commit -m "feat: evaluate each closed candle once"
 ```
 
