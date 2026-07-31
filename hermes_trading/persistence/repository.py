@@ -401,6 +401,10 @@ class StateRepository:
         return True
 
     def projection_pending(self) -> bool:
+        return self.has_pending_projection_items()
+
+    def has_pending_projection_items(self) -> bool:
+        """Cheap existence check used after a bounded outbox recovery batch."""
         row = self._connection.execute(
             """SELECT 1 FROM incidents
             WHERE incident_id LIKE 'projection:item:%' AND status = 'open' LIMIT 1"""

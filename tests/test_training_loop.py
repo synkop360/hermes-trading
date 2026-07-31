@@ -26,6 +26,21 @@ class FailingProjector(ArtifactProjector):
         raise OSError("audit storage unavailable")
 
 
+class CountingProjector(ArtifactProjector):
+    def __init__(self, state_dir: Path) -> None:
+        super().__init__(state_dir)
+        self.projected_items = 0
+        self.reconcile_calls = 0
+
+    def project_pending_item(self, repository: StateRepository, item: object) -> None:
+        self.projected_items += 1
+        super().project_pending_item(repository, item)
+
+    def reconcile(self, repository: StateRepository) -> None:
+        self.reconcile_calls += 1
+        raise AssertionError("bounded outbox recovery must not perform a global reconciliation")
+
+
 class TrainingLoopTests(unittest.TestCase):
     def test_run_cycle_is_public(self) -> None:
         self.assertTrue(callable(run_cycle))
@@ -76,3 +91,43 @@ class TrainingLoopTests(unittest.TestCase):
 
         self.assertTrue(cycle.degraded)
         self.assertEqual(cycle.results[0].projection_error, "audit storage unavailable")
+
+    def test_bounded_recovery_stays_degraded_until_the_outbox_is_empty(self) -> None:
+        start = datetime(2026, 7, 30, 20, tzinfo=UTC)
+        strategy = {"version": "test", "entry": {"indicator": "rsi", "threshold": "30", "direction": "long"}, "stop_loss_pct": "0.5"}
+        with tempfile.TemporaryDirectory() as directory:
+            state = StateRepository.open(Path(directory) / "trading.db")
+            try:
+                state.migrate()
+                for offset in range(9):
+                    close_at = start + timedelta(hours=offset)
+                    pending_snapshot = MarketSnapshot(
+                        asset="BTC/USDT", timeframe="1h", availability="stale",
+                        decision_action="no_trade", reason="stale_closed_candle",
+                        candle=ClosedCandle(close_at - timedelta(hours=1), close_at, Decimal("100"), Decimal("100"), Decimal("100"), Decimal("100"), Decimal("1")),
+                        price={"closes": (Decimal("100"),)},
+                    )
+                    PositionEngine(state).process_candle(pending_snapshot, strategy)
+                self.assertEqual(len(state.pending_projection_items(limit=20)), 9)
+
+                unavailable = MarketSnapshot(
+                    asset="BTC/USDT", timeframe="1h", availability="unavailable",
+                    decision_action="no_trade", reason="price_unavailable", candle=None, price={},
+                )
+                projector = CountingProjector(Path(directory))
+                first = __import__("asyncio").run(run_cycle(
+                    ["BTC/USDT"], state, projector, StaticMarketData(unavailable), strategy, "training"
+                ))
+                first_pending_count = len(state.pending_projection_items(limit=20))
+                second = __import__("asyncio").run(run_cycle(
+                    ["BTC/USDT"], state, projector, StaticMarketData(unavailable), strategy, "training"
+                ))
+            finally:
+                state.close()
+
+        self.assertTrue(first.degraded)
+        self.assertEqual(first.results[0].projection_error, "projection backlog remains after bounded recovery")
+        self.assertEqual(first_pending_count, 1)
+        self.assertEqual(projector.projected_items, 9)
+        self.assertEqual(projector.reconcile_calls, 0)
+        self.assertFalse(second.degraded)

@@ -134,6 +134,8 @@ class PositionEngine:
             error = self._project_item(item)
             if error is not None:
                 return error
+        if self.state.has_pending_projection_items():
+            return "projection backlog remains after bounded recovery"
         return None
 
     def _project_pending_item(self, decision_id: str) -> str | None:
