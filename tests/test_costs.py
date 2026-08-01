@@ -127,6 +127,19 @@ class CostLedgerTests(unittest.TestCase):
         self.assertEqual(slippage.category, "slippage")
         self.assertEqual(slippage.amount, Decimal("0.1"))
 
+    def test_non_usd_kraken_fee_is_marked_missing_until_converted(self):
+        fee = kraken_fee_event(
+            amount=Decimal("0.00001"),
+            currency="BTC",
+            asset="BTC/USDT",
+            order_id="KRAKEN-2",
+            occurred_at=NOW,
+        )
+
+        self.assertIsNone(fee.amount)
+        self.assertEqual(fee.quality, "missing")
+        self.assertEqual(fee.metadata["fee_currency"], "BTC")
+
 
 if __name__ == "__main__":
     unittest.main()

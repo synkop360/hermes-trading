@@ -51,6 +51,16 @@ class ProfitabilityTests(unittest.TestCase):
         self.assertFalse(gate.passed)
         self.assertIn("railway_worker cost missing", gate.reasons)
 
+    def test_unknown_provider_cost_blocks_extended_live(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            ledger = CostLedger(Path(temp_dir))
+            ledger.record(CostEvent("openai", None, "USD", "missing", "responses_api", NOW))
+            report = ProfitabilityService(ledger).calculate(
+                [], capital=Decimal("100"), days=Decimal("10")
+            )
+
+        self.assertIn("openai cost missing", economic_gate(report).reasons)
+
     def test_stress_reduces_pnl_and_increases_costs(self):
         report = ProfitabilityService.calculate_from_values(
             gross_pnl=Decimal("100"),

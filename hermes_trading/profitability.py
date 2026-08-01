@@ -11,7 +11,6 @@ from hermes_trading.costs import CostEvent, CostLedger, RailwayCostSource
 
 TRADING_COST_CATEGORIES = {"kraken_fee", "slippage"}
 OPERATING_COST_CATEGORIES = {"railway_worker", "railway_bot", "hermes", "openai"}
-REQUIRED_COST_CATEGORIES = {"railway_worker"}
 
 
 @dataclass(frozen=True)
@@ -67,9 +66,7 @@ class ProfitabilityService:
         return self.calculate_from_values(
             gross_pnl=gross_pnl,
             costs=costs,
-            missing_required_costs=tuple(
-                category for category in missing if category in REQUIRED_COST_CATEGORIES
-            ),
+            missing_required_costs=tuple(missing),
             capital=capital,
             days=days,
         )

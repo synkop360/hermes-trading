@@ -226,11 +226,26 @@ def kraken_fee_event(
     occurred_at: datetime | None = None,
 ) -> CostEvent:
     original_currency = currency or "USD"
-    normalized_currency = "USD" if original_currency in {"USD", "USDT", "USDC"} else original_currency
+    if original_currency not in {"USD", "USDT", "USDC"}:
+        return CostEvent(
+            "kraken_fee",
+            None,
+            "USD",
+            "missing",
+            "kraken_unconverted_fee",
+            (occurred_at or datetime.now(UTC)).astimezone(UTC),
+            metadata={
+                "asset": asset,
+                "order_id": order_id,
+                "fee_currency": original_currency,
+                "fee_amount": str(amount),
+                "reason": "fee currency requires an FX conversion",
+            },
+        )
     return CostEvent(
         "kraken_fee",
         amount,
-        normalized_currency,
+        "USD",
         "actual",
         "kraken",
         (occurred_at or datetime.now(UTC)).astimezone(UTC),
