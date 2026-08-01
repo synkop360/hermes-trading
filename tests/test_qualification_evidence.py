@@ -51,6 +51,45 @@ class QualificationEvidenceCollectorTests(unittest.TestCase):
         self.assertEqual(checks["duplicate_candle_protected"].observed, "1")
         self.assertEqual(checks["risk_limits_exercised"].status.value, "missing")
 
+    def test_cost_ledger_marks_fees_and_slippage_charged(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            state = Path(temp_dir)
+            (state / "cost_events.jsonl").write_text(
+                "\n".join(
+                    [
+                        json.dumps({
+                            "category": "kraken_fee",
+                            "amount": "0.01",
+                            "currency": "USD",
+                            "quality": "actual",
+                            "source": "kraken",
+                            "occurred_at": "2026-08-01T12:00:00+00:00",
+                            "period_start": None,
+                            "period_end": None,
+                            "metadata": {"order_id": "order-1"},
+                        }),
+                        json.dumps({
+                            "category": "slippage",
+                            "amount": "0.10",
+                            "currency": "USD",
+                            "quality": "actual",
+                            "source": "kraken_fill_vs_decision",
+                            "occurred_at": "2026-08-01T12:00:01+00:00",
+                            "period_start": None,
+                            "period_end": None,
+                            "metadata": {"order_id": "order-1"},
+                        }),
+                    ]
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+
+            checks = QualificationEvidenceCollector(state).collect()
+
+        self.assertEqual(checks["fees_and_slippage_charged"].status.value, "pass")
+        self.assertEqual(checks["fees_and_slippage_charged"].observed, "kraken_fee=0.01 slippage=0.10")
+
 
 if __name__ == "__main__":
     unittest.main()
