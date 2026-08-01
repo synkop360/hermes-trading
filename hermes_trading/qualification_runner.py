@@ -37,10 +37,14 @@ class QualificationRunner:
     def run_from_state(self, requested_phase: QualificationPhase, *, now: datetime | None = None) -> QualificationReport:
         current = (now or datetime.now(UTC)).astimezone(UTC)
         configured_start = os.getenv("HERMES_TRAINING_STARTED_AT")
+        start_path = self.projector.state_dir / "qualification-training-started-at.txt"
         try:
-            started_at = datetime.fromisoformat(configured_start).astimezone(UTC) if configured_start else current
+            start_value = configured_start or (start_path.read_text(encoding="utf-8").strip() if start_path.exists() else current.isoformat())
+            started_at = datetime.fromisoformat(start_value).astimezone(UTC)
         except ValueError:
             started_at = current
+        if not configured_start and not start_path.exists():
+            start_path.write_text(started_at.isoformat() + "\n", encoding="utf-8")
         strategy_bytes = (self.projector.state_dir / "strategy.yaml").read_bytes()
         strategy_hash = hashlib.sha256(strategy_bytes).hexdigest()
         profitability_path = self.projector.state_dir / "profitability.json"

@@ -1,5 +1,6 @@
 import tempfile
 import unittest
+from datetime import timedelta
 from pathlib import Path
 
 from hermes_trading.persistence.repository import StateRepository
@@ -9,6 +10,21 @@ from tests.test_qualification import NOW, evidence
 
 
 class QualificationRunnerTests(unittest.TestCase):
+    def test_state_runner_persists_training_start_when_not_configured(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            state_dir = Path(temp_dir)
+            repository = StateRepository.open(state_dir / "trading.db")
+            repository.migrate()
+            runner = QualificationRunner(repository, state_dir, QualificationService())
+            runner.projector.state_dir.mkdir(parents=True, exist_ok=True)
+            (state_dir / "strategy.yaml").write_text("version: '83'\n", encoding="utf-8")
+            first = runner.run_from_state(QualificationPhase.VALIDATION_READY, now=NOW)
+            second = runner.run_from_state(QualificationPhase.VALIDATION_READY, now=NOW + timedelta(days=1))
+            repository.close()
+
+        self.assertEqual(first.snapshot.gate("training_duration").observed, "0")
+        self.assertEqual(second.snapshot.gate("training_duration").observed, "1")
+
     def test_report_writes_human_and_machine_artifacts_without_promoting_phase(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             state_dir = Path(temp_dir)
