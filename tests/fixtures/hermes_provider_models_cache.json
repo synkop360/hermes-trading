@@ -1,0 +1,7 @@
+{
+  "providers": {
+    "nous": {"models": ["tencent/hy3:free", {"id": "paid-model", "input_cost": "0.1", "output_cost": "0.1"}]},
+    "openrouter": {"models": [{"id": "vendor/backup:free"}, {"id": "unknown-price"}]},
+    "openai": {"models": [{"id": "gpt-paid", "free": false}]}
+  }
+}

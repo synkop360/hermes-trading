@@ -6,6 +6,7 @@ from decimal import Decimal
 from pathlib import Path
 import json
 import sqlite3
+from uuid import NAMESPACE_URL, uuid5
 
 from hermes_trading.domain import (
     Decision,
@@ -18,6 +19,7 @@ from hermes_trading.domain import (
     json_value,
 )
 from hermes_trading.identifiers import entry_client_order_id
+from hermes_trading.providers import ProviderAttempt
 from hermes_trading.persistence.migrations import (
     V1_COLUMNS,
     UnsupportedSchemaError,
@@ -1036,6 +1038,34 @@ class StateRepository:
         if row is None or row["status"] == "resolved":
             return 0
         return int(row["revision"])
+
+    def provider_attempts(self) -> tuple[ProviderAttempt, ...]:
+        rows = self._connection.execute(
+            "SELECT provider, status, reason, attempted_at FROM provider_attempts ORDER BY attempted_at, provider_attempt_id"
+        )
+        attempts: list[ProviderAttempt] = []
+        for row in rows:
+            try:
+                details = json.loads(row["reason"] or "{}")
+                attempted_at = datetime.fromisoformat(row["attempted_at"]).astimezone(UTC)
+                attempts.append(ProviderAttempt(
+                    str(row["provider"]), str(details["model"]), str(row["status"]), attempted_at,
+                    int(details.get("retry_after_seconds", 0)), details.get("latency_ms"),
+                ))
+            except (KeyError, TypeError, ValueError, json.JSONDecodeError):
+                continue
+        return tuple(attempts)
+
+    def record_provider_attempt(self, attempt: ProviderAttempt) -> None:
+        details = json.dumps({"model": attempt.model, "retry_after_seconds": attempt.retry_after_seconds, "latency_ms": attempt.latency_ms}, separators=(",", ":"))
+        attempt_id = str(uuid5(NAMESPACE_URL, f"hermes-trading:provider:{attempt.provider}:{attempt.model}:{attempt.status}:{attempt.attempted_at.isoformat()}"))
+        with self._connection:
+            self._connection.execute(
+                """INSERT OR REPLACE INTO provider_attempts
+                (provider_attempt_id, provider, status, reason, revision, attempted_at)
+                VALUES (?, ?, ?, ?, 1, ?)""",
+                (attempt_id, attempt.provider, attempt.status, details, attempt.attempted_at.isoformat()),
+            )
 
     @staticmethod
     def _utc_now() -> str:
