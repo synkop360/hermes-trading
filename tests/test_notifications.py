@@ -3,6 +3,7 @@ import os
 import tempfile
 import unittest
 from datetime import datetime
+from decimal import Decimal
 from pathlib import Path
 from unittest.mock import patch
 
@@ -11,11 +12,13 @@ from hermes_trading.notifications import (
     NotificationSettings,
     PnlSummaryCounter,
     build_cycle_notifications,
+    build_due_profitability_notifications,
     build_due_periodic_summaries,
     build_summary_notifications,
     resolve_notification_settings,
     send_notification,
 )
+from hermes_trading.profitability import ProfitabilityService
 from hermes_trading.loop import run_loop
 from hermes_trading.run import ensure_state_files
 
@@ -45,6 +48,13 @@ class NotificationSettingsTests(unittest.TestCase):
         settings = resolve_notification_settings({"HERMES_NOTIFY_SUMMARY_FREQUENCIES": "hourly"})
 
         self.assertEqual(settings.summary_frequencies, ("1h",))
+
+    def test_profitability_frequency_is_normalized_independently(self):
+        settings = resolve_notification_settings(
+            {"HERMES_NOTIFY_PROFITABILITY_FREQUENCIES": "[daily, 1w]"}
+        )
+
+        self.assertEqual(settings.profitability_frequencies, ("1d", "1w"))
 
     def test_summary_frequency_rejects_ambiguous_month_shortcut(self):
         with self.assertRaises(NotificationConfigError):
@@ -88,6 +98,32 @@ class NotificationDeliveryTests(unittest.IsolatedAsyncioTestCase):
 
 
 class CycleNotificationTests(unittest.TestCase):
+    def test_profitability_snapshot_is_due_once_per_configured_period(self):
+        settings = resolve_notification_settings(
+            {
+                "HERMES_NOTIFY_ENABLED": "true",
+                "DISCORD_WEBHOOK_URL": "https://discord.com/api/webhooks/test/token",
+                "HERMES_NOTIFY_PROFITABILITY_FREQUENCIES": "12h",
+            }
+        )
+        report = ProfitabilityService.calculate_from_values(
+            gross_pnl=Decimal("10"),
+            costs={"railway_worker": Decimal("2")},
+            capital=Decimal("100"),
+            days=Decimal("30"),
+        )
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            state = Path(temp_dir)
+            now = datetime(2026, 8, 1, 12, 5)
+            first = build_due_profitability_notifications(state, report, settings, now)
+            second = build_due_profitability_notifications(state, report, settings, now)
+
+        self.assertEqual(len(first), 1)
+        self.assertIn("Profitability snapshot 12h", first[0])
+        self.assertIn("Net: 8 USD", first[0])
+        self.assertEqual(second, [])
+
     def test_cycle_notifications_include_orders_and_trades(self):
         messages = build_cycle_notifications(
             trades=[

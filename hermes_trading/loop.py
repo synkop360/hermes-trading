@@ -35,13 +35,14 @@ from hermes_trading.market_data import MarketDataCoordinator
 from hermes_trading.persistence.artifacts import ArtifactProjector
 from hermes_trading.persistence.repository import StateRepository
 from hermes_trading.positions import PositionEngine, PositionProcessResult
-from hermes_trading.profitability import update_profitability_artifacts
+from hermes_trading.profitability import ProfitabilityReport, update_profitability_artifacts
 from hermes_trading.reconciliation import ReconciliationReport, ReconciliationService
 from hermes_trading.risk import RiskContext, RiskDecision, RiskEngine, resolve_risk_limits
 from hermes_trading.strategy import StrategySignal, _decimal_setting, evaluate_strategy
 from hermes_trading.notifications import (
     PnlSummaryCounter,
     build_cycle_notifications,
+    build_due_profitability_notifications,
     build_error_notification,
     build_summary_notifications,
     NotificationSettings,
@@ -189,9 +190,9 @@ async def _notify_all(messages: list[str], settings: NotificationSettings | None
             print(f"notification error: {exc}", flush=True)
 
 
-async def _update_profitability_best_effort(state_dir: Path) -> None:
+async def _update_profitability_best_effort(state_dir: Path) -> ProfitabilityReport | None:
     try:
-        update_profitability_artifacts(
+        return update_profitability_artifacts(
             state_dir,
             capital=Decimal(os.getenv("HERMES_PROFITABILITY_CAPITAL_USD", "100")),
             days=Decimal(os.getenv("HERMES_PROFITABILITY_WINDOW_DAYS", "30")),
@@ -205,6 +206,7 @@ async def _update_profitability_best_effort(state_dir: Path) -> None:
                 "updated_at": datetime.now(UTC).isoformat(),
             },
         )
+        return None
 
 
 def _load_yaml(path: Path) -> dict[str, Any]:
@@ -740,10 +742,16 @@ async def _run_training_loop(
                         "trade_closed": bool(trades), "projection_degraded": cycle.degraded,
                     },
                 )
+                profitability_report = await _update_profitability_best_effort(state_dir)
                 messages = build_cycle_notifications(trades, orders, notification_settings)
                 messages.extend(build_summary_notifications(state_dir, trades, notification_settings, pnl_summary, started_at))
+                if profitability_report:
+                    messages.extend(
+                        build_due_profitability_notifications(
+                            state_dir, profitability_report, notification_settings, started_at
+                        )
+                    )
                 await _notify_all(messages, notification_settings)
-                await _update_profitability_best_effort(state_dir)
                 consecutive_failures = 0
             except SchemaError:
                 raise
@@ -819,14 +827,20 @@ async def _run_validation_only_loop(
                 }
                 await _write_json(state_dir / "heartbeat.json", heartbeat)
                 orders = [json_value(order) for order in cycle.new_orders]
+                profitability_report = await _update_profitability_best_effort(state_dir)
                 messages = build_cycle_notifications([], orders, notification_settings)
                 messages.extend(
                     build_summary_notifications(
                         state_dir, [], notification_settings, pnl_summary, started_at
                     )
                 )
+                if profitability_report:
+                    messages.extend(
+                        build_due_profitability_notifications(
+                            state_dir, profitability_report, notification_settings, started_at
+                        )
+                    )
                 await _notify_all(messages, notification_settings)
-                await _update_profitability_best_effort(state_dir)
                 print(
                     "Hermes validation cycle "
                     f"status={cycle.status} reason={cycle.heartbeat['reason']} "

@@ -13,6 +13,7 @@ from hermes_trading.profitability import (
     update_profitability_artifacts,
 )
 from hermes_trading.notifications import build_profitability_notification
+from hermes_trading.loop import _update_profitability_best_effort
 
 
 NOW = datetime(2026, 7, 30, 20, 0, tzinfo=UTC)
@@ -114,6 +115,16 @@ class ProfitabilityTests(unittest.TestCase):
             self.assertEqual(report.net_pnl, Decimal("15"))
             self.assertTrue((state / "profitability.json").exists())
             self.assertIn("Hermes Trading | Profitability", (state / "profitability_report.md").read_text())
+
+
+class ProfitabilityLoopTests(unittest.IsolatedAsyncioTestCase):
+    async def test_best_effort_update_returns_report_for_notification_scheduling(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            state = Path(temp_dir)
+            report = await _update_profitability_best_effort(state)
+
+        self.assertIsNotNone(report)
+        self.assertEqual(report.gross_pnl, Decimal("0"))
 
 
 if __name__ == "__main__":

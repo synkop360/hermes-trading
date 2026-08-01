@@ -31,6 +31,7 @@ class NotificationSettings:
     notify_heartbeat: bool
     summary_every_cycles: int
     summary_frequencies: tuple[str, ...] = ()
+    profitability_frequencies: tuple[str, ...] = ()
 
 
 PostJson = Callable[[str, dict[str, Any]], Awaitable[None]]
@@ -195,6 +196,9 @@ def resolve_notification_settings(env: dict[str, str] | None = None) -> Notifica
         notify_heartbeat=_truthy(values.get("HERMES_NOTIFY_ON_HEARTBEAT")),
         summary_every_cycles=_int_at_least_zero(values.get("HERMES_NOTIFY_SUMMARY_EVERY_CYCLES")),
         summary_frequencies=_normalize_summary_frequencies(values.get("HERMES_NOTIFY_SUMMARY_FREQUENCIES")),
+        profitability_frequencies=_normalize_summary_frequencies(
+            values.get("HERMES_NOTIFY_PROFITABILITY_FREQUENCIES")
+        ),
     )
 
 
@@ -282,6 +286,45 @@ def build_error_notification(error: Exception, consecutive_failures: int) -> str
 
 def build_profitability_notification(report: ProfitabilityReport) -> str:
     return render_profitability_markdown(report)
+
+
+def build_due_profitability_notifications(
+    state_dir: Path,
+    report: ProfitabilityReport,
+    settings: NotificationSettings | None = None,
+    now: datetime | None = None,
+) -> list[str]:
+    """Build one economic snapshot for each completed, not-yet-notified period."""
+    effective = settings or resolve_notification_settings({})
+    if not effective.enabled or not effective.profitability_frequencies:
+        return []
+
+    current_time = _ensure_utc(now or datetime.now(timezone.utc))
+    marker_path = state_dir / "notification_profitability_summaries.json"
+    markers = _load_summary_markers(marker_path)
+    messages = []
+    changed = False
+    for frequency in effective.profitability_frequencies:
+        period_start, period_end = _previous_completed_period(frequency, current_time)
+        marker_key = f"{frequency}:{period_start.isoformat()}"
+        if markers.get(frequency) == marker_key:
+            continue
+        messages.append(
+            "\n".join(
+                [
+                    f"Hermes Trading | Profitability snapshot {frequency}",
+                    f"As of: {period_end.isoformat()}",
+                    "----------------------------------------",
+                    build_profitability_notification(report),
+                ]
+            )
+        )
+        markers[frequency] = marker_key
+        changed = True
+
+    if changed:
+        marker_path.write_text(json.dumps(markers, indent=2, sort_keys=True), encoding="utf-8")
+    return messages
 
 
 def build_due_periodic_summaries(

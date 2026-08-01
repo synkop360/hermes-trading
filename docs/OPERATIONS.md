@@ -114,6 +114,7 @@ railway.cmd variable set HERMES_NOTIFY_SERVICE=discord --skip-deploys
 railway.cmd variable set HERMES_NOTIFY_MODE=pnl_only --skip-deploys
 railway.cmd variable set HERMES_NOTIFY_SUMMARY_EVERY_CYCLES=30 --skip-deploys
 railway.cmd variable set HERMES_NOTIFY_SUMMARY_FREQUENCIES=hourly --skip-deploys
+railway.cmd variable set HERMES_NOTIFY_PROFITABILITY_FREQUENCIES=[1d,1w] --skip-deploys
 railway.cmd variable set HERMES_FUNDS_ALERT_ENABLED=true --skip-deploys
 railway.cmd variable set HERMES_FUNDS_ALERT_MENTION=@here --skip-deploys
 railway.cmd variable set DISCORD_WEBHOOK_URL=<webhook discord> --skip-deploys
@@ -134,6 +135,7 @@ Resumes periodiques disponibles:
 - `HERMES_NOTIFY_SUMMARY_FREQUENCIES=1w`: hebdomadaire.
 - `HERMES_NOTIFY_SUMMARY_FREQUENCIES=1mo`: mensuel.
 - `HERMES_NOTIFY_SUMMARY_FREQUENCIES=[12h,1w]`: plusieurs cadences en parallele.
+- `HERMES_NOTIFY_PROFITABILITY_FREQUENCIES=[1d,1w]`: snapshots economiques net journaliers et hebdomadaires, distincts des resumes de trades.
 
 Le resume par cycles et le resume horaire peuvent etre actifs ensemble:
 

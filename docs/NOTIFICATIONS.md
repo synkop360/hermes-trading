@@ -43,6 +43,7 @@ HERMES_NOTIFY_ON_ERRORS=true
 HERMES_NOTIFY_ON_HEARTBEAT=false
 HERMES_NOTIFY_SUMMARY_EVERY_CYCLES=0
 HERMES_NOTIFY_SUMMARY_FREQUENCIES=
+HERMES_NOTIFY_PROFITABILITY_FREQUENCIES=
 HERMES_FUNDS_ALERT_ENABLED=false
 HERMES_FUNDS_ALERT_QUOTE=USDT
 HERMES_FUNDS_MIN_AVAILABLE_USDT=20
@@ -188,6 +189,18 @@ HERMES_NOTIFY_SUMMARY_FREQUENCIES=hourly
 
 Avec cette configuration, Hermes publie un resume toutes les 30 iterations et un resume horaire quand une heure complete vient de se terminer. Si les deux tombent au meme cycle, les deux messages sont envoyes.
 
+## Snapshot de rentabilite
+
+Le bilan economique net est separe du resume des trades. Il comprend le PnL brut, les frais Kraken, le slippage, les couts Railway et les couts IA connus, ainsi que la projection 30 jours et le verdict de la gate economique.
+
+Il reste desactive par defaut. Activez-le avec les memes frequences explicites que les resumes operationnels:
+
+```text
+HERMES_NOTIFY_PROFITABILITY_FREQUENCIES=[1d,1w]
+```
+
+Chaque periode terminee est publiee une seule fois; l'anti-doublon est conserve dans `state/notification_profitability_summaries.json`. Les couts inconnus restent indiques comme manquants et bloquent la gate economique: Hermes ne les traite jamais comme zero.
+
 ## Alertes fonds bas
 
 Les alertes fonds bas sont des notifications de securite. Elles sont desactivees par defaut et passent par Discord quand les notifications sont actives.
@@ -271,6 +284,7 @@ railway.cmd variable set HERMES_NOTIFY_SERVICE=discord --skip-deploys
 railway.cmd variable set HERMES_NOTIFY_MODE=pnl_only --skip-deploys
 railway.cmd variable set HERMES_NOTIFY_SUMMARY_EVERY_CYCLES=30 --skip-deploys
 railway.cmd variable set HERMES_NOTIFY_SUMMARY_FREQUENCIES=hourly --skip-deploys
+railway.cmd variable set HERMES_NOTIFY_PROFITABILITY_FREQUENCIES=[1d,1w] --skip-deploys
 railway.cmd variable set HERMES_FUNDS_ALERT_ENABLED=true --skip-deploys
 railway.cmd variable set HERMES_FUNDS_ALERT_MENTION=@here --skip-deploys
 railway.cmd variable set DISCORD_WEBHOOK_URL=<webhook discord> --skip-deploys
