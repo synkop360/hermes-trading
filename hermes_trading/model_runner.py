@@ -20,7 +20,7 @@ class ModelRunResult:
 class ReflectionModelRunner:
     """Run Hermes automatic selection first; OpenAI is an unremembered fallback."""
 
-    def __init__(self, router: ProviderRouter, *, openai_run: Callable[[str], str] | None = None, command_run: Callable[..., subprocess.CompletedProcess[str]] = subprocess.run, timeout_seconds: int | None = None) -> None:
+    def __init__(self, router: ProviderRouter, *, openai_run: Callable[[str], str] | None = None, command_run: Callable[..., subprocess.CompletedProcess[str]] | None = None, timeout_seconds: int | None = None) -> None:
         self.router = router
         self.openai_run = openai_run
         self.command_run = command_run
@@ -52,7 +52,8 @@ class ReflectionModelRunner:
         command = ["hermes", "-z", prompt]
         if candidate is not None:
             command.extend(["--provider", candidate.provider, "-m", candidate.model])
-        result = self.command_run(command, check=True, capture_output=True, text=True, timeout=self.timeout_seconds)
+        command_run = self.command_run or subprocess.run
+        result = command_run(command, check=True, capture_output=True, text=True, timeout=self.timeout_seconds)
         return result.stdout
 
 

@@ -17,6 +17,7 @@ from hermes_trading.score import score
 from hermes_trading.model_runner import ReflectionModelRunner
 from hermes_trading.persistence.repository import StateRepository
 from hermes_trading.providers import HermesCatalog, ProviderRouter
+from hermes_trading.strategy_registry import StrategyRegistry
 
 
 KNOWN_HERMES_PROVIDERS = {"openai", "openrouter", "nous"}
@@ -470,7 +471,7 @@ def _build_asset_reflection_prompt(
         f"{json.dumps(decisions[-100:])}\n"
     )
 
-def _generate_asset_proposal(
+def _legacy_generate_asset_proposal(
     asset: str,
     prompt: str,
     env: dict[str, str],
@@ -739,7 +740,7 @@ def _run_openai_prompt(prompt: str, model: str, env: dict[str, str]) -> str:
     return _extract_openai_text(response.json())
 
 
-def _normalize_strategy_proposal(
+def _legacy_normalize_strategy_proposal(
     strategy: dict[str, Any],
     proposal: dict[str, Any],
 ) -> tuple[str, str | None]:
@@ -1117,20 +1118,30 @@ def run_hermes_reflection(
 
         return strategy
 
-    # Une seule archive et une seule version pour tout le cycle.
-    _archive_current(
-        state_dir,
-        strategy,
-    )
-
     updated["version"] = _next_version(
         str(strategy.get("version", "01"))
     )
 
-    _write_yaml(
-        strategy_path,
-        updated,
-    )
+    trading_mode = env.get("HERMES_TRADING_MODE", "training").strip().lower()
+    if trading_mode in {"live", "validation-only", "validation_only"}:
+        providers = {str(change.get("provider")) for change in applied_changes if change.get("provider")}
+        models = {str(change.get("model")) for change in applied_changes if change.get("model")}
+        StrategyRegistry(state_dir).propose_challenger(
+            updated,
+            based_on_version=str(strategy.get("version", "01")),
+            provider=next(iter(providers)) if len(providers) == 1 else "mixed",
+            model=next(iter(models)) if len(models) == 1 else "mixed",
+            proposed_at=now,
+        )
+    else:
+        _archive_current(
+            state_dir,
+            strategy,
+        )
+        _write_yaml(
+            strategy_path,
+            updated,
+        )
 
     _write_reflection_state(
         state_dir,
