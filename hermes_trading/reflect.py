@@ -28,11 +28,13 @@ SUPPORTED_STRATEGY_VARIABLES = {
 @dataclass(frozen=True)
 class ReflectionPolicy:
     min_new_decisions: int = 30
-    min_new_trades: int = 3
+    min_new_trades: int = 5
+    min_closed_trades: int = 20
+    cooldown_hours: float = 12.0
     max_consecutive_losses: int = 3
     score_threshold: float = -0.15
     max_age_hours: float = 24.0
-    max_entry_threshold: float = 75.0
+    max_entry_threshold: float = 35.0
 
 
 def _env_int(
@@ -77,8 +79,10 @@ def resolve_reflection_policy(
         min_new_trades=_env_int(
             values,
             "HERMES_REFLECT_MIN_NEW_TRADES",
-            3,
+            5,
         ),
+        min_closed_trades=_env_int(values, "HERMES_REFLECT_MIN_CLOSED_TRADES", 20),
+        cooldown_hours=_env_float(values, "HERMES_REFLECT_COOLDOWN_HOURS", 12.0),
         max_consecutive_losses=_env_int(
             values,
             "HERMES_REFLECT_MAX_CONSECUTIVE_LOSSES",
@@ -98,7 +102,7 @@ def resolve_reflection_policy(
         max_entry_threshold=_env_float(
             values,
             "HERMES_REFLECT_MAX_ENTRY_THRESHOLD",
-            75.0,
+            35.0,
         ),
     )
 
@@ -263,22 +267,27 @@ def _asset_needs_reflection(
 
     reasons = []
 
-    if len(new_decisions) >= policy.min_new_decisions:
+    # No-trade decisions remain observable, but cannot tune a strategy on their
+    # own: only a sufficiently large, independent closed-trade sample may do so.
+    eligible_sample = len(trades) >= policy.min_closed_trades and len(new_trades) >= policy.min_new_trades
+    cooling_down = hours_since_reflection is not None and hours_since_reflection < policy.cooldown_hours
+
+    if eligible_sample and len(new_decisions) >= policy.min_new_decisions:
         reasons.append(
             f"{len(new_decisions)} new decisions"
         )
 
-    if len(new_trades) >= policy.min_new_trades:
+    if eligible_sample:
         reasons.append(
             f"{len(new_trades)} new trades"
         )
 
-    if consecutive_losses >= policy.max_consecutive_losses:
+    if eligible_sample and consecutive_losses >= policy.max_consecutive_losses:
         reasons.append(
             f"{consecutive_losses} consecutive losses"
         )
 
-    if trades and current_score <= policy.score_threshold:
+    if eligible_sample and current_score <= policy.score_threshold:
         reasons.append(
             f"score {current_score} <= {policy.score_threshold}"
         )
@@ -286,7 +295,7 @@ def _asset_needs_reflection(
     has_new_data = bool(new_trades or new_decisions)
 
     if (
-        has_new_data
+        eligible_sample
         and hours_since_reflection is not None
         and hours_since_reflection >= policy.max_age_hours
     ):
@@ -295,12 +304,12 @@ def _asset_needs_reflection(
         )
 
     # Première exécution : demander un minimum de données.
-    if last_reflection_at is None and has_new_data:
-        if (
-            len(decisions) >= policy.min_new_decisions
-            or len(trades) >= policy.min_new_trades
-        ):
+    if last_reflection_at is None and eligible_sample:
+        if len(decisions) >= policy.min_new_decisions:
             reasons.append("initial symbol reflection")
+
+    if cooling_down:
+        reasons = []
 
     metrics = {
         "asset": asset,
@@ -309,6 +318,8 @@ def _asset_needs_reflection(
         "new_no_trade_decisions": len(no_trade_decisions),
         "total_decisions": len(decisions),
         "total_trades": len(trades),
+        "eligible_sample": eligible_sample,
+        "cooldown_active": cooling_down,
         "consecutive_losses": consecutive_losses,
         "score": current_score,
         "hours_since_reflection": hours_since_reflection,
@@ -839,12 +850,25 @@ def _apply_strategy_proposal(
     if asset:
         target = updated["symbols"][asset]
 
+    _validate_strategy_change(strategy, variable, asset, proposal["value"])
     if variable == "entry.threshold":
         target.setdefault("entry", {})["threshold"] = proposal["value"]
     else:
         target[variable] = proposal["value"]
 
     return updated, variable, asset
+
+
+def _validate_strategy_change(strategy: dict[str, Any], variable: str, asset: str | None, value: Any) -> None:
+    bounds = {"entry.threshold": (15.0, 35.0), "stop_loss_pct": (0.3, 3.0), "position_size_r": (0.1, 1.0)}
+    max_step = {"entry.threshold": 2.0, "stop_loss_pct": 0.2, "position_size_r": 0.1}
+    candidate = float(value)
+    low, high = bounds[variable]
+    if not low <= candidate <= high:
+        raise ValueError(f"{variable} must stay between {low} and {high}")
+    current = _resolve_asset_strategy(strategy, asset or "").get("entry", {}).get("threshold") if variable == "entry.threshold" else _resolve_asset_strategy(strategy, asset or "").get(variable)
+    if current is not None and abs(candidate - float(current)) > max_step[variable]:
+        raise ValueError(f"{variable} change exceeds the maximum step {max_step[variable]}")
 def run_hermes_reflection(
     state_dir: Path,
     env: dict[str, str] | None = None,

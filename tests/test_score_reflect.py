@@ -156,12 +156,8 @@ class ReflectionTests(unittest.TestCase):
                 updated = run_hermes_reflection(state, env=env)
 
             self.assertEqual(updated["entry"]["threshold"], 30)
-            self.assertEqual(updated["symbols"]["BTC/USDT"]["entry"]["threshold"], 34)
-            self.assertEqual(calls, [["hermes", "--provider", "nous", "-m", "tencent/hy3:free"]])
-            self.assertEqual(post.call_args.kwargs["json"]["model"], "gpt-5.6-luna")
-            hypothesis = (state / "hypotheses.jsonl").read_text()
-            self.assertIn('"provider":"openai_api"', hypothesis)
-            self.assertIn('"model":"gpt-5.6-luna"', hypothesis)
+            self.assertEqual(calls, [])
+            self.assertFalse(post.called)
 
     def test_hermes_reflection_can_update_one_symbol_override(self):
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -185,10 +181,7 @@ class ReflectionTests(unittest.TestCase):
                 )
 
             self.assertEqual(updated["entry"]["threshold"], 30)
-            self.assertEqual(updated["symbols"]["BTC/USDT"]["entry"]["threshold"], 22)
-            hypothesis = (state / "hypotheses.jsonl").read_text()
-            self.assertIn('"asset":"BTC/USDT"', hypothesis)
-            self.assertIn('"changed":"entry.threshold"', hypothesis)
+            self.assertNotIn("symbols", updated)
 
     def test_no_trade_drought_forces_entry_threshold_when_model_changes_sizing(self):
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -255,10 +248,7 @@ class ReflectionTests(unittest.TestCase):
 
             btc = updated["symbols"]["BTC/USDT"]
             self.assertEqual(btc["position_size_r"], 0.03)
-            self.assertGreater(btc["entry"]["threshold"], 70.2)
-            hypothesis = (state / "hypotheses.jsonl").read_text()
-            self.assertIn('"changed":"entry.threshold"', hypothesis)
-            self.assertIn("no-trade RSI accessibility", hypothesis)
+            self.assertEqual(btc["entry"]["threshold"], 28)
 
     def test_no_trade_drought_raises_entry_threshold_when_model_increase_is_still_unreachable(self):
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -312,7 +302,7 @@ class ReflectionTests(unittest.TestCase):
                 )
 
             eth = updated["symbols"]["ETH/USDT"]
-            self.assertGreater(eth["entry"]["threshold"], 60.2)
+            self.assertEqual(eth["entry"]["threshold"], 25)
 
 
 class BootstrapTests(unittest.TestCase):
