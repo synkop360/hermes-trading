@@ -16,7 +16,7 @@ class OperationalScriptTests(unittest.TestCase):
         self.assertIn("RUN uv sync", dockerfile)
         self.assertIn("ENV HERMES_TRADING_MODE=training", dockerfile)
         self.assertIn("ENV HERMES_TRADING_ALLOW_REAL_ORDERS=false", dockerfile)
-        self.assertIn('CMD ["uv", "run", "python", "-m", "hermes_trading.run"]', dockerfile)
+        self.assertIn('CMD ["uv", "run", "python", "-m", "hermes_trading.colocated"]', dockerfile)
 
     def test_deployment_doc_names_separate_service_commands(self) -> None:
         content = (ROOT / "docs" / "RAILWAY_CONTROL_DISCORD_DEPLOYMENT_2026-08-01.md").read_text(
@@ -24,6 +24,7 @@ class OperationalScriptTests(unittest.TestCase):
         )
 
         self.assertIn("uv run python -m hermes_trading.run", content)
+        self.assertIn("uv run python -m hermes_trading.colocated", content)
         self.assertIn("uv run python scripts/run_control_api.py", content)
         self.assertIn("uv run python scripts/run_discord_bot.py", content)
         self.assertIn("HERMES_TRADING_ALLOW_REAL_ORDERS=false", content)

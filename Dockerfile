@@ -9,4 +9,4 @@ COPY scripts ./scripts
 RUN uv sync
 ENV HERMES_TRADING_MODE=training
 ENV HERMES_TRADING_ALLOW_REAL_ORDERS=false
-CMD ["uv", "run", "python", "-m", "hermes_trading.run"]
+CMD ["uv", "run", "python", "-m", "hermes_trading.colocated"]

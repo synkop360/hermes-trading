@@ -10,7 +10,7 @@ Current status:
 2. Private local control API: implemented for read-only status and non-promoting qualification requests.
 3. Typed qualification evidence collectors: implemented with missing evidence remaining visible as `missing`.
 4. Qualification Discord summary notifications: implemented through the existing webhook path.
-5. Separate Discord bot service: code and scripts are prepared; deployment still needs real private secrets.
+5. Colocated Discord bot service: code and scripts are prepared to run beside the worker and loopback Control API.
 
 ## Safety Constraints
 
@@ -39,6 +39,16 @@ Defaults:
 
 The host must be loopback: `127.0.0.1` or `localhost`.
 For a separate private Railway Control API service, set `HERMES_CONTROL_HOST=0.0.0.0` only with `HERMES_CONTROL_BIND_PRIVATE_NETWORK=true`, and do not expose a public domain.
+
+## Colocated Railway Service
+
+The selected Railway deployment model is one `hermes-trading` service running:
+
+```powershell
+uv run python -m hermes_trading.colocated
+```
+
+This starts the worker, then starts the Control API on loopback when `HERMES_CONTROL_HMAC_SECRET` is present, and starts the Discord bot when all Discord secrets are present. The Control API remains private to the container through `HERMES_CONTROL_BASE_URL=http://127.0.0.1:8765`.
 
 ## Local Control Client
 
@@ -126,4 +136,4 @@ HERMES_TRADING_ALLOW_REAL_ORDERS=false
 
 No Railway variables were changed. Real orders were not enabled. No phase was promoted.
 
-Railway currently lists only the `hermes-trading` worker service. The Control API and Discord bot are packaged and documented, but separate Railway services and private secrets still need to be provisioned before service-level smoke tests.
+Railway currently lists only the `hermes-trading` worker service. That service is now the intended home for the worker, loopback Control API, and Discord bot.

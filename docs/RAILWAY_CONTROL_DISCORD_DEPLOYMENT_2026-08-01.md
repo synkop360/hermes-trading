@@ -1,10 +1,14 @@
 # Railway Control And Discord Deployment
 
-Use separate Railway services for the worker, private local control API, and Discord bot. Do not deploy from this note until the required secrets and Railway service settings are reviewed.
+Use one Railway service for the worker, private loopback Control API, and Discord bot. This keeps every control request inside the container while preserving the existing `/app/state` volume and worker uptime.
 
-Worker service command:
+Worker-only command:
 
 `uv run python -m hermes_trading.run`
+
+Colocated worker, Control API, and Discord bot command:
+
+`uv run python -m hermes_trading.colocated`
 
 Control API service command:
 
@@ -34,8 +38,7 @@ The Discord bot service needs:
 - `HERMES_DISCORD_ALLOWED_USER_IDS`
 - `HERMES_CONTROL_HMAC_SECRET`, same value as the Control API service
 - `HERMES_DISCORD_TOTP_SECRET`
-- `HERMES_CONTROL_BASE_URL=http://127.0.0.1:8765` for a co-located local setup, or the private Railway Control API URL for separate services
-- `HERMES_CONTROL_ALLOWED_HOSTS=<control-api-private-host>` when `HERMES_CONTROL_BASE_URL` is not loopback
+- `HERMES_CONTROL_BASE_URL=http://127.0.0.1:8765`
 
 Local preflight, without printing secret values:
 
@@ -45,25 +48,22 @@ uv run python scripts/check_control_discord_secrets.py discord-bot
 uv run python scripts/check_control_discord_secrets.py all
 ```
 
-## Railway Provisioning Sequence
+## Railway Colocation Sequence
 
-Do not change the existing worker variables when provisioning the Control API or Discord bot services.
+Do not change the existing worker safety variables when provisioning Control API or Discord bot secrets.
 
-1. Create or select the Control API Railway service.
-2. Set its command to `uv run python scripts/run_control_api.py`.
-3. Attach the same `/app/state` volume or confirm the intended shared state path before starting it.
-4. Set `HERMES_CONTROL_HMAC_SECRET`, `HERMES_STATE_DIR=/app/state`, `HERMES_CONTROL_HOST=0.0.0.0`, and `HERMES_CONTROL_BIND_PRIVATE_NETWORK=true`.
-5. Deploy the Control API service and smoke test `uv run python scripts/control_command.py status`.
+1. Keep the existing Railway service `hermes-trading`.
+2. Keep its volume mounted at `/app/state`.
+3. Use command `uv run python -m hermes_trading.colocated`.
+4. Keep `HERMES_TRADING_MODE=training`.
+5. Keep `HERMES_TRADING_ALLOW_REAL_ORDERS=false`.
+6. Set `HERMES_CONTROL_HMAC_SECRET`, `HERMES_STATE_DIR=/app/state`, `HERMES_CONTROL_HOST=127.0.0.1`, and `HERMES_CONTROL_PORT=8765`.
+7. Set the Discord bot token, allowed user IDs, TOTP secret, shared HMAC secret, and `HERMES_CONTROL_BASE_URL=http://127.0.0.1:8765`.
+8. Deploy the existing `hermes-trading` service.
+9. Verify the worker logs include the training boot line and colocated control startup line.
+10. Verify `/status` and `/qualification` from the allowed Discord account with a fresh TOTP code.
 
-The Control API and Discord bot allow Railway private-network URLs only through an explicit host allowlist. Do not use a public Railway domain for the Control API.
-
-Discord bot service:
-
-1. Create or select the Discord bot Railway service.
-2. Set its command to `uv run python scripts/run_discord_bot.py`.
-3. Set the Discord bot token, allowed user IDs, TOTP secret, shared HMAC secret, `HERMES_CONTROL_BASE_URL`, and `HERMES_CONTROL_ALLOWED_HOSTS`.
-4. Deploy the Discord bot service.
-5. Verify `/status` and `/qualification` from an allowed Discord account with a fresh TOTP code.
+The Control API must not have a public Railway domain. In the colocated setup it binds to loopback only.
 
 Expected safe smoke-test results:
 
