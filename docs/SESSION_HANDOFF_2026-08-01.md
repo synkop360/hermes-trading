@@ -36,6 +36,19 @@
 9. Training loop launches a qualification campaign every configured number of cycles. It does not promote a phase.
 10. `ControlService` can request a qualification report but always returns `promoted=false`.
 11. `control_auth.py` provides HMAC signatures, a five-minute window, and in-memory nonce replay rejection.
+12. Private local control and Discord command plumbing is implemented for read-only status and non-promoting validation qualification requests.
+13. Qualification evidence collectors now read typed evidence from state, with missing evidence remaining visible as `missing`.
+14. Qualification Discord summary notifications are implemented through the existing webhook path.
+
+## Safe pre-deploy verification, 2026-08-01
+
+- `uv run python -m unittest discover -s tests` passed: 331 tests.
+- `graphify update .` completed and refreshed `graphify-out`; it reported only graph metadata warnings for empty state JSON files and changed community labels.
+- `git diff --check` passed.
+- `railway.cmd status` reported project `awake-abundance`, production service `hermes-trading` online, volume `/app/state`, deployment `8f31e2f6-b3ad-4c9e-ace5-898716c63a6c`.
+- Read-only Railway SSH checks returned `HERMES_TRADING_MODE=training` and `HERMES_TRADING_ALLOW_REAL_ORDERS=false`.
+- No Railway deploy was performed, no Railway variables were changed, and real orders were not enabled.
+- Deployment remains pending explicit confirmation and private secrets review.
 
 ## Current real qualification result
 

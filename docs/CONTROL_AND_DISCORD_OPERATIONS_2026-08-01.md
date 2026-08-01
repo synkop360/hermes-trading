@@ -90,3 +90,15 @@ Expected keys:
 - `risk_limits_exercised`
 
 Missing keys remain visible as `missing` gates in qualification reports.
+
+## Safe Pre-Deploy Verification
+
+On 2026-08-01, the local pre-deploy checks passed:
+
+- `uv run python -m unittest discover -s tests`: 331 tests passed.
+- `graphify update .`: completed and refreshed `graphify-out`, with graph metadata warnings only.
+- `git diff --check`: passed.
+
+Read-only Railway checks confirmed project `awake-abundance`, production service `hermes-trading` is online, `HERMES_TRADING_MODE=training`, and `HERMES_TRADING_ALLOW_REAL_ORDERS=false`.
+
+No deploy was performed. No Railway variables were changed. Real orders were not enabled. Deployment remains pending explicit confirmation and review of the private Discord bot/control secrets.
