@@ -1,8 +1,14 @@
 import importlib.util
+import json
 import subprocess
 import sys
+import tempfile
 import unittest
+from decimal import Decimal
 from pathlib import Path
+
+from hermes_trading.domain import Decision, Fill, OrderIntent, OrderRecord, OrderStatus
+from hermes_trading.persistence.repository import StateRepository
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -37,6 +43,7 @@ class OperationalScriptTests(unittest.TestCase):
             "run_control_api.py",
             "run_discord_bot.py",
             "check_control_discord_secrets.py",
+            "generate_final_qualification_evidence.py",
             "generate_qualification_replay.py",
             "qualification_evidence_status.py",
         ):
@@ -205,3 +212,107 @@ class OperationalScriptTests(unittest.TestCase):
         self.assertEqual(report["candles_checked"], 3)
         self.assertEqual(report["events_checked"], 4)
         self.assertEqual(report["lookahead_violations"], 0)
+
+    def test_generate_final_qualification_evidence_marks_remaining_gates(self) -> None:
+        temporary_directory = tempfile.TemporaryDirectory()
+        self.addCleanup(temporary_directory.cleanup)
+        state_dir = Path(temporary_directory.name)
+        repository = StateRepository.open(state_dir / "trading.db")
+        try:
+            repository.migrate()
+            repository.record_decision(
+                Decision(
+                    "decision-final-evidence",
+                    "BTC/USDT",
+                    "enter",
+                    "rsi_entry",
+                    "BTC/USDT:1h:2026-08-01T12:00:00+00:00",
+                    "83",
+                    Decimal("65000"),
+                    "2026-08-01T12:00:00+00:00",
+                )
+            )
+            repository.create_order_intent(
+                OrderIntent(
+                    "client-final-evidence",
+                    "decision-final-evidence",
+                    "BTC/USDT",
+                    "buy",
+                    "market",
+                    Decimal("0.001"),
+                    Decimal("65000"),
+                    "2026-08-01T12:00:00+00:00",
+                )
+            )
+            repository.upsert_order(
+                OrderRecord(
+                    "order-final-evidence",
+                    "client-final-evidence",
+                    "BTC/USDT",
+                    "buy",
+                    "market",
+                    OrderStatus.FILLED,
+                    Decimal("0.001"),
+                    Decimal("0.001"),
+                    Decimal("65010"),
+                    Decimal("0.01"),
+                    "2026-08-01T12:00:00+00:00",
+                    "2026-08-01T12:00:01+00:00",
+                )
+            )
+            repository.record_fill(
+                Fill(
+                    "fill-final-evidence",
+                    "order-final-evidence",
+                    "BTC/USDT",
+                    "buy",
+                    Decimal("0.001"),
+                    Decimal("65010"),
+                    Decimal("0.01"),
+                    "2026-08-01T12:00:01+00:00",
+                )
+            )
+        finally:
+            repository.close()
+        (state_dir / "qualification-replay.json").write_text(
+            json.dumps({
+                "run_id": "replay-final-evidence",
+                "status": "pass",
+                "candles_checked": 1,
+                "lookahead_violations": 0,
+            }),
+            encoding="utf-8",
+        )
+
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(ROOT / "scripts" / "generate_final_qualification_evidence.py"),
+                "--state-dir",
+                str(state_dir),
+            ],
+            cwd=ROOT,
+            text=True,
+            capture_output=True,
+            timeout=30,
+        )
+        status = subprocess.run(
+            [
+                sys.executable,
+                str(ROOT / "scripts" / "qualification_evidence_status.py"),
+                "--state-dir",
+                str(state_dir),
+            ],
+            cwd=ROOT,
+            text=True,
+            capture_output=True,
+            timeout=30,
+        )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("fees_and_slippage=generated", result.stdout)
+        self.assertIn("duplicate_candle=generated", result.stdout)
+        self.assertIn("risk_limit=generated", result.stdout)
+        self.assertIn("fees_and_slippage_charged=pass", status.stdout)
+        self.assertIn("duplicate_candle_protected=pass", status.stdout)
+        self.assertIn("risk_limits_exercised=pass", status.stdout)
