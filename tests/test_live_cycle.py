@@ -9,10 +9,12 @@ import unittest
 from hermes_trading.domain import OrderStatus, Position, PositionStatus
 from hermes_trading.exchange import ExchangeOrder, KrakenGateway, MarketRules
 from hermes_trading.funds import resolve_funds_alert_settings
+from hermes_trading.adapters.execution import resolve_execution_settings
 from hermes_trading.loop import _prioritize_live_assets, _risk_context, resolve_trading_config, run_live_cycle
 from hermes_trading.market_data import ClosedCandle, MarketSnapshot
 from hermes_trading.persistence import StateRepository
 from hermes_trading.persistence.artifacts import ArtifactProjector
+from hermes_trading.risk import RiskEngine
 from scripts.check_live_readiness import ReadinessContext, check_readiness
 from tests.fakes.kraken import FakeKrakenExchange
 
@@ -108,6 +110,15 @@ class FilledValidationGateway(ValidationGateway):
         return order
 
 
+class AmbiguousValidationGateway(ValidationGateway):
+    async def create_market_order(
+        self, *, asset: str, side: str, amount: Decimal, client_order_id: str
+    ) -> ExchangeOrder:
+        self.events.append("validate_market")
+        self.validation_calls += 1
+        raise TimeoutError("exchange response unavailable")
+
+
 class FailingPostProtectionGateway(FilledValidationGateway):
     def __init__(self, events: list[str]) -> None:
         super().__init__(events)
@@ -179,6 +190,20 @@ class LiveCycleTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(gateway.validation_calls, 1)
         self.assertEqual(len(self.repository.order_intents()), 1)
 
+    async def test_ambiguous_first_submission_blocks_later_assets(self) -> None:
+        events: list[str] = []
+        gateway = AmbiguousValidationGateway(events)
+
+        result = await run_live_cycle(
+            ["BTC/USDT", "ETH/USDT"], self.repository, self.projector,
+            FakeMarketData(events), entry_strategy(), gateway,
+            validate_only=True, now=lambda: NOW,
+        )
+
+        self.assertEqual(result.status, "blocked_reconciliation")
+        self.assertEqual(gateway.validation_calls, 1)
+        self.assertEqual(len(self.repository.order_intents()), 1)
+
     def test_risk_reducing_exit_precedes_an_earlier_asset_entry(self) -> None:
         self.repository.save_position(
             Position(
@@ -206,9 +231,19 @@ class LiveCycleTests(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(context.daily_pnl, Decimal("-10"))
         self.assertEqual(context.drawdown, Decimal("20") / Decimal("110"))
+        decision = RiskEngine(self.repository, now=lambda: NOW).authorize_entry(
+            context=context, stop_loss_pct=Decimal("0.01"), position_size_r=Decimal("0.5"),
+            exchange_min_cost=Decimal("5"),
+        )
+        self.assertEqual(decision.reason_code, "daily_loss_limit")
+        self.assertTrue(self.repository.risk_state().kill_switch)
 
-    def test_paper_alias_remains_in_training_mode(self) -> None:
-        self.assertEqual(resolve_trading_config({"HERMES_TRADING_MODE": "paper"}).mode, "training")
+    def test_simulated_aliases_remain_in_training_mode(self) -> None:
+        for alias in ("paper", "training", "train", "demo"):
+            self.assertEqual(resolve_trading_config({"HERMES_TRADING_MODE": alias}).mode, "training")
+            settings = resolve_execution_settings({"HERMES_TRADING_MODE": alias})
+            self.assertEqual(settings.mode, "training")
+            self.assertEqual(settings.executor, "simulated")
 
     async def test_unknown_quote_balance_records_no_order_and_human_reason(self) -> None:
         events: list[str] = []
