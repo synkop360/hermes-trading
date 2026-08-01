@@ -389,18 +389,7 @@ async def run_live_cycle(
             (), report, warnings=(funds_warning,) if funds_warning else (),
         )
 
-    # Exits reduce exposure, so an active position that must exit always gets
-    # the single safe submission slot before a new entry on another asset.
-    def exit_priority(asset: str) -> int:
-        snapshot = snapshots[asset]
-        position = next(
-            (candidate for candidate in state.active_positions() if candidate.asset == asset),
-            None,
-        )
-        signal = evaluate_strategy(snapshot, resolve_asset_strategy(strategy, asset), position)
-        return 0 if signal.action == "exit" else 1
-
-    for asset in sorted(assets, key=exit_priority):
+    for asset in _prioritize_live_assets(assets, snapshots, strategy, state):
         snapshot = snapshots.get(asset)
         if snapshot is None:
             continue
@@ -679,6 +668,19 @@ def _risk_context(
         spread_available=spread_available,
         spread_observed_at=observed_at,
         active_position=any(position.asset == asset for position in positions),
+    )
+
+
+def _prioritize_live_assets(
+    assets: list[str], snapshots: Mapping[str, MarketSnapshot], strategy: Mapping[str, Any], state: StateRepository
+) -> list[str]:
+    """Put risk-reducing exits ahead of entries while preserving peer order."""
+    active_by_asset = {position.asset: position for position in state.active_positions()}
+    return sorted(
+        assets,
+        key=lambda asset: 0 if evaluate_strategy(
+            snapshots[asset], resolve_asset_strategy(strategy, asset), active_by_asset.get(asset)
+        ).action == "exit" else 1,
     )
 
 

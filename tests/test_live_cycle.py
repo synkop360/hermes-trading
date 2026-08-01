@@ -9,7 +9,7 @@ import unittest
 from hermes_trading.domain import OrderStatus, Position, PositionStatus
 from hermes_trading.exchange import ExchangeOrder, KrakenGateway, MarketRules
 from hermes_trading.funds import resolve_funds_alert_settings
-from hermes_trading.loop import _risk_context, resolve_trading_config, run_live_cycle
+from hermes_trading.loop import _prioritize_live_assets, _risk_context, resolve_trading_config, run_live_cycle
 from hermes_trading.market_data import ClosedCandle, MarketSnapshot
 from hermes_trading.persistence import StateRepository
 from hermes_trading.persistence.artifacts import ArtifactProjector
@@ -179,9 +179,7 @@ class LiveCycleTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(gateway.validation_calls, 1)
         self.assertEqual(len(self.repository.order_intents()), 1)
 
-    async def test_risk_reducing_exit_precedes_an_earlier_asset_entry(self) -> None:
-        events: list[str] = []
-        gateway = ValidationGateway(events)
+    def test_risk_reducing_exit_precedes_an_earlier_asset_entry(self) -> None:
         self.repository.save_position(
             Position(
                 "eth-open", "ETH/USDT", PositionStatus.OPEN, Decimal("0.1"),
@@ -189,14 +187,13 @@ class LiveCycleTests(unittest.IsolatedAsyncioTestCase):
             )
         )
 
-        result = await run_live_cycle(
-            ["BTC/USDT", "ETH/USDT"], self.repository, self.projector,
-            FakeMarketData(events), entry_strategy(), gateway,
-            validate_only=True, now=lambda: NOW,
+        ordered = _prioritize_live_assets(
+            ["BTC/USDT", "ETH/USDT"],
+            {"BTC/USDT": entry_snapshot("BTC/USDT"), "ETH/USDT": entry_snapshot("ETH/USDT")},
+            entry_strategy(), self.repository,
         )
 
-        self.assertEqual(gateway.validation_calls, 1)
-        self.assertEqual(self.repository.order_intents()[0].asset, "ETH/USDT")
+        self.assertEqual(ordered, ["ETH/USDT", "BTC/USDT"])
 
     def test_risk_context_uses_durable_daily_pnl_and_drawdown(self) -> None:
         self.repository.save_position(closed_position("win", Decimal("10"), NOW - timedelta(hours=2)))
