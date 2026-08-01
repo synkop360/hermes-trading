@@ -1,11 +1,15 @@
 import unittest
 from pathlib import Path
+from tempfile import TemporaryDirectory
 
+from hermes_trading.control_client import ControlClient
 from hermes_trading.colocated import (
     discord_bot_configured,
     resolve_colocated_assets,
     should_start_control_api,
+    start_control_api_if_configured,
 )
+from hermes_trading.run import ensure_state_files
 
 
 class ColocatedEntrypointTests(unittest.TestCase):
@@ -51,6 +55,28 @@ class ColocatedEntrypointTests(unittest.TestCase):
 
     def test_module_file_exists_for_docker_entrypoint(self) -> None:
         self.assertTrue((Path(__file__).resolve().parents[1] / "hermes_trading" / "colocated.py").exists())
+
+    def test_colocated_control_api_serves_status_from_background_thread(self) -> None:
+        with TemporaryDirectory() as directory:
+            state_dir = Path(directory)
+            ensure_state_files(state_dir)
+            service = start_control_api_if_configured(
+                state_dir,
+                {
+                    "HERMES_CONTROL_HMAC_SECRET": "secret",
+                    "HERMES_CONTROL_HOST": "127.0.0.1",
+                    "HERMES_CONTROL_PORT": "0",
+                },
+            )
+            self.assertIsNotNone(service)
+            try:
+                host, port = service.stop.server_address[:2]
+                payload = ControlClient(f"http://{host}:{port}", "secret").status()
+            finally:
+                service.stop.shutdown()
+                service.stop.server_close()
+
+        self.assertEqual(payload["status"], "ok")
 
 
 if __name__ == "__main__":

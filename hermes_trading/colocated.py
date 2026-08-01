@@ -6,7 +6,9 @@ import os
 import threading
 from collections.abc import Mapping
 from dataclasses import dataclass
+from http.server import HTTPServer
 from pathlib import Path
+from queue import Queue
 
 import yaml
 
@@ -27,7 +29,8 @@ DISCORD_REQUIRED = (
 @dataclass(frozen=True)
 class RunningService:
     name: str
-    stop: object
+    stop: HTTPServer
+    thread: threading.Thread
 
 
 def main() -> None:
@@ -73,6 +76,7 @@ async def run_colocated(
         if control_service is not None:
             control_service.stop.shutdown()
             control_service.stop.server_close()
+            control_service.thread.join(timeout=5)
 
 
 def should_start_control_api(env: Mapping[str, str]) -> bool:
@@ -91,19 +95,34 @@ def start_control_api_if_configured(state_dir: Path, env: Mapping[str, str]) -> 
         "HERMES_STATE_DIR": env.get("HERMES_STATE_DIR", str(state_dir)),
         "HERMES_CONTROL_HOST": env.get("HERMES_CONTROL_HOST", "127.0.0.1"),
     }
-    server, repository = build_control_server(resolve_control_server_config(config_env))
+    config = resolve_control_server_config(config_env)
+    startup: Queue[tuple[HTTPServer | None, BaseException | None]] = Queue(maxsize=1)
 
     def serve() -> None:
+        repository = None
+        started = False
         try:
+            server, repository = build_control_server(config)
+            startup.put((server, None))
+            started = True
             server.serve_forever()
+        except BaseException as error:
+            if not started:
+                startup.put((None, error))
         finally:
-            repository.close()
+            if repository is not None:
+                repository.close()
 
     thread = threading.Thread(target=serve, name="hermes-control-api", daemon=True)
     thread.start()
+    server, error = startup.get(timeout=10)
+    if error is not None:
+        raise error
+    if server is None:
+        raise RuntimeError("Hermes control API did not start")
     host, port = server.server_address[:2]
     print(f"Hermes colocated control API listening on http://{host}:{port}", flush=True)
-    return RunningService("control-api", server)
+    return RunningService("control-api", server, thread)
 
 
 def start_discord_bot_if_configured(env: Mapping[str, str]) -> asyncio.Task[None] | None:
