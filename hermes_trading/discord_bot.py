@@ -1,19 +1,21 @@
 from __future__ import annotations
 
+import asyncio
 import base64
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from datetime import UTC, datetime
 import hashlib
 import hmac
-import json
 import os
-from urllib.parse import urlparse
-from uuid import uuid4
+from typing import Protocol
 
-import httpx
-
-from hermes_trading.control_auth import sign_command
+from hermes_trading.control_client import (
+    ControlClient,
+    ControlClientConfigError,
+    control_status_message,
+    qualification_message,
+)
 
 
 class DiscordBotConfigError(RuntimeError):
@@ -29,7 +31,12 @@ class DiscordBotConfig:
     totp_secret: str
 
 
-RequestJson = Callable[[str, str, Mapping[str, str], str], dict[str, object]]
+class ControlClientLike(Protocol):
+    def status(self) -> dict[str, object]:
+        ...
+
+    def qualification(self, phase: str = "validation_ready") -> dict[str, object]:
+        ...
 
 
 class DiscordControlBot:
@@ -37,35 +44,28 @@ class DiscordControlBot:
         self,
         config: DiscordBotConfig,
         *,
-        request_json: RequestJson | None = None,
+        control_client: ControlClientLike | None = None,
         now: Callable[[], datetime] | None = None,
     ) -> None:
         self._config = config
-        self._request_json = request_json or _httpx_request_json
         self._now = now or (lambda: datetime.now(UTC))
+        self._control_client = control_client or ControlClient(
+            config.control_base_url,
+            config.hmac_secret,
+            now=self._now,
+        )
 
     def status(self, *, user_id: int, otp: str) -> str:
         denial = self._deny(user_id, otp)
         if denial is not None:
             return denial
-        payload = self._signed_request("GET", "/status", "")
-        return (
-            f"Hermes status={payload.get('status')} "
-            f"mode={payload.get('trading_mode')} "
-            f"real_orders_allowed={_bool_text(payload.get('real_orders_allowed'))}"
-        )
+        return f"Hermes {control_status_message(self._control_client.status())}"
 
     def qualification(self, *, user_id: int, otp: str) -> str:
         denial = self._deny(user_id, otp)
         if denial is not None:
             return denial
-        body = json.dumps({"phase": "validation_ready"}, separators=(",", ":"), sort_keys=True)
-        payload = self._signed_request("POST", "/qualification", body)
-        return (
-            f"Hermes qualification phase={payload.get('requested_phase')} "
-            f"promotable={_bool_text(payload.get('promotable'))} "
-            f"promoted={_bool_text(payload.get('promoted'))}"
-        )
+        return f"Hermes {qualification_message(self._control_client.qualification('validation_ready'))}"
 
     def _deny(self, user_id: int, otp: str) -> str | None:
         if user_id not in self._config.allowed_user_ids:
@@ -73,22 +73,6 @@ class DiscordControlBot:
         if not verify_totp(self._config.totp_secret, otp, self._now()):
             return "invalid_totp"
         return None
-
-    def _signed_request(self, method: str, path: str, body: str) -> dict[str, object]:
-        current = self._now().astimezone(UTC)
-        nonce = f"discord-{uuid4()}"
-        headers = {
-            "Content-Type": "application/json",
-            "X-Hermes-Nonce": nonce,
-            "X-Hermes-Timestamp": current.isoformat(),
-            "X-Hermes-Signature": sign_command(self._config.hmac_secret, nonce, current, body),
-        }
-        return self._request_json(
-            method,
-            self._config.control_base_url.rstrip("/") + path,
-            headers,
-            body,
-        )
 
 
 async def run_discord_bot(config: DiscordBotConfig) -> None:
@@ -110,15 +94,17 @@ async def run_discord_bot(config: DiscordBotConfig) -> None:
 
     @tree.command(name="status", description="Read Hermes status")
     async def status(interaction: discord.Interaction, otp: str) -> None:
+        message = await asyncio.to_thread(bot.status, user_id=interaction.user.id, otp=otp)
         await interaction.response.send_message(
-            bot.status(user_id=interaction.user.id, otp=otp),
+            message,
             ephemeral=True,
         )
 
     @tree.command(name="qualification", description="Request a validation qualification report")
     async def qualification(interaction: discord.Interaction, otp: str) -> None:
+        message = await asyncio.to_thread(bot.qualification, user_id=interaction.user.id, otp=otp)
         await interaction.response.send_message(
-            bot.qualification(user_id=interaction.user.id, otp=otp),
+            message,
             ephemeral=True,
         )
 
@@ -132,7 +118,10 @@ def resolve_discord_bot_config(env: Mapping[str, str] | None = None) -> DiscordB
     hmac_secret = _required(values, "HERMES_CONTROL_HMAC_SECRET")
     totp_secret = _required(values, "HERMES_DISCORD_TOTP_SECRET")
     control_base_url = values.get("HERMES_CONTROL_BASE_URL", "http://127.0.0.1:8765").strip()
-    _validate_loopback_url(control_base_url)
+    try:
+        ControlClient(control_base_url, hmac_secret)
+    except ControlClientConfigError as error:
+        raise DiscordBotConfigError("HERMES_CONTROL_BASE_URL must be an HTTP loopback URL") from error
     return DiscordBotConfig(token, allowed_user_ids, control_base_url, hmac_secret, totp_secret)
 
 
@@ -159,15 +148,6 @@ def verify_totp(secret: str, code: str, at: datetime | None = None) -> bool:
     )
 
 
-def _httpx_request_json(method: str, url: str, headers: Mapping[str, str], body: str) -> dict[str, object]:
-    response = httpx.request(method, url, headers=dict(headers), content=body.encode("utf-8"), timeout=10.0)
-    response.raise_for_status()
-    payload = response.json()
-    if not isinstance(payload, dict):
-        raise RuntimeError("control API returned a non-object payload")
-    return payload
-
-
 def _required(values: Mapping[str, str], name: str) -> str:
     value = values.get(name, "").strip()
     if not value:
@@ -185,16 +165,6 @@ def _allowed_user_ids(raw: str) -> frozenset[int]:
     return user_ids
 
 
-def _validate_loopback_url(value: str) -> None:
-    parsed = urlparse(value)
-    if parsed.scheme != "http" or parsed.hostname not in {"127.0.0.1", "localhost", "::1"}:
-        raise DiscordBotConfigError("HERMES_CONTROL_BASE_URL must be an HTTP loopback URL")
-
-
 def _base32_padded(value: str) -> str:
     stripped = value.replace(" ", "").upper()
     return stripped + ("=" * ((8 - len(stripped) % 8) % 8))
-
-
-def _bool_text(value: object) -> str:
-    return "true" if value is True else "false" if value is False else str(value)
