@@ -107,15 +107,17 @@ class CycleNotificationTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             state = Path(temp_dir)
             ledger = WorkerFeatureUpdateLedger(state)
-            first = ledger.record_once(
+            first = ledger.pending_message(
                 "control_api",
                 "private local HMAC status and qualification endpoints are available",
-                now=datetime.fromisoformat("2026-08-01T12:00:00+00:00"),
             )
-            second = ledger.record_once(
+            ledger.record_delivered(
+                "control_api",
+                now=datetime.fromisoformat("2026-08-01T12:01:00+00:00"),
+            )
+            second = ledger.pending_message(
                 "control_api",
                 "private local HMAC status and qualification endpoints are available",
-                now=datetime.fromisoformat("2026-08-01T12:01:00+00:00"),
             )
 
         self.assertEqual(
@@ -520,6 +522,107 @@ class LoopNotificationTests(unittest.IsolatedAsyncioTestCase):
                                     await run_loop("BTC/USDT", state, interval_seconds=60)
 
         self.assertTrue(any("Worker feature available control_api" in message for message in messages))
+
+    async def test_worker_feature_update_retries_after_notifications_disabled(self):
+        messages = []
+
+        async def fake_send(settings, content):
+            messages.append(content)
+            return True
+
+        async def fake_run_cycle(*args, **kwargs):
+            return CycleResult(results=(), mode="training")
+
+        async def stop_after_cycle(_):
+            raise asyncio.CancelledError()
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            state = Path(temp_dir)
+            ensure_state_files(state)
+            with patch.dict(
+                os.environ,
+                {
+                    "HERMES_TRADING_MODE": "training",
+                    "HERMES_NOTIFY_ENABLED": "false",
+                    "HERMES_WORKER_FEATURE_UPDATES": "control_api",
+                },
+                clear=False,
+            ):
+                with patch("hermes_trading.loop.run_cycle", fake_run_cycle):
+                    with patch("hermes_trading.loop._update_profitability_best_effort", return_value=None):
+                        with patch("hermes_trading.loop.send_notification", fake_send):
+                            with patch("hermes_trading.loop.asyncio.sleep", stop_after_cycle):
+                                with self.assertRaises(asyncio.CancelledError):
+                                    await run_loop("BTC/USDT", state, interval_seconds=60)
+
+            self.assertEqual(messages, [])
+            self.assertFalse((state / "worker_feature_updates.json").exists())
+
+            with patch.dict(
+                os.environ,
+                {
+                    "HERMES_TRADING_MODE": "training",
+                    "HERMES_NOTIFY_ENABLED": "true",
+                    "DISCORD_WEBHOOK_URL": "https://discord.com/api/webhooks/test/token",
+                    "HERMES_WORKER_FEATURE_UPDATES": "control_api",
+                },
+                clear=False,
+            ):
+                with patch("hermes_trading.loop.run_cycle", fake_run_cycle):
+                    with patch("hermes_trading.loop._update_profitability_best_effort", return_value=None):
+                        with patch("hermes_trading.loop.send_notification", fake_send):
+                            with patch("hermes_trading.loop.asyncio.sleep", stop_after_cycle):
+                                with self.assertRaises(asyncio.CancelledError):
+                                    await run_loop("BTC/USDT", state, interval_seconds=60)
+
+        self.assertEqual(len(messages), 1)
+        self.assertIn("Worker feature available control_api", messages[0])
+
+    async def test_worker_feature_update_retries_after_delivery_failure(self):
+        messages = []
+
+        async def failing_send(settings, content):
+            raise RuntimeError("discord unavailable")
+
+        async def fake_send(settings, content):
+            messages.append(content)
+            return True
+
+        async def fake_run_cycle(*args, **kwargs):
+            return CycleResult(results=(), mode="training")
+
+        async def stop_after_cycle(_):
+            raise asyncio.CancelledError()
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            state = Path(temp_dir)
+            ensure_state_files(state)
+            env = {
+                "HERMES_TRADING_MODE": "training",
+                "HERMES_NOTIFY_ENABLED": "true",
+                "DISCORD_WEBHOOK_URL": "https://discord.com/api/webhooks/test/token",
+                "HERMES_WORKER_FEATURE_UPDATES": "control_api",
+            }
+            with patch.dict(os.environ, env, clear=False):
+                with patch("hermes_trading.loop.run_cycle", fake_run_cycle):
+                    with patch("hermes_trading.loop._update_profitability_best_effort", return_value=None):
+                        with patch("hermes_trading.loop.send_notification", failing_send):
+                            with patch("hermes_trading.loop.asyncio.sleep", stop_after_cycle):
+                                with self.assertRaises(asyncio.CancelledError):
+                                    await run_loop("BTC/USDT", state, interval_seconds=60)
+
+            self.assertFalse((state / "worker_feature_updates.json").exists())
+
+            with patch.dict(os.environ, env, clear=False):
+                with patch("hermes_trading.loop.run_cycle", fake_run_cycle):
+                    with patch("hermes_trading.loop._update_profitability_best_effort", return_value=None):
+                        with patch("hermes_trading.loop.send_notification", fake_send):
+                            with patch("hermes_trading.loop.asyncio.sleep", stop_after_cycle):
+                                with self.assertRaises(asyncio.CancelledError):
+                                    await run_loop("BTC/USDT", state, interval_seconds=60)
+
+        self.assertEqual(len(messages), 1)
+        self.assertIn("Worker feature available control_api", messages[0])
 
     async def test_run_loop_notifies_scheduled_qualification_report(self):
         messages = []

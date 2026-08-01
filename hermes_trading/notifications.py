@@ -308,13 +308,18 @@ class WorkerFeatureUpdateLedger:
     def __init__(self, state_dir: Path) -> None:
         self._path = state_dir / "worker_feature_updates.json"
 
-    def record_once(self, feature: str, detail: str, *, now: datetime) -> str | None:
+    def pending_message(self, feature: str, detail: str) -> str | None:
         markers = _load_summary_markers(self._path)
         if markers.get(feature):
             return None
+        return build_worker_feature_update(feature, detail)
+
+    def record_delivered(self, feature: str, *, now: datetime) -> None:
+        markers = _load_summary_markers(self._path)
+        if markers.get(feature):
+            return
         markers[feature] = now.isoformat()
         self._path.write_text(json.dumps(markers, indent=2, sort_keys=True), encoding="utf-8")
-        return build_worker_feature_update(feature, detail)
 
 
 def build_due_profitability_notifications(

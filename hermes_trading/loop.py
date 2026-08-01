@@ -722,26 +722,48 @@ def _cycle_orders(cycle: CycleResult) -> list[dict[str, Any]]:
     return [json_value(order) for order in cycle.orders]
 
 
-def _worker_feature_update_messages(state_dir: Path, now: datetime) -> list[str]:
-    enabled = {
+_WORKER_FEATURE_DETAILS = {
+    "control_api": "private local HMAC status and qualification endpoints are available",
+    "qualification_evidence": "typed qualification evidence reports missing proofs explicitly",
+    "discord_webhook_qualification": "qualification summaries can be sent through the existing Discord webhook",
+    "discord_bot": "separate Discord bot service is packaged and ready for private secrets",
+}
+
+
+def _enabled_worker_feature_updates() -> set[str]:
+    return {
         item.strip()
         for item in os.getenv("HERMES_WORKER_FEATURE_UPDATES", "").split(",")
         if item.strip()
     }
-    details = {
-        "control_api": "private local HMAC status and qualification endpoints are available",
-        "qualification_evidence": "typed qualification evidence reports missing proofs explicitly",
-        "discord_webhook_qualification": "qualification summaries can be sent through the existing Discord webhook",
-        "discord_bot": "separate Discord bot service is packaged and ready for private secrets",
+
+
+async def _notify_worker_feature_updates(
+    state_dir: Path,
+    settings: NotificationSettings,
+    now: datetime,
+) -> None:
+    if not settings.enabled:
+        return
+    enabled = {
+        feature
+        for feature in _enabled_worker_feature_updates()
+        if feature in _WORKER_FEATURE_DETAILS
     }
     ledger = WorkerFeatureUpdateLedger(state_dir)
-    return [
-        message
-        for feature, detail in details.items()
-        if feature in enabled
-        for message in [ledger.record_once(feature, detail, now=now)]
-        if message is not None
-    ]
+    for feature, detail in _WORKER_FEATURE_DETAILS.items():
+        if feature not in enabled:
+            continue
+        message = ledger.pending_message(feature, detail)
+        if message is None:
+            continue
+        try:
+            delivered = await send_notification(settings, message)
+        except Exception as exc:
+            print(f"worker feature notification error: {exc}", flush=True)
+            continue
+        if delivered:
+            ledger.record_delivered(feature, now=now)
 
 
 async def _run_training_loop(
@@ -793,7 +815,7 @@ async def _run_training_loop(
                 )
                 await _write_json(state_dir / "heartbeat.json", heartbeat)
                 messages = build_cycle_notifications(trades, orders, notification_settings)
-                messages.extend(_worker_feature_update_messages(state_dir, started_at))
+                await _notify_worker_feature_updates(state_dir, notification_settings, started_at)
                 if qualification_report is not None:
                     messages.append(build_qualification_notification(qualification_report))
                 messages.extend(build_summary_notifications(state_dir, trades, notification_settings, pnl_summary, started_at))
