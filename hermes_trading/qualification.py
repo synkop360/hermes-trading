@@ -72,7 +72,7 @@ class QualificationSnapshot:
 
     @property
     def valid(self) -> bool:
-        return not any(gate.status == GateStatus.FAIL for gate in self.gates)
+        return all(gate.status == GateStatus.PASS for gate in self.gates)
 
     @property
     def promotable(self) -> bool:

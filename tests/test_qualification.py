@@ -66,6 +66,16 @@ class QualificationServiceTests(unittest.TestCase):
         self.assertEqual(gate.observed, "missing")
         self.assertEqual(gate.reason, "no replay campaign evidence recorded")
 
+    def test_missing_typed_evidence_blocks_validity_and_promotion(self):
+        result = self.service.evaluate(
+            QualificationPhase.VALIDATION_READY,
+            evidence(replay_without_lookahead=EvidenceCheck.missing("no replay campaign evidence recorded")),
+            now=NOW,
+        )
+
+        self.assertFalse(result.valid)
+        self.assertFalse(result.promotable)
+
     def test_unknown_cost_blocks_live_but_not_training(self):
         training = self.service.evaluate(
             QualificationPhase.TRAINING, evidence(costs_complete=False), now=NOW
