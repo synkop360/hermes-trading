@@ -48,6 +48,29 @@ class KrakenGatewayTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(fake.create_order_calls, 1)
         self.assertEqual(fake.create_order_requests[0]["params"], {"cl_ord_id": "ht-btc-entry"})
 
+    async def test_validation_acknowledgement_does_not_require_a_kraken_order_id(self) -> None:
+        fake = FakeKrakenExchange()
+        fake.queue_create_order({"info": {"descr": {"order": "validated"}}})
+
+        order = await KrakenGateway(lambda: fake, validate_only=True).create_market_order(
+            asset="BTC/USDT", side="buy", amount=Decimal("0.0001"), client_order_id="ht-validated"
+        )
+
+        self.assertEqual(order.status, OrderStatus.VALIDATED)
+        self.assertEqual(order.exchange_order_id, "validation:ht-validated")
+        self.assertEqual(order.client_order_id, "ht-validated")
+        self.assertTrue(fake.create_order_requests[0]["params"]["validate"])
+
+    async def test_fetch_orders_uses_open_and_closed_kraken_endpoints(self) -> None:
+        fake = FakeKrakenExchange()
+        fake.seed_order(exchange_order_id="open", status="open")
+        fake.seed_order(exchange_order_id="closed", status="closed")
+        fake.fetch_orders = lambda *_: (_ for _ in ()).throw(AssertionError("unsupported endpoint"))
+
+        orders = await KrakenGateway(lambda: fake).fetch_orders("BTC/USDT")
+
+        self.assertEqual({order.exchange_order_id for order in orders}, {"open", "closed"})
+
     async def test_lost_response_can_be_found_without_a_second_submission(self) -> None:
         fake = FakeKrakenExchange()
         fake.queue_create_order(TimeoutError("response lost"))
@@ -141,7 +164,7 @@ class KrakenGatewayTests(unittest.IsolatedAsyncioTestCase):
         async def cancelled_fetch_orders(symbol: str | None = None) -> list[dict[str, object]]:
             raise asyncio.CancelledError()
 
-        fake.fetch_orders = cancelled_fetch_orders
+        fake.fetch_open_orders = cancelled_fetch_orders
         gateway = KrakenGateway(lambda: fake)
 
         with self.assertRaises(asyncio.CancelledError):

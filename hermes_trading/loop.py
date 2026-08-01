@@ -325,6 +325,8 @@ async def run_live_cycle(
         raise TradingModeError(
             "live cycle blocked: only validation-only is available before qualification"
         )
+    if not getattr(gateway, "validation_only", False):
+        raise TradingModeError("live cycle blocked: gateway is not validation-only")
     current_time = (now or (lambda: datetime.now(UTC)))()
     if current_time.tzinfo is None:
         raise ValueError("live cycle clock must include a timezone")

@@ -12,6 +12,9 @@ ExchangeOrderStatus = OrderStatus | Literal["pending", "cancelled", "unknown"]
 
 
 class ExchangeGateway(Protocol):
+    @property
+    def validation_only(self) -> bool: ...
+
     async def load_rules(self, asset: str) -> "MarketRules": ...
 
     async def fetch_balances(self) -> dict[str, Decimal]: ...
@@ -159,6 +162,10 @@ class KrakenGateway:
         if exchange is not None:
             await exchange.close()
 
+    @property
+    def validation_only(self) -> bool:
+        return self._validate_only
+
     async def load_rules(self, asset: str) -> MarketRules:
         markets = await self._remote(lambda: self._client().load_markets())
         if not isinstance(markets, Mapping) or asset not in markets:
@@ -187,12 +194,14 @@ class KrakenGateway:
 
     async def fetch_orders(self, asset: str | None = None) -> tuple[ExchangeOrder, ...]:
         client = self._client()
-        payload = await self._remote(
-            lambda: client.fetch_orders(asset) if asset is not None else client.fetch_orders()
-        )
-        if not isinstance(payload, list):
-            raise ExchangePayloadError("orders response must be a list")
-        return tuple(_order(item, asset) for item in payload)
+        open_orders = await self._remote(lambda: client.fetch_open_orders(asset))
+        closed_orders = await self._remote(lambda: client.fetch_closed_orders(asset))
+        if not isinstance(open_orders, list) or not isinstance(closed_orders, list):
+            raise ExchangePayloadError("Kraken order history response must be a list")
+        # Kraken can surface the same order in both endpoints during a status transition.
+        normalized = [_order(item, asset) for item in [*open_orders, *closed_orders]]
+        unique = {order.exchange_order_id: order for order in normalized}
+        return tuple(sorted(unique.values(), key=lambda order: (order.updated_at, order.exchange_order_id)))
 
     async def fetch_order(self, exchange_order_id: str, asset: str) -> ExchangeOrder:
         payload = await self._remote(lambda: self._client().fetch_order(exchange_order_id, asset))
@@ -274,8 +283,9 @@ class KrakenGateway:
                 params,
             )
         )
-        order = _order(payload, asset)
-        return replace(order, status=OrderStatus.VALIDATED) if self._validate_only else order
+        if self._validate_only:
+            return _validated_order(asset, order_type, side, normalized_amount, client_order_id)
+        return _order(payload, asset)
 
     async def _remote(self, operation: Callable[[], Awaitable[Any]]) -> Any:
         try:
@@ -322,15 +332,26 @@ def _order(payload: object, fallback_asset: str | None) -> ExchangeOrder:
         side=_required_text(raw.get("side"), "order side"),
         order_type=_required_text(raw.get("type"), "order type"),
         status=_order_status(raw.get("status"), amount=amount, filled=filled),
-        amount=amount,
-        filled=filled,
+        amount=amount, filled=filled,
         remaining=_optional_decimal(raw.get("remaining"), "order remaining quantity"),
         average_price=_optional_decimal(raw.get("average"), "order average price"),
         fee=_decimal(fee_raw.get("cost", "0"), "order fee"),
         fee_currency=_optional_text(fee_raw.get("currency")),
-        created_at=created_at,
-        updated_at=updated_at,
+        created_at=created_at, updated_at=updated_at,
         trigger_price=_stop_trigger_price(raw, info),
+    )
+
+
+def _validated_order(
+    asset: str, order_type: str, side: str, amount: Decimal, client_order_id: str
+) -> ExchangeOrder:
+    """Represent Kraken's ID-less `validate=true` acknowledgement durably."""
+    timestamp = datetime.now(UTC).isoformat()
+    return ExchangeOrder(
+        exchange_order_id=f"validation:{client_order_id}", client_order_id=client_order_id,
+        asset=asset, side=side, order_type=order_type, status=OrderStatus.VALIDATED,
+        amount=amount, filled=Decimal("0"), remaining=amount, average_price=None,
+        fee=Decimal("0"), fee_currency=None, created_at=timestamp, updated_at=timestamp,
     )
 
 

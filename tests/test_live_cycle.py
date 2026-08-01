@@ -41,6 +41,8 @@ class MissingMarketData(FakeMarketData):
 
 
 class ValidationGateway:
+    validation_only = True
+
     def __init__(self, events: list[str], *, unknown_remote: bool = False) -> None:
         self.events = events
         self.real_order_calls = 0
@@ -294,6 +296,19 @@ class LiveCycleTests(unittest.IsolatedAsyncioTestCase):
             await run_live_cycle(
                 ["BTC/USDT"], self.repository, self.projector, FakeMarketData(events),
                 entry_strategy(), ValidationGateway(events), validate_only=False,
+            )
+
+        self.assertEqual(events, [])
+
+    async def test_non_validation_gateway_is_rejected_before_gateway_access(self) -> None:
+        events: list[str] = []
+        gateway = ValidationGateway(events)
+        gateway.validation_only = False
+
+        with self.assertRaisesRegex(RuntimeError, "gateway is not validation-only"):
+            await run_live_cycle(
+                ["BTC/USDT"], self.repository, self.projector, FakeMarketData(events),
+                entry_strategy(), gateway, validate_only=True,
             )
 
         self.assertEqual(events, [])

@@ -96,6 +96,20 @@ class FakeKrakenExchange:
             if symbol is None or order["symbol"] == symbol
         ]
 
+    async def fetch_open_orders(self, symbol: str | None = None) -> list[dict[str, Any]]:
+        return [
+            deepcopy(order) for order in self._orders.values()
+            if (symbol is None or order["symbol"] == symbol)
+            and order["status"] in {"open", "partially_filled"}
+        ]
+
+    async def fetch_closed_orders(self, symbol: str | None = None) -> list[dict[str, Any]]:
+        return [
+            deepcopy(order) for order in self._orders.values()
+            if (symbol is None or order["symbol"] == symbol)
+            and order["status"] not in {"open", "partially_filled"}
+        ]
+
     async def fetch_order(self, order_id: str, symbol: str | None = None) -> dict[str, Any]:
         return deepcopy(self._orders[order_id])
 
