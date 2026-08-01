@@ -74,6 +74,10 @@ Champs attendus:
 - `decision_count`: decisions produites pendant le cycle.
 - `closed_trade_count`: trades fermes pendant le cycle.
 - `trade_closed`: `true` si au moins un trade a ete ferme pendant le cycle.
+- `economic_gate`: verdict economique courant, avec `status` (`passed` ou
+  `blocked`), `reasons`, `net_pnl_usd`, `projected_net_30d_usd` et
+  `stressed_net_pnl_usd`. Ce champ est informatif en training et ne peut pas
+  activer les ordres reels.
 
 En erreur, le heartbeat garde `timestamp`, `assets`, `mode`, `execution` et ajoute:
 

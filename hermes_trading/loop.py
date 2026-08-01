@@ -35,7 +35,11 @@ from hermes_trading.market_data import MarketDataCoordinator
 from hermes_trading.persistence.artifacts import ArtifactProjector
 from hermes_trading.persistence.repository import StateRepository
 from hermes_trading.positions import PositionEngine, PositionProcessResult
-from hermes_trading.profitability import ProfitabilityReport, update_profitability_artifacts
+from hermes_trading.profitability import (
+    ProfitabilityReport,
+    profitability_gate_snapshot,
+    update_profitability_artifacts,
+)
 from hermes_trading.reconciliation import ReconciliationReport, ReconciliationService
 from hermes_trading.risk import RiskContext, RiskDecision, RiskEngine, resolve_risk_limits
 from hermes_trading.strategy import StrategySignal, _decimal_setting, evaluate_strategy
@@ -207,6 +211,16 @@ async def _update_profitability_best_effort(state_dir: Path) -> ProfitabilityRep
             },
         )
         return None
+
+
+def _attach_profitability_gate(
+    heartbeat: dict[str, Any], report: ProfitabilityReport | None
+) -> dict[str, Any]:
+    if report is None:
+        return heartbeat
+    enriched = dict(heartbeat)
+    enriched["economic_gate"] = profitability_gate_snapshot(report)
+    return enriched
 
 
 def _load_yaml(path: Path) -> dict[str, Any]:
@@ -730,8 +744,8 @@ async def _run_training_loop(
                 cycle = await run_cycle(assets, state, projector, market_data, strategy, trading.mode)
                 trades = _cycle_trades(cycle)
                 orders = _cycle_orders(cycle)
-                await _write_json(
-                    state_dir / "heartbeat.json",
+                profitability_report = await _update_profitability_best_effort(state_dir)
+                heartbeat = _attach_profitability_gate(
                     {
                         "timestamp": started_at.isoformat(), "assets": assets,
                         "strategy_version": strategy.get("version", "01"), "mode": trading.mode,
@@ -741,8 +755,9 @@ async def _run_training_loop(
                         "closed_trade_count": len(trades), "order_count": len(orders),
                         "trade_closed": bool(trades), "projection_degraded": cycle.degraded,
                     },
+                    profitability_report,
                 )
-                profitability_report = await _update_profitability_best_effort(state_dir)
+                await _write_json(state_dir / "heartbeat.json", heartbeat)
                 messages = build_cycle_notifications(trades, orders, notification_settings)
                 messages.extend(build_summary_notifications(state_dir, trades, notification_settings, pnl_summary, started_at))
                 if profitability_report:
@@ -825,9 +840,10 @@ async def _run_validation_only_loop(
                     "execution": "kraken-validation-only",
                     **dict(cycle.heartbeat),
                 }
-                await _write_json(state_dir / "heartbeat.json", heartbeat)
                 orders = [json_value(order) for order in cycle.new_orders]
                 profitability_report = await _update_profitability_best_effort(state_dir)
+                heartbeat = _attach_profitability_gate(heartbeat, profitability_report)
+                await _write_json(state_dir / "heartbeat.json", heartbeat)
                 messages = build_cycle_notifications([], orders, notification_settings)
                 messages.extend(
                     build_summary_notifications(

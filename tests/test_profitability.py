@@ -9,11 +9,12 @@ from hermes_trading.costs import CostEvent, CostLedger
 from hermes_trading.profitability import (
     ProfitabilityService,
     economic_gate,
+    profitability_gate_snapshot,
     render_profitability_markdown,
     update_profitability_artifacts,
 )
 from hermes_trading.notifications import build_profitability_notification
-from hermes_trading.loop import _update_profitability_best_effort
+from hermes_trading.loop import _attach_profitability_gate, _update_profitability_best_effort
 
 
 NOW = datetime(2026, 7, 30, 20, 0, tzinfo=UTC)
@@ -107,6 +108,20 @@ class ProfitabilityTests(unittest.TestCase):
 
         self.assertEqual(build_profitability_notification(report), render_profitability_markdown(report))
 
+    def test_gate_snapshot_is_compact_and_explains_blocking_reason(self):
+        report = ProfitabilityService.calculate_from_values(
+            gross_pnl=Decimal("0"),
+            costs={"railway_worker": Decimal("0.04")},
+            capital=Decimal("100"),
+            days=Decimal("30"),
+        )
+
+        snapshot = profitability_gate_snapshot(report)
+
+        self.assertEqual(snapshot["status"], "blocked")
+        self.assertEqual(snapshot["net_pnl_usd"], "-0.04")
+        self.assertIn("projected net 30d is not positive", snapshot["reasons"])
+
     def test_update_profitability_artifacts_reads_state_files(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             state = Path(temp_dir)
@@ -144,6 +159,19 @@ class ProfitabilityLoopTests(unittest.IsolatedAsyncioTestCase):
 
         self.assertIsNotNone(report)
         self.assertEqual(report.gross_pnl, Decimal("0"))
+
+    async def test_heartbeat_includes_economic_gate_snapshot(self):
+        report = ProfitabilityService.calculate_from_values(
+            gross_pnl=Decimal("0"),
+            costs={"railway_worker": Decimal("0.04")},
+            capital=Decimal("100"),
+            days=Decimal("30"),
+        )
+
+        heartbeat = _attach_profitability_gate({"status": "ok"}, report)
+
+        self.assertEqual(heartbeat["status"], "ok")
+        self.assertEqual(heartbeat["economic_gate"]["status"], "blocked")
 
 
 if __name__ == "__main__":

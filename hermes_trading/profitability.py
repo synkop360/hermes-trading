@@ -117,6 +117,18 @@ def economic_gate(report: ProfitabilityReport) -> EconomicGate:
     return EconomicGate(not reasons, tuple(reasons))
 
 
+def profitability_gate_snapshot(report: ProfitabilityReport) -> dict[str, Any]:
+    """Return the concise economic decision included in the worker heartbeat."""
+    gate = economic_gate(report)
+    return {
+        "status": "passed" if gate.passed else "blocked",
+        "reasons": list(gate.reasons),
+        "net_pnl_usd": _money(report.net_pnl),
+        "projected_net_30d_usd": _money(report.projected_net_30d),
+        "stressed_net_pnl_usd": _money(report.stressed_net_pnl),
+    }
+
+
 def render_profitability_markdown(report: ProfitabilityReport) -> str:
     gate = economic_gate(report)
     verdict = "PASS" if gate.passed else "BLOCKED"
@@ -217,6 +229,7 @@ __all__ = [
     "ProfitabilityReport",
     "ProfitabilityService",
     "economic_gate",
+    "profitability_gate_snapshot",
     "render_profitability_markdown",
     "update_profitability_artifacts",
     "write_profitability_artifacts",
