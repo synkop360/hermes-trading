@@ -206,6 +206,14 @@ V3_COLUMNS: dict[str, tuple[ColumnShape, ...]] = {
     ),
 }
 
+V4_COLUMNS: dict[str, tuple[ColumnShape, ...]] = {
+    "control_nonces": (
+        ("nonce", "TEXT", 0, 1),
+        ("accepted_at", "TEXT", 1, 0),
+        ("expires_at", "TEXT", 1, 0),
+    ),
+}
+
 V1_INDEXES = {
     "unique_processed_candle": (
         "candles_processed",
@@ -474,6 +482,18 @@ MIGRATIONS: tuple[Migration, ...] = (
             """,
         ),
     ),
+    (
+        4,
+        (
+            """
+            CREATE TABLE IF NOT EXISTS control_nonces (
+                nonce TEXT PRIMARY KEY,
+                accepted_at TEXT NOT NULL,
+                expires_at TEXT NOT NULL
+            )
+            """,
+        ),
+    ),
 )
 
 
@@ -541,6 +561,8 @@ def _validate_schema(connection: sqlite3.Connection, version: int) -> None:
         expected_foreign_keys.update(V2_FOREIGN_KEYS)
     if version >= 3:
         expected_columns.update(V3_COLUMNS)
+    if version >= 4:
+        expected_columns.update(V4_COLUMNS)
     actual_tables = {
         row[0]
         for row in connection.execute(

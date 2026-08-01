@@ -1,3 +1,4 @@
+from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
 import sqlite3
@@ -118,11 +119,11 @@ class PersistenceTests(unittest.TestCase):
             self.repo._connection.execute("PRAGMA busy_timeout").fetchone()[0],
             5000,
         )
-        self.assertEqual(self.repo.schema_version(), 3)
+        self.assertEqual(self.repo.schema_version(), 4)
 
         self.repo.migrate()
 
-        self.assertEqual(self.repo.schema_version(), 3)
+        self.assertEqual(self.repo.schema_version(), 4)
         self.assertEqual(self.repo.integrity_check(), "ok")
 
     def test_sql_normalization_preserves_escaped_literal_quotes(self) -> None:
@@ -145,6 +146,7 @@ class PersistenceTests(unittest.TestCase):
             {
                 "approval_requests",
                 "candles_processed",
+                "control_nonces",
                 "control_commands",
                 "cost_events",
                 "decisions",
@@ -170,11 +172,12 @@ class PersistenceTests(unittest.TestCase):
         with self.repo._connection:
             self.repo._connection.execute("DROP TABLE risk_decisions")
             self.repo._connection.execute("DROP TABLE projection_payloads")
-            self.repo._connection.execute("DELETE FROM schema_migrations WHERE version IN (2, 3)")
+            self.repo._connection.execute("DROP TABLE control_nonces")
+            self.repo._connection.execute("DELETE FROM schema_migrations WHERE version IN (2, 3, 4)")
 
         self.repo.migrate()
 
-        self.assertEqual(self.repo.schema_version(), 3)
+        self.assertEqual(self.repo.schema_version(), 4)
         self.assertIn("projection_payloads", self.repo.table_names())
         payload = self.repo._connection.execute(
             "SELECT payload FROM projection_payloads WHERE decision_id = ?",
@@ -239,7 +242,7 @@ class PersistenceTests(unittest.TestCase):
         with self.assertRaises(UnsupportedSchemaError):
             self.repo.migrate()
 
-        self.assertEqual(self.repo.schema_version(), 3)
+        self.assertEqual(self.repo.schema_version(), 4)
 
     def test_recorded_v1_is_rejected_when_a_table_is_incompatible(self) -> None:
         self.repo.migrate()
@@ -252,7 +255,7 @@ class PersistenceTests(unittest.TestCase):
         with self.assertRaises(UnsupportedSchemaError):
             self.repo.migrate()
 
-        self.assertEqual(self.repo.schema_version(), 3)
+        self.assertEqual(self.repo.schema_version(), 4)
 
     def test_recorded_v1_rejects_a_disabled_active_position_index(self) -> None:
         self.repo.migrate()
@@ -271,7 +274,7 @@ class PersistenceTests(unittest.TestCase):
         with self.assertRaises(UnsupportedSchemaError):
             self.repo.migrate()
 
-        self.assertEqual(self.repo.schema_version(), 3)
+        self.assertEqual(self.repo.schema_version(), 4)
 
     def test_recorded_v1_rejects_uppercase_active_status_literals(self) -> None:
         self.repo.migrate()
@@ -293,7 +296,7 @@ class PersistenceTests(unittest.TestCase):
         with self.assertRaises(UnsupportedSchemaError):
             self.repo.migrate()
 
-        self.assertEqual(self.repo.schema_version(), 3)
+        self.assertEqual(self.repo.schema_version(), 4)
 
     def test_order_intent_client_id_is_unique(self) -> None:
         self.repo.migrate()
@@ -351,6 +354,25 @@ class PersistenceTests(unittest.TestCase):
                         "2026-07-30T20:00:00+00:00",
                     ),
                 )
+
+    def test_control_nonce_replay_survives_repository_reopen_and_expires(self) -> None:
+        self.repo.migrate()
+        accepted_at = datetime(2026, 8, 1, 12, 0, tzinfo=UTC)
+        expires_at = accepted_at + timedelta(minutes=5)
+
+        self.assertTrue(self.repo.record_control_nonce("nonce-1", accepted_at=accepted_at, expires_at=expires_at))
+        self.repo.close()
+        self.repo = StateRepository.open(self.db_path)
+        self.repo.migrate()
+
+        self.assertFalse(self.repo.record_control_nonce("nonce-1", accepted_at=accepted_at, expires_at=expires_at))
+        self.assertTrue(
+            self.repo.record_control_nonce(
+                "nonce-1",
+                accepted_at=expires_at + timedelta(seconds=1),
+                expires_at=expires_at + timedelta(minutes=5, seconds=1),
+            )
+        )
 
     def test_repository_round_trips_domain_records_and_candle_identity(self) -> None:
         self.repo.migrate()

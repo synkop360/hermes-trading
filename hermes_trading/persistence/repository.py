@@ -246,6 +246,25 @@ class StateRepository:
         )
         return [dict(row) for row in rows]
 
+    def record_control_nonce(self, nonce: str, *, accepted_at: datetime, expires_at: datetime) -> bool:
+        accepted_timestamp = accepted_at.astimezone(UTC).isoformat()
+        expires_timestamp = expires_at.astimezone(UTC).isoformat()
+        try:
+            self._connection.execute("BEGIN IMMEDIATE")
+            self._connection.execute(
+                "DELETE FROM control_nonces WHERE expires_at <= ?",
+                (accepted_timestamp,),
+            )
+            cursor = self._connection.execute(
+                "INSERT OR IGNORE INTO control_nonces (nonce, accepted_at, expires_at) VALUES (?, ?, ?)",
+                (nonce, accepted_timestamp, expires_timestamp),
+            )
+            self._connection.commit()
+        except BaseException:
+            self._connection.rollback()
+            raise
+        return cursor.rowcount == 1
+
     def position_by_id(self, position_id: str) -> Position | None:
         row = self._connection.execute("SELECT * FROM positions WHERE position_id = ?", (position_id,)).fetchone()
         return self._position_from_row(row) if row is not None else None
