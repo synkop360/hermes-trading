@@ -94,16 +94,18 @@ async def run_discord_bot(config: DiscordBotConfig) -> None:
 
     @tree.command(name="status", description="Read Hermes status")
     async def status(interaction: discord.Interaction, otp: str) -> None:
+        await interaction.response.defer(ephemeral=True)
         message = await asyncio.to_thread(bot.status, user_id=interaction.user.id, otp=otp)
-        await interaction.response.send_message(
+        await interaction.followup.send(
             message,
             ephemeral=True,
         )
 
     @tree.command(name="qualification", description="Request a validation qualification report")
     async def qualification(interaction: discord.Interaction, otp: str) -> None:
+        await interaction.response.defer(ephemeral=True)
         message = await asyncio.to_thread(bot.qualification, user_id=interaction.user.id, otp=otp)
-        await interaction.response.send_message(
+        await interaction.followup.send(
             message,
             ephemeral=True,
         )
