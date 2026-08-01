@@ -91,6 +91,19 @@
 - Local verification passed: `uv run python -m unittest discover -s tests` ran 347 tests with `OK`; `git diff --check` passed; `graphify update .` completed.
 - Read-only Railway checks after the local work returned `HERMES_TRADING_MODE=training`, `HERMES_TRADING_ALLOW_REAL_ORDERS=false`, `status=ok mode=training real_orders_allowed=false`, and `qualification phase=validation_ready promotable=false promoted=false`.
 
+## Qualification Replay Evidence Deploy, 2026-08-01
+
+- Added `scripts/generate_qualification_replay.py` to generate `qualification-replay.json` from state journals using a documented `journal_chronology_scan` method.
+- Local generated report passed with `candles_checked=25595` and `lookahead_violations=0`.
+- Local evidence status reported `replay_without_lookahead=pass`; fee/slippage, duplicate-candle, and risk-limit evidence remained `missing`.
+- Deployment `94ca8d51-2b96-43e3-bca4-ce452bd0dfc4` completed with status `SUCCESS`.
+- Post-deploy logs show the co-located worker, Control API, and Discord bot started successfully.
+- Post-deploy SSH verification returned `HERMES_TRADING_MODE=training` and `HERMES_TRADING_ALLOW_REAL_ORDERS=false`.
+- Generated `/app/state/qualification-replay.json` on Railway; remote report returned `status=pass`, `candles_checked=25599`, and `lookahead_violations=0`.
+- Remote evidence status reported `replay_without_lookahead=pass`; fee/slippage, duplicate-candle, and risk-limit evidence remained `missing`.
+- Remote Control API smoke tests returned `status=ok mode=training real_orders_allowed=false` and `qualification phase=validation_ready promotable=false promoted=false`.
+- Real orders remain disabled and no phase was promoted.
+
 ## Current real qualification result
 
 Manual Railway command used:
@@ -128,6 +141,7 @@ This is correct behavior. Nothing has been promoted.
 - `3bfb7ea feat: collect fee and slippage qualification evidence`
 - `376c375 feat: collect replay qualification evidence`
 - `eb09a76 feat: add qualification evidence status command`
+- `ae4b238 feat: generate qualification replay evidence`
 
 ## Verification commands
 
@@ -143,12 +157,11 @@ The last full test run before the latest small control-auth addition passed 292 
 
 ## Immediate next work
 
-1. Decide whether to deploy the qualification evidence hardening commits to Railway now or batch them with the next validation update.
-2. Regenerate the temporary Discord bot token before production, update `HERMES_DISCORD_BOT_TOKEN`, and redeploy.
-3. From Discord, validate `/status` and `/qualification` again with the allowed user and a fresh TOTP code after token rotation.
-4. Produce or attach a real `qualification-replay.json` report for the current strategy and assets.
-5. Keep collecting qualification evidence for duplicate-candle protection and risk-limit exercises. Missing evidence should remain visible as `MISSING`/`FAIL`.
-6. Keep the service co-located unless uptime/cost tradeoffs change. If splitting services later, preserve private networking and never expose the Control API publicly.
+1. Collect or generate fee/slippage evidence in `cost_events.jsonl` for the current Railway state.
+2. Keep collecting qualification evidence for duplicate-candle protection and risk-limit exercises. Missing evidence should remain visible as `MISSING`/`FAIL`.
+3. Regenerate the temporary Discord bot token before production, update `HERMES_DISCORD_BOT_TOKEN`, and redeploy.
+4. From Discord, validate `/status` and `/qualification` again with the allowed user and a fresh TOTP code after token rotation.
+5. Keep the service co-located unless uptime/cost tradeoffs change. If splitting services later, preserve private networking and never expose the Control API publicly.
 
 ## Operational cautions
 
