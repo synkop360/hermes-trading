@@ -14,6 +14,6 @@ Fix round 2 update: Discord slash command handlers now defer the interaction res
 
 Fix round 2 verification: `uv run python -m unittest tests.test_discord_bot tests.test_operational_scripts` passed (8 tests).
 
-Fix round 2 commit: see latest Task 5 fix commit.
+Fix round 2 commit: `c618634` (`Fix Discord interaction deferral`).
 
 Fix round 2 concerns: no known concerns; no real Discord gateway integration test is run in this environment.
