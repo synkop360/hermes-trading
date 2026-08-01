@@ -14,6 +14,9 @@ import httpx
 import yaml
 
 from hermes_trading.score import score
+from hermes_trading.model_runner import ReflectionModelRunner
+from hermes_trading.persistence.repository import StateRepository
+from hermes_trading.providers import HermesCatalog, ProviderRouter
 
 
 KNOWN_HERMES_PROVIDERS = {"openai", "openrouter", "nous"}
@@ -523,6 +526,33 @@ def _generate_asset_proposal(
     }
 
 
+def _generate_asset_proposal(
+    asset: str,
+    prompt: str,
+    env: dict[str, str],
+) -> tuple[dict[str, Any] | None, dict[str, Any]]:
+    """Hermes automatic selection is always tried before free candidates and OpenAI."""
+    state_dir = Path(env["HERMES_REFLECTION_STATE_DIR"])
+    repository = StateRepository.open(state_dir / "trading.db")
+    try:
+        repository.migrate()
+        cache_path = Path(env.get("HERMES_HOME", str(Path.home() / ".hermes"))) / "provider_models_cache.json"
+        fallback_model = env.get("HERMES_OPENAI_FALLBACK_MODEL", DEFAULT_OPENAI_REFLECTION_MODEL)
+        openai_run = (lambda request: _run_openai_prompt(request, fallback_model, env)) if _has_openai_api_key(env) else None
+        result = ReflectionModelRunner(
+            ProviderRouter(repository, HermesCatalog.load(cache_path)), openai_run=openai_run
+        ).run(prompt)
+        proposal = json.loads(result.output)
+        if not isinstance(proposal, dict):
+            raise ValueError("Hermes proposal must be a JSON object")
+        proposal["asset"] = asset
+        return proposal, {"provider": result.provider, "model": result.model, "errors": []}
+    except Exception as error:
+        return None, {"provider": None, "model": None, "errors": [{"error": str(error)}]}
+    finally:
+        repository.close()
+
+
 def _load_yaml(path: Path) -> dict[str, Any]:
     return yaml.safe_load(path.read_text()) or {}
 
@@ -874,6 +904,7 @@ def run_hermes_reflection(
     env: dict[str, str] | None = None,
 ) -> dict[str, Any]:
     env = dict(os.environ if env is None else env)
+    env["HERMES_REFLECTION_STATE_DIR"] = str(state_dir)
     policy = resolve_reflection_policy(env)
 
     strategy_path = state_dir / "strategy.yaml"

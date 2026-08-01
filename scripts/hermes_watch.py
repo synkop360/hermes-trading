@@ -156,7 +156,6 @@ def _reflection_is_due() -> tuple[bool, str]:
 
 
 def _run_reflection() -> None:
-    os.environ.setdefault("HERMES_REFLECTION_MODELS", "openai:gpt-5.6-luna,openai:gpt-5.6-terra")
     _run(
         [
             "uv",
