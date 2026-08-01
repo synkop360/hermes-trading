@@ -536,6 +536,18 @@ class StateRepository:
                 (incident_id, reason, severity, timestamp),
             )
 
+    def duplicate_candle_evidence_count(self) -> int:
+        row = self._connection.execute(
+            "SELECT COUNT(*) FROM incidents WHERE incident_id LIKE 'qualification:duplicate-candle%'"
+        ).fetchone()
+        return int(row[0])
+
+    def risk_limit_evidence_count(self) -> int:
+        row = self._connection.execute(
+            "SELECT COUNT(*) FROM incidents WHERE incident_id LIKE 'qualification:risk-limit%'"
+        ).fetchone()
+        return int(row[0])
+
     def resolve_incident(self, incident_id: str, *, resolved_at: datetime | None = None) -> None:
         timestamp = (resolved_at or datetime.now(UTC)).isoformat()
         with self._connection:

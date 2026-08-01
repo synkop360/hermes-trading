@@ -4,6 +4,7 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from hermes_trading.qualification import (
+    EvidenceCheck,
     QualificationEvidence,
     QualificationPhase,
     QualificationService,
@@ -52,6 +53,18 @@ class QualificationServiceTests(unittest.TestCase):
         )
 
         self.assertEqual(result.gate("strategy_unchanged").status.value, "fail")
+
+    def test_missing_typed_evidence_stays_visible_as_missing_gate(self):
+        result = self.service.evaluate(
+            QualificationPhase.VALIDATION_READY,
+            evidence(replay_without_lookahead=EvidenceCheck.missing("no replay campaign evidence recorded")),
+            now=NOW,
+        )
+
+        gate = result.gate("replay_without_lookahead")
+        self.assertEqual(gate.status.value, "missing")
+        self.assertEqual(gate.observed, "missing")
+        self.assertEqual(gate.reason, "no replay campaign evidence recorded")
 
     def test_unknown_cost_blocks_live_but_not_training(self):
         training = self.service.evaluate(

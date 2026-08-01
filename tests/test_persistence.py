@@ -126,6 +126,14 @@ class PersistenceTests(unittest.TestCase):
         self.assertEqual(self.repo.schema_version(), 4)
         self.assertEqual(self.repo.integrity_check(), "ok")
 
+    def test_duplicate_candle_and_risk_evidence_counts_are_visible(self) -> None:
+        self.repo.migrate()
+        self.repo.open_incident("qualification:duplicate-candle", "duplicate_candle_protected", severity="info")
+        self.repo.open_incident("qualification:risk-limit", "risk_limit_exercised", severity="info")
+
+        self.assertEqual(self.repo.duplicate_candle_evidence_count(), 1)
+        self.assertEqual(self.repo.risk_limit_evidence_count(), 1)
+
     def test_sql_normalization_preserves_escaped_literal_quotes(self) -> None:
         self.assertEqual(
             _normalize_sql(

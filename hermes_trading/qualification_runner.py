@@ -11,6 +11,7 @@ from uuid import uuid4
 from hermes_trading.persistence.artifacts import ArtifactProjector
 from hermes_trading.persistence.repository import StateRepository
 from hermes_trading.qualification import QualificationEvidence, QualificationPhase, QualificationService, QualificationSnapshot
+from hermes_trading.qualification_evidence import QualificationEvidenceCollector
 
 
 @dataclass(frozen=True)
@@ -64,15 +65,18 @@ class QualificationRunner:
         strategy_hash = hashlib.sha256(strategy_bytes).hexdigest()
         profitability_path = self.projector.state_dir / "profitability.json"
         profitability = json.loads(profitability_path.read_text(encoding="utf-8")) if profitability_path.exists() else {}
+        typed_evidence = QualificationEvidenceCollector(
+            self.projector.state_dir, repository=self.repository
+        ).collect()
         evidence = QualificationEvidence(
             training_started_at=started_at,
             closed_positions=len(self.repository.closed_positions()),
             strategy_hash=strategy_hash,
             approved_strategy_hash=strategy_hash,
             costs_complete=not profitability.get("missing_required_costs"),
-            replay_without_lookahead=False,
-            fees_and_slippage_charged=False,
-            duplicate_candle_protected=False,
-            risk_limits_exercised=False,
+            replay_without_lookahead=typed_evidence["replay_without_lookahead"],
+            fees_and_slippage_charged=typed_evidence["fees_and_slippage_charged"],
+            duplicate_candle_protected=typed_evidence["duplicate_candle_protected"],
+            risk_limits_exercised=typed_evidence["risk_limits_exercised"],
         )
         return self.run(requested_phase, evidence, now=current)

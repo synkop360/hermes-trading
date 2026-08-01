@@ -33,6 +33,22 @@ class QualificationRunnerTests(unittest.TestCase):
         self.assertEqual(first.snapshot.gate("training_duration").observed, "0")
         self.assertEqual(second.snapshot.gate("training_duration").observed, "1")
 
+    def test_state_runner_marks_missing_typed_evidence_as_missing(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            state_dir = Path(temp_dir)
+            repository = StateRepository.open(state_dir / "trading.db")
+            repository.migrate()
+            (state_dir / "strategy.yaml").write_text("version: '83'\n", encoding="utf-8")
+            report = QualificationRunner(repository, state_dir, QualificationService()).run_from_state(
+                QualificationPhase.VALIDATION_READY, now=NOW
+            )
+            repository.close()
+
+        self.assertEqual(report.snapshot.gate("replay_without_lookahead").status.value, "missing")
+        self.assertEqual(report.snapshot.gate("fees_and_slippage").status.value, "missing")
+        self.assertEqual(report.snapshot.gate("duplicate_candle_protection").status.value, "missing")
+        self.assertEqual(report.snapshot.gate("risk_limits_exercised").status.value, "missing")
+
     def test_report_writes_human_and_machine_artifacts_without_promoting_phase(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             state_dir = Path(temp_dir)
