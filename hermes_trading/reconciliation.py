@@ -255,7 +255,6 @@ class ReconciliationService:
                 or intent.side != "sell"
                 or intent.order_type != "stop-loss"
                 or intent.quantity != position.quantity
-                or intent.stop_price != position.stop_price
             ):
                 continue
             remote = remote_by_client_id.get(intent.client_order_id)
@@ -266,7 +265,7 @@ class ReconciliationService:
                 and remote.side == "sell"
                 and remote.order_type == "stop-loss"
                 and remote.amount == position.quantity
-                and remote.trigger_price == position.stop_price
+                and remote.trigger_price == intent.stop_price
                 and _canonical_status(remote.status)
                 in {OrderStatus.SUBMITTED, OrderStatus.OPEN, OrderStatus.PARTIALLY_FILLED}
             ):

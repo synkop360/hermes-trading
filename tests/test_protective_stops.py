@@ -112,7 +112,8 @@ class StopGateway:
 class ProtectiveStopTests(unittest.IsolatedAsyncioTestCase):
     def setUp(self) -> None:
         self.temporary_directory = tempfile.TemporaryDirectory()
-        self.repository = StateRepository.open(Path(self.temporary_directory.name) / "trading.db")
+        self.database_path = Path(self.temporary_directory.name) / "trading.db"
+        self.repository = StateRepository.open(self.database_path)
         self.repository.migrate()
         self.service = ExecutionService(self.repository, allow_submission=True)
         self.gateway = StopGateway()
@@ -228,6 +229,23 @@ class ProtectiveStopTests(unittest.IsolatedAsyncioTestCase):
         )
 
         self.assertTrue(report.safe_for_new_entries)
+        self.assertEqual(self.gateway.market_sell_calls, 0)
+
+    async def test_restart_accepts_tick_normalized_remote_stop_for_raw_strategy_price(self) -> None:
+        current = position(stop_price="64675.123")
+        self.repository.save_position(current)
+        await self.service.ensure_protective_stop(protective_decision(), current, self.gateway)
+
+        self.repository.close()
+        self.repository = StateRepository.open(self.database_path)
+        self.repository.migrate()
+        restarted = ExecutionService(self.repository, allow_submission=True)
+        report = await ReconciliationService(self.repository).verify_protective_stops(
+            self.gateway, restarted
+        )
+
+        self.assertTrue(report.safe_for_new_entries)
+        self.assertFalse(self.repository.risk_state().kill_switch)
         self.assertEqual(self.gateway.market_sell_calls, 0)
 
     async def test_matching_stop_cancels_any_additional_active_stop(self) -> None:
