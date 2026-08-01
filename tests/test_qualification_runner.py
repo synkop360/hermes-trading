@@ -6,10 +6,18 @@ from pathlib import Path
 from hermes_trading.persistence.repository import StateRepository
 from hermes_trading.qualification import QualificationPhase, QualificationService
 from hermes_trading.qualification_runner import QualificationRunner
+from hermes_trading.qualification_runner import QualificationCycleSchedule
 from tests.test_qualification import NOW, evidence
 
 
 class QualificationRunnerTests(unittest.TestCase):
+    def test_cycle_schedule_runs_only_on_configured_interval(self):
+        schedule = QualificationCycleSchedule(3)
+
+        self.assertFalse(schedule.record_cycle())
+        self.assertFalse(schedule.record_cycle())
+        self.assertTrue(schedule.record_cycle())
+        self.assertFalse(schedule.record_cycle())
     def test_state_runner_persists_training_start_when_not_configured(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             state_dir = Path(temp_dir)

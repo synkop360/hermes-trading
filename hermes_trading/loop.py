@@ -53,6 +53,8 @@ from hermes_trading.notifications import (
     resolve_notification_settings,
     send_notification,
 )
+from hermes_trading.qualification import QualificationPhase, QualificationService
+from hermes_trading.qualification_runner import QualificationCycleSchedule, QualificationRunner
 
 
 class TradingModeError(RuntimeError):
@@ -733,6 +735,9 @@ async def _run_training_loop(
         onchain_fetch=lambda: _retry("onchain", onchain.fetch),
     )
     consecutive_failures = 0
+    qualification_schedule = QualificationCycleSchedule(
+        int(os.getenv("HERMES_QUALIFICATION_EVERY_CYCLES", "0"))
+    )
     try:
         while True:
             started_at = datetime.now(timezone.utc)
@@ -745,6 +750,10 @@ async def _run_training_loop(
                 trades = _cycle_trades(cycle)
                 orders = _cycle_orders(cycle)
                 profitability_report = await _update_profitability_best_effort(state_dir)
+                if qualification_schedule.record_cycle():
+                    QualificationRunner(state, state_dir, QualificationService()).run_from_state(
+                        QualificationPhase.VALIDATION_READY, now=started_at
+                    )
                 heartbeat = _attach_profitability_gate(
                     {
                         "timestamp": started_at.isoformat(), "assets": assets,

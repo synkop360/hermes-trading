@@ -20,6 +20,21 @@ class QualificationReport:
     markdown: str
 
 
+@dataclass
+class QualificationCycleSchedule:
+    every_cycles: int
+    cycles: int = 0
+
+    def record_cycle(self) -> bool:
+        if self.every_cycles <= 0:
+            return False
+        self.cycles += 1
+        if self.cycles < self.every_cycles:
+            return False
+        self.cycles = 0
+        return True
+
+
 class QualificationRunner:
     def __init__(self, repository: StateRepository, state_dir: Path, service: QualificationService) -> None:
         self.repository, self.projector, self.service = repository, ArtifactProjector(state_dir), service
