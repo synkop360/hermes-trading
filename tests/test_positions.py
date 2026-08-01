@@ -63,6 +63,15 @@ class PositionEngineTests(unittest.TestCase):
         self.assertEqual(result.position.status.value, "open")
         self.assertEqual(result.closed_positions, ())
 
+    def test_entry_is_blocked_when_take_profit_cannot_cover_modeled_costs(self) -> None:
+        strategy = entry_strategy()
+        strategy["exit"] = {"take_profit_pct": "0.5"}
+
+        result = self.engine.process_candle(self.entry_candle, strategy)
+
+        self.assertEqual(result.reason, "expected_payoff_below_costs")
+        self.assertIsNone(result.position)
+
     def test_rsi_recovery_requires_a_cross_above_the_threshold_and_price_recovery(self) -> None:
         closes = tuple(Decimal(value) for value in range(100, 85, -1)) + (Decimal("91"),)
         snapshot = MarketSnapshot(
@@ -109,7 +118,7 @@ class PositionEngineTests(unittest.TestCase):
 
     def test_take_profit_closes_at_the_target_price(self) -> None:
         strategy = entry_strategy()
-        strategy["exit"] = {"take_profit_pct": "1"}
+        strategy["exit"] = {"take_profit_pct": "1.5"}
         self.engine.process_candle(self.entry_candle, strategy)
 
         result = self.engine.process_candle(

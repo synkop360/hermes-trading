@@ -18,6 +18,7 @@ class SimulationSettings:
     taker_fee_rate: Decimal = Decimal("0.004")
     maker_fee_rate: Decimal = Decimal("0.0025")
     slippage_rate: Decimal = Decimal("0.001")
+    minimum_expected_edge_pct: Decimal = Decimal("0.2")
 
     @classmethod
     def from_strategy(cls, strategy: dict[str, Any]) -> SimulationSettings:
@@ -29,12 +30,15 @@ class SimulationSettings:
             "taker_fee_rate": _decimal_setting(source.get("taker_fee_rate", "0.004"), "taker_fee_rate"),
             "maker_fee_rate": _decimal_setting(source.get("maker_fee_rate", "0.0025"), "maker_fee_rate"),
             "slippage_rate": _decimal_setting(source.get("slippage_rate", "0.001"), "slippage_rate"),
+            "minimum_expected_edge_pct": _decimal_setting(source.get("minimum_expected_edge_pct", "0.2"), "minimum_expected_edge_pct"),
         }
         if values["quote_notional"] <= 0:
             raise ValueError("quote_notional must be greater than zero")
         for name in ("taker_fee_rate", "maker_fee_rate", "slippage_rate"):
             if values[name] < 0 or values[name] >= 1:
                 raise ValueError(f"{name} must be in [0, 1)")
+        if values["minimum_expected_edge_pct"] < 0:
+            raise ValueError("minimum_expected_edge_pct must be non-negative")
         return cls(**values)
 
 
@@ -72,7 +76,9 @@ class PositionEngine:
 
         settings = SimulationSettings.from_strategy(strategy)
         existing = self.state.open_position(snapshot.asset)
-        if existing is not None and identity.close_timestamp.isoformat() <= existing.opened_at:
+        if existing is None and not _expected_payoff_covers_costs(strategy, settings):
+            signal = StrategySignal("no_trade", snapshot.asset, "expected_payoff_below_costs", candle.close, identity.candle_id)
+        elif existing is not None and identity.close_timestamp.isoformat() <= existing.opened_at:
             signal = StrategySignal("no_trade", snapshot.asset, "out_of_order_candle", candle.close, identity.candle_id)
         else:
             signal = evaluate_strategy(snapshot, strategy, existing)
@@ -210,6 +216,16 @@ def _identifier(*parts: str) -> str:
 def _positive_finite(value: Decimal, name: str) -> None:
     if not value.is_finite() or value <= 0:
         raise ValueError(f"{name} must be positive and finite")
+
+
+def _expected_payoff_covers_costs(strategy: dict[str, Any], settings: SimulationSettings) -> bool:
+    exit_rule = strategy.get("exit")
+    if not isinstance(exit_rule, dict) or "take_profit_pct" not in exit_rule:
+        return True
+    take_profit = _decimal_setting(exit_rule["take_profit_pct"], "take_profit_pct") / Decimal("100")
+    round_trip_cost = Decimal("2") * (settings.taker_fee_rate + settings.slippage_rate)
+    edge = settings.minimum_expected_edge_pct / Decimal("100")
+    return take_profit >= round_trip_cost + edge
 
 
 __all__ = ["PositionEngine", "PositionProcessResult", "SimulationSettings"]
