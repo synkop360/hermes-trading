@@ -63,6 +63,23 @@
 - Railway currently lists only the `hermes-trading` worker service. Separate Control API and Discord bot services are packaged and documented but still need Railway service provisioning and private secrets before service-level smoke tests.
 - No Railway variables were changed, real orders were not enabled, and no phase was promoted.
 
+## Co-located Control And Discord Deploy Verification, 2026-08-01
+
+- User selected the higher-uptime option: run the Control API and Discord bot inside the existing `hermes-trading` worker service instead of provisioning separate Railway services.
+- Railway variables were configured without printing secret values: shared Control HMAC secret, Discord bot token, allowed Discord user `174585364944519168`, TOTP secret, `HERMES_CONTROL_BASE_URL=http://127.0.0.1:8765`, `HERMES_STATE_DIR=/app/state`, and loopback Control API host/port.
+- Deployment `2efd6df4-e22f-4271-980c-d1f81ff198fc` completed with status `SUCCESS`.
+- Deployment logs show:
+  - `Hermes colocated control API listening on http://127.0.0.1:8765`
+  - `Hermes colocated Discord bot starting`
+  - `Booting hermes-trading worker for BTC/USDT, ETH/USDT, XRP/USDT, SHIB/USDT in training mode`
+  - `Hermes Discord bot logged in as Hermès Trader#0464`
+- Post-deploy SSH verification returned `HERMES_TRADING_MODE=training` and `HERMES_TRADING_ALLOW_REAL_ORDERS=false`.
+- In-container Control API smoke tests returned:
+  - `status=ok mode=training real_orders_allowed=false`
+  - `qualification phase=validation_ready promotable=false promoted=false run_id=qualification-6fdad236-07f6-4f20-9a68-08e9e1681128`
+- The Discord bot token used during implementation was temporary and should be regenerated after validation.
+- Real orders remain disabled and no phase was promoted.
+
 ## Current real qualification result
 
 Manual Railway command used:
@@ -93,6 +110,10 @@ This is correct behavior. Nothing has been promoted.
 - `90167a1 feat: schedule qualification campaigns`
 - `3d53cc6 feat: add non-promoting qualification control`
 - `3027691 feat: authenticate control commands with hmac`
+- `c2692ab feat: allow explicit private control host`
+- `5178822 feat: colocate control and discord with worker`
+- `95b207c fix: support deployed control command smoke tests`
+- `cc0dd9b fix: build colocated control server in serving thread`
 
 ## Verification commands
 
@@ -108,11 +129,10 @@ The last full test run before the latest small control-auth addition passed 292 
 
 ## Immediate next work
 
-1. Finish `control_auth.py` persistence: move nonce replay storage from in-memory to SQLite, with expiry and pruning.
-2. Implement a private local control API using HMAC auth. Start with read-only status and qualification requests only.
-3. Add typed evidence collectors for replay, fee/slippage, duplicate-candle protection, and risk-limit exercises. Missing evidence must remain visible as `MISSING`/`FAIL`.
-4. Add qualification Discord summary notifications, still using the existing webhook first.
-5. Only then build the separate Discord bot service. It will require a Discord bot token, allowed Discord user IDs, a private HMAC secret, and a TOTP secret from the user. Do not ask for these until the local/private API is ready.
+1. Regenerate the temporary Discord bot token used during implementation, update `HERMES_DISCORD_BOT_TOKEN`, and redeploy.
+2. From Discord, validate `/status` and `/qualification` with the allowed user and a fresh TOTP code.
+3. Keep collecting qualification evidence for replay, fee/slippage, duplicate-candle protection, and risk-limit exercises. Missing evidence should remain visible as `MISSING`/`FAIL`.
+4. Keep the service co-located unless uptime/cost tradeoffs change. If splitting services later, preserve private networking and never expose the Control API publicly.
 
 ## Operational cautions
 

@@ -10,7 +10,7 @@ Current status:
 2. Private local control API: implemented for read-only status and non-promoting qualification requests.
 3. Typed qualification evidence collectors: implemented with missing evidence remaining visible as `missing`.
 4. Qualification Discord summary notifications: implemented through the existing webhook path.
-5. Colocated Discord bot service: code and scripts are prepared to run beside the worker and loopback Control API.
+5. Co-located Discord bot service: deployed inside the worker service with the loopback Control API.
 
 ## Safety Constraints
 
@@ -137,3 +137,38 @@ HERMES_TRADING_ALLOW_REAL_ORDERS=false
 No Railway variables were changed. Real orders were not enabled. No phase was promoted.
 
 Railway currently lists only the `hermes-trading` worker service. That service is now the intended home for the worker, loopback Control API, and Discord bot.
+
+## Co-located Deploy Verification
+
+On 2026-08-01, after the co-location decision, the worker service was deployed with:
+
+```powershell
+railway.cmd up --service hermes-trading --environment production --message "Fix colocated control API smoke tests"
+```
+
+Deployment `2efd6df4-e22f-4271-980c-d1f81ff198fc` completed with status `SUCCESS`.
+
+Deployment logs show:
+
+```text
+Hermes colocated control API listening on http://127.0.0.1:8765
+Hermes colocated Discord bot starting
+Booting hermes-trading worker for BTC/USDT, ETH/USDT, XRP/USDT, SHIB/USDT in training mode
+Hermes Discord bot logged in as Hermès Trader#0464
+```
+
+Post-deploy SSH verification returned:
+
+```text
+HERMES_TRADING_MODE=training
+HERMES_TRADING_ALLOW_REAL_ORDERS=false
+```
+
+In-container smoke tests returned:
+
+```text
+status=ok mode=training real_orders_allowed=false
+qualification phase=validation_ready promotable=false promoted=false run_id=qualification-6fdad236-07f6-4f20-9a68-08e9e1681128
+```
+
+The Discord bot token used for implementation was temporary and should be regenerated after validation. Do not record token values in docs or logs.
