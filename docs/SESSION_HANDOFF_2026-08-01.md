@@ -104,6 +104,26 @@
 - Remote Control API smoke tests returned `status=ok mode=training real_orders_allowed=false` and `qualification phase=validation_ready promotable=false promoted=false`.
 - Real orders remain disabled and no phase was promoted.
 
+## Final Qualification Evidence Deploy, 2026-08-01
+
+- New plan saved at `docs/superpowers/plans/2026-08-01-final-qualification-evidence.md`.
+- Added `scripts/generate_final_qualification_evidence.py`.
+- Deployment `f40c8c15-1fed-4ecb-a30f-4c6bcc3d4af7` completed with status `SUCCESS`.
+- Post-deploy logs show the co-located worker, Control API, and Discord bot started successfully.
+- Post-deploy SSH verification returned `HERMES_TRADING_MODE=training` and `HERMES_TRADING_ALLOW_REAL_ORDERS=false`.
+- Remote final evidence generation returned:
+  - `fees_and_slippage=generated`
+  - `duplicate_candle=generated`
+  - `risk_limit=generated`
+- Remote replay regeneration returned `status=pass`, `candles_checked=25599`, and `lookahead_violations=0`.
+- Remote evidence status now reports:
+  - `replay_without_lookahead=pass`
+  - `fees_and_slippage_charged=pass`
+  - `duplicate_candle_protected=pass`
+  - `risk_limits_exercised=pass`
+- Remote Control API smoke tests returned `status=ok mode=training real_orders_allowed=false` and `qualification phase=validation_ready promotable=false promoted=false`.
+- Qualification remains blocked by non-evidence gates such as training duration and closed-position count; no phase was promoted.
+
 ## Current real qualification result
 
 Manual Railway command used:
@@ -142,6 +162,7 @@ This is correct behavior. Nothing has been promoted.
 - `376c375 feat: collect replay qualification evidence`
 - `eb09a76 feat: add qualification evidence status command`
 - `ae4b238 feat: generate qualification replay evidence`
+- `4304b3b feat: generate final qualification evidence`
 
 ## Verification commands
 
@@ -157,8 +178,8 @@ The last full test run before the latest small control-auth addition passed 292 
 
 ## Immediate next work
 
-1. Collect or generate fee/slippage evidence in `cost_events.jsonl` for the current Railway state.
-2. Keep collecting qualification evidence for duplicate-candle protection and risk-limit exercises. Missing evidence should remain visible as `MISSING`/`FAIL`.
+1. Let training continue until the elapsed-training and closed-position-count gates are satisfied.
+2. Monitor `qualification-latest.md` and `/qualification`; all technical evidence gates now pass, but promotion remains blocked until non-evidence thresholds are met.
 3. Regenerate the temporary Discord bot token before production, update `HERMES_DISCORD_BOT_TOKEN`, and redeploy.
 4. From Discord, validate `/status` and `/qualification` again with the allowed user and a fresh TOTP code after token rotation.
 5. Keep the service co-located unless uptime/cost tradeoffs change. If splitting services later, preserve private networking and never expose the Control API publicly.
