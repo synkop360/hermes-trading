@@ -395,6 +395,17 @@ def _normalized_price(payload: Mapping[str, Any]) -> dict[str, Any]:
     if isinstance(raw_closes, (list, tuple)):
         # Retain normalized historical closes for pure indicator evaluation.
         values["closes"] = tuple(_decimal(value) for value in raw_closes)
+    raw_candles = payload.get("candles")
+    if isinstance(raw_candles, list):
+        # Indicators need OHLC history as well as closes. Keep only numeric fields.
+        values["candles"] = tuple(
+            {
+                field: _decimal(candle[field])
+                for field in ("open", "high", "low", "close")
+            }
+            for candle in raw_candles
+            if isinstance(candle, Mapping) and all(field in candle for field in ("open", "high", "low", "close"))
+        )
     return values
 
 

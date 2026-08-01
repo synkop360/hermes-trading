@@ -38,6 +38,13 @@ def evaluate_strategy(
                 take_profit = position.entry_price * (Decimal("1") + take_profit_pct / Decimal("100"))
                 if candle.high >= take_profit:
                     return StrategySignal("exit", snapshot.asset, "take_profit", take_profit, candle_id)
+            take_profit_atr = _optional_positive_setting(exit_rule.get("take_profit_atr"))
+            if take_profit_atr is not None:
+                atr = _atr(snapshot)
+                if atr is not None:
+                    take_profit = position.entry_price + atr * take_profit_atr
+                    if candle.high >= take_profit:
+                        return StrategySignal("exit", snapshot.asset, "take_profit_atr", take_profit, candle_id)
             max_bars = _optional_positive_setting(exit_rule.get("max_bars"))
             if max_bars is not None and _bars_held(position.opened_at, candle.close_timestamp, snapshot.timeframe) >= int(max_bars):
                 return StrategySignal("exit", snapshot.asset, "max_bars", candle.close, candle_id)
@@ -86,13 +93,18 @@ def _rsi_recovery_matches(snapshot: MarketSnapshot, rule: dict[str, Any]) -> boo
     if not recovered:
         return False
     if not bool(rule.get("require_ema_rising", False)):
-        return True
-    period = int(_decimal_setting(rule.get("trend_ema_period", "200"), "trend_ema_period"))
-    if period < 2 or len(values) < period + 1:
+        ema_rising = True
+    else:
+        period = int(_decimal_setting(rule.get("trend_ema_period", "200"), "trend_ema_period"))
+        if period < 2 or len(values) < period + 1:
+            return False
+        previous_ema = _ema(values[-(period + 1):-1], period)
+        current_ema = _ema(values[-period:], period)
+        ema_rising = current_ema > previous_ema
+    if not ema_rising:
         return False
-    previous_ema = _ema(values[-(period + 1):-1], period)
-    current_ema = _ema(values[-period:], period)
-    return current_ema > previous_ema
+    max_adx = _optional_positive_setting(rule.get("max_adx"))
+    return max_adx is None or (_adx(snapshot) is not None and _adx(snapshot) <= max_adx)
 
 
 def _rsi(values: list[Decimal]) -> Decimal:
@@ -110,6 +122,55 @@ def _ema(values: list[Decimal], period: int) -> Decimal:
     for value in values[1:]:
         result = (value - result) * multiplier + result
     return result
+
+
+def _ohlc(snapshot: MarketSnapshot) -> list[tuple[Decimal, Decimal, Decimal]]:
+    candles = (snapshot.price or {}).get("candles")
+    if not isinstance(candles, (list, tuple)):
+        return []
+    result: list[tuple[Decimal, Decimal, Decimal]] = []
+    for candle in candles:
+        if not isinstance(candle, dict):
+            return []
+        try:
+            result.append((_decimal_setting(candle["high"], "high"), _decimal_setting(candle["low"], "low"), _decimal_setting(candle["close"], "close")))
+        except (KeyError, ValueError):
+            return []
+    return result
+
+
+def _atr(snapshot: MarketSnapshot, period: int = 14) -> Decimal | None:
+    candles = _ohlc(snapshot)
+    if len(candles) < period + 1:
+        return None
+    recent = candles[-(period + 1):]
+    ranges = [max(high - low, abs(high - previous_close), abs(low - previous_close)) for (_, _, previous_close), (high, low, _) in zip(recent, recent[1:])]
+    return sum(ranges, Decimal("0")) / Decimal(period)
+
+
+def _adx(snapshot: MarketSnapshot, period: int = 14) -> Decimal | None:
+    candles = _ohlc(snapshot)
+    if len(candles) < period * 2 + 1:
+        return None
+    plus_dm: list[Decimal] = []
+    minus_dm: list[Decimal] = []
+    true_ranges: list[Decimal] = []
+    for (previous_high, previous_low, previous_close), (high, low, _) in zip(candles, candles[1:]):
+        up_move, down_move = high - previous_high, previous_low - low
+        plus_dm.append(up_move if up_move > down_move and up_move > 0 else Decimal("0"))
+        minus_dm.append(down_move if down_move > up_move and down_move > 0 else Decimal("0"))
+        true_ranges.append(max(high - low, abs(high - previous_close), abs(low - previous_close)))
+    dx: list[Decimal] = []
+    for index in range(period - 1, len(true_ranges)):
+        tr = sum(true_ranges[index - period + 1:index + 1], Decimal("0"))
+        if tr == 0:
+            continue
+        plus = Decimal("100") * sum(plus_dm[index - period + 1:index + 1], Decimal("0")) / tr
+        minus = Decimal("100") * sum(minus_dm[index - period + 1:index + 1], Decimal("0")) / tr
+        denominator = plus + minus
+        if denominator > 0:
+            dx.append(Decimal("100") * abs(plus - minus) / denominator)
+    return sum(dx[-period:], Decimal("0")) / Decimal(period) if len(dx) >= period else None
 
 
 def _optional_positive_setting(value: object) -> Decimal | None:

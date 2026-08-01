@@ -10,7 +10,6 @@ from hermes_trading.adapters.news import parse_rss_headlines
 from hermes_trading.loop import (
     TradingConfig,
     TradingModeError,
-    _paper_trade,
     parse_assets,
     resolve_asset_strategy,
     resolve_trading_config,
@@ -366,21 +365,6 @@ class MultiAssetDecisionTests(unittest.TestCase):
     def test_parse_assets_falls_back_to_single_asset(self):
         self.assertEqual(parse_assets({"HERMES_TRADING_ASSET": "ETH/USDT"}), ["ETH/USDT"])
 
-    def test_paper_trade_logs_no_trade_decision_when_entry_does_not_fire(self):
-        market = {"price": {"last": 100.0, "closes": [100.0] * 16}}
-        strategy = {
-            "version": "02",
-            "entry": {"indicator": "rsi", "threshold": 32, "direction": "long"},
-        }
-
-        decision = _paper_trade("BTC/USDT", market, strategy)
-
-        self.assertEqual(decision["event"], "decision")
-        self.assertEqual(decision["asset"], "BTC/USDT")
-        self.assertFalse(decision["trade_closed"])
-        self.assertEqual(decision["reason"], "entry_condition_not_met")
-        self.assertGreater(decision["entry_value"], decision["threshold"])
-
     def test_resolve_asset_strategy_deep_merges_symbol_override(self):
         strategy = {
             "version": "55",
@@ -404,24 +388,6 @@ class MultiAssetDecisionTests(unittest.TestCase):
         self.assertEqual(resolved["stop_loss_pct"], 0.8)
         self.assertEqual(resolved["position_size_r"], 1.0)
         self.assertNotIn("symbols", resolved)
-
-    def test_paper_trade_uses_symbol_specific_entry_threshold(self):
-        market = {"price": {"last": 100.0, "closes": [100.0] * 16}}
-        strategy = {
-            "version": "55",
-            "entry": {"indicator": "rsi", "threshold": 100, "direction": "long"},
-            "symbols": {
-                "SHIB/USDT": {
-                    "entry": {"threshold": 10},
-                }
-            },
-        }
-
-        decision = _paper_trade("SHIB/USDT", market, strategy)
-
-        self.assertFalse(decision["trade_closed"])
-        self.assertEqual(decision["threshold"], 10.0)
-
 
 if __name__ == "__main__":
     unittest.main()

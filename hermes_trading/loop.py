@@ -149,23 +149,6 @@ def resolve_asset_strategy(strategy: dict[str, Any], asset: str) -> dict[str, An
     return _deep_merge(base, override)
 
 
-def _rsi(closes: list[float], period: int = 14) -> float:
-    if len(closes) <= period:
-        return 50.0
-    gains = []
-    losses = []
-    for previous, current in zip(closes[-period - 1 : -1], closes[-period:]):
-        delta = current - previous
-        gains.append(max(delta, 0.0))
-        losses.append(abs(min(delta, 0.0)))
-    average_gain = sum(gains) / period
-    average_loss = sum(losses) / period
-    if average_loss == 0:
-        return 100.0
-    rs = average_gain / average_loss
-    return 100 - (100 / (1 + rs))
-
-
 async def _retry(name: str, operation: Callable[[], Awaitable[dict[str, Any]]]) -> dict[str, Any]:
     delay = 1.0
     last_error: Exception | None = None
@@ -213,66 +196,6 @@ def _load_yaml(path: Path) -> dict[str, Any]:
 
     DecimalSafeLoader.add_constructor("tag:yaml.org,2002:float", decimal_value)
     return yaml.load(path.read_text(), Loader=DecimalSafeLoader) or {}
-
-
-def _paper_trade(asset: str, market: dict[str, Any], strategy: dict[str, Any]) -> dict[str, Any] | None:
-    strategy = resolve_asset_strategy(strategy, asset)
-    price_data = market["price"]
-    rsi = _rsi(price_data.get("closes", []))
-    entry = strategy.get("entry", {})
-    threshold = float(entry.get("threshold", 30))
-    direction = entry.get("direction", "long")
-    should_enter = entry.get("indicator") == "rsi" and direction == "long" and rsi <= threshold
-    if not should_enter:
-        return {
-            "timestamp": datetime.now(timezone.utc).isoformat(),
-            "event": "decision",
-            "asset": asset,
-            "strategy_version": strategy.get("version", "01"),
-            "side": direction,
-            "entry_indicator": entry.get("indicator"),
-            "entry_value": round(rsi, 4),
-            "threshold": threshold,
-            "trade_closed": False,
-            "reason": "entry_condition_not_met",
-        }
-
-    closes = price_data.get("closes", [])
-    realized = 0.0
-    if len(closes) >= 2 and closes[-2]:
-        realized = (float(closes[-1]) - float(closes[-2])) / float(closes[-2])
-    return {
-        "timestamp": datetime.now(timezone.utc).isoformat(),
-        "event": "trade",
-        "asset": asset,
-        "strategy_version": strategy.get("version", "01"),
-        "side": direction,
-        "entry_indicator": "rsi",
-        "entry_value": round(rsi, 4),
-        "entry_price": price_data["last"],
-        "realized_pnl_pct": round(realized, 6),
-        "equity": round(100.0 * (1.0 + realized), 4),
-        "trade_closed": True,
-        "mode": "paper",
-        "signal": {
-            "action": "enter",
-            "order_type": "market",
-            "side": "buy",
-            "asset": asset,
-            "reference_price": price_data["last"],
-            "reason": "rsi_entry",
-        },
-    }
-
-
-async def _evaluate_asset(asset: str, strategy: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:
-    market = {
-        "price": await _retry("price", lambda: price.fetch(asset)),
-        "onchain": await _retry("onchain", onchain.fetch),
-        "news": await _retry("news", news.fetch),
-        "macro": await _retry("macro", macro.fetch),
-    }
-    return market, _paper_trade(asset, market, strategy)
 
 
 async def run_cycle(

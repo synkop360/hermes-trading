@@ -9,7 +9,7 @@ from hermes_trading.domain import Decision, Fill, OrderIntent, OrderRecord, Orde
 from hermes_trading.market_data import MarketSnapshot
 from hermes_trading.persistence.artifacts import ArtifactProjector
 from hermes_trading.persistence.repository import ProjectionItem, StateRepository
-from hermes_trading.strategy import StrategySignal, _decimal_setting, evaluate_strategy
+from hermes_trading.strategy import StrategySignal, _atr, _decimal_setting, evaluate_strategy
 
 
 @dataclass(frozen=True)
@@ -168,10 +168,20 @@ class PositionEngine:
         _positive_finite(fill_price, "entry fill price")
         _positive_finite(quantity, "entry quantity")
         fee = quantity * fill_price * settings.taker_fee_rate
-        stop_pct = _decimal_setting(strategy.get("stop_loss_pct"), "stop_loss_pct")
-        if stop_pct <= 0 or stop_pct >= 100:
-            raise ValueError("stop_loss_pct must be greater than zero and less than 100")
-        stop_price = fill_price * (Decimal("1") - stop_pct / Decimal("100"))
+        exit_rule = strategy.get("exit")
+        stop_atr = _decimal_setting(exit_rule["stop_atr"], "stop_atr") if isinstance(exit_rule, dict) and "stop_atr" in exit_rule else None
+        if stop_atr is not None:
+            if stop_atr <= 0:
+                raise ValueError("stop_atr must be greater than zero")
+            atr = _atr(snapshot)
+            if atr is None:
+                raise ValueError("stop_atr requires at least 15 OHLC candles")
+            stop_price = fill_price - atr * stop_atr
+        else:
+            stop_pct = _decimal_setting(strategy.get("stop_loss_pct"), "stop_loss_pct")
+            if stop_pct <= 0 or stop_pct >= 100:
+                raise ValueError("stop_loss_pct must be greater than zero and less than 100")
+            stop_price = fill_price * (Decimal("1") - stop_pct / Decimal("100"))
         _positive_finite(stop_price, "stop price")
         return self._records(decision, "buy", quantity, fill_price, fee, stop_price, strategy, PositionStatus.OPEN, order_type="market")
 
@@ -179,7 +189,7 @@ class PositionEngine:
         candle = snapshot.candle
         if signal.reason == "stop_loss":
             base_price = min(candle.open, position.stop_price)
-        elif signal.reason == "take_profit":
+        elif signal.reason in {"take_profit", "take_profit_atr"}:
             base_price = max(candle.open, signal.reference_price)
         else:
             base_price = candle.close

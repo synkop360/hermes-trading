@@ -6,7 +6,7 @@ import unittest
 from pathlib import Path
 
 from hermes_trading.adapters.execution import ExecutionSafetyError, ExecutionSettings, execute_signal, resolve_execution_settings
-from hermes_trading.loop import LIVE_CONFIRM_PHRASE, _paper_trade
+from hermes_trading.loop import LIVE_CONFIRM_PHRASE
 from hermes_trading.run import ensure_state_files
 
 
@@ -43,27 +43,6 @@ class ExecutionSettingsTests(unittest.TestCase):
                     "HERMES_TRADING_LIVE_VALIDATE_ONLY": "false",
                 }
             )
-
-
-class TradeSignalTests(unittest.TestCase):
-    def test_trade_signal_contains_order_intent_when_entry_fires(self):
-        market = {"price": {"last": 80.0, "closes": [100.0] * 15 + [80.0]}}
-        strategy = {"version": "46", "entry": {"indicator": "rsi", "threshold": 100, "direction": "long"}}
-
-        decision = _paper_trade("BTC/USDT", market, strategy)
-
-        self.assertTrue(decision["trade_closed"])
-        self.assertEqual(
-            decision["signal"],
-            {
-                "action": "enter",
-                "order_type": "market",
-                "side": "buy",
-                "asset": "BTC/USDT",
-                "reference_price": 80.0,
-                "reason": "rsi_entry",
-            },
-        )
 
 
 class ExecuteSignalTests(unittest.IsolatedAsyncioTestCase):

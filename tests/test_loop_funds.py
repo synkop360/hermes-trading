@@ -17,20 +17,6 @@ class LoopFundsAlertTests(unittest.IsolatedAsyncioTestCase):
             messages.append(content)
             return True
 
-        async def no_trade(asset, strategy):
-            return {}, {
-                "timestamp": "2026-07-29T09:00:00+00:00",
-                "event": "decision",
-                "asset": asset,
-                "strategy_version": "47",
-                "side": "long",
-                "entry_indicator": "rsi",
-                "entry_value": 50,
-                "threshold": 17,
-                "trade_closed": False,
-                "reason": "entry_condition_not_met",
-            }
-
         async def fake_funds_alert(state_dir, settings, now=None, exchange_factory=None):
             return "[HERMES WARNING] LOW FUNDS"
 
@@ -51,17 +37,16 @@ class LoopFundsAlertTests(unittest.IsolatedAsyncioTestCase):
                 },
                 clear=False,
             ):
-                with patch("hermes_trading.loop._evaluate_asset", no_trade):
-                    with patch("hermes_trading.loop.send_notification", fake_send):
-                        with patch("hermes_trading.loop.build_due_funds_alert", fake_funds_alert):
-                            with patch("hermes_trading.loop.MarketDataCoordinator.collect", blocked_market_collection):
-                                task = asyncio.create_task(run_loop("BTC/USDT", state, interval_seconds=60))
-                                for _ in range(20):
-                                    if messages:
-                                        break
-                                    await asyncio.sleep(0.01)
-                                task.cancel()
-                                with self.assertRaises(asyncio.CancelledError):
-                                    await task
+                with patch("hermes_trading.loop.send_notification", fake_send):
+                    with patch("hermes_trading.loop.build_due_funds_alert", fake_funds_alert):
+                        with patch("hermes_trading.loop.MarketDataCoordinator.collect", blocked_market_collection):
+                            task = asyncio.create_task(run_loop("BTC/USDT", state, interval_seconds=60))
+                            for _ in range(20):
+                                if messages:
+                                    break
+                                await asyncio.sleep(0.01)
+                            task.cancel()
+                            with self.assertRaises(asyncio.CancelledError):
+                                await task
 
         self.assertIn("[HERMES WARNING] LOW FUNDS", messages)

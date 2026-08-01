@@ -14,7 +14,7 @@ from hermes_trading.positions import PositionEngine
 from hermes_trading.strategy import evaluate_strategy
 
 
-def candle(close_at: datetime, *, open: str, low: str, close: str, high: str | None = None) -> MarketSnapshot:
+def candle(close_at: datetime, *, open: str, low: str, close: str, high: str | None = None, history: tuple[dict[str, Decimal], ...] = ()) -> MarketSnapshot:
     return MarketSnapshot(
         asset="BTC/USDT",
         timeframe="1h",
@@ -30,7 +30,7 @@ def candle(close_at: datetime, *, open: str, low: str, close: str, high: str | N
             close=Decimal(close),
             volume=Decimal("1"),
         ),
-        price={"closes": tuple(Decimal("100") for _ in range(15)) + (Decimal("80"),)},
+        price={"closes": tuple(Decimal("100") for _ in range(15)) + (Decimal("80"),), "candles": history},
     )
 
 
@@ -129,6 +129,28 @@ class PositionEngineTests(unittest.TestCase):
         self.assertEqual(result.reason, "take_profit")
         self.assertEqual(result.closed_positions[0].status.value, "closed")
         self.assertGreater(result.closed_positions[0].realized_pnl, Decimal("0"))
+
+    def test_atr_stop_and_target_use_ohlc_history(self) -> None:
+        history = tuple({"high": Decimal("82"), "low": Decimal("78"), "close": Decimal("80")} for _ in range(15))
+        strategy = entry_strategy()
+        strategy["exit"] = {"stop_atr": "1.5", "take_profit_atr": "2"}
+        entry = candle(datetime(2026, 7, 30, 20, tzinfo=UTC), open="80", low="79", close="80", history=history)
+        opened = self.engine.process_candle(entry, strategy)
+
+        self.assertEqual(opened.position.stop_price, Decimal("74.08"))
+        result = self.engine.process_candle(
+            candle(datetime(2026, 7, 30, 21, tzinfo=UTC), open="80", low="79", high="90", close="89", history=history), strategy
+        )
+
+        self.assertEqual(result.reason, "take_profit_atr")
+        self.assertGreater(result.closed_positions[0].realized_pnl, Decimal("0"))
+
+    def test_rsi_recovery_with_adx_filter_fails_closed_without_ohlc_history(self) -> None:
+        strategy = {"entry": {"indicator": "rsi_recovery", "threshold": "25", "direction": "long", "max_adx": "25"}}
+
+        signal = evaluate_strategy(self.entry_candle, strategy, None)
+
+        self.assertEqual(signal.action, "no_trade")
 
     def test_max_bars_closes_an_open_position(self) -> None:
         strategy = entry_strategy()
