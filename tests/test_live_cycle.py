@@ -430,7 +430,7 @@ class ReadinessTests(unittest.TestCase):
         report = check_readiness(
             ReadinessContext(
                 mode="live", validate_only=True, allow_real_orders=False,
-                api_permissions=frozenset({"query-funds", "modify-trades"}),
+                api_permissions=frozenset({"query-funds", "query-open-trades", "modify-trades"}),
                 sqlite_integrity="ok", reconciliation_fresh=True, kill_switch=False,
                 risk_configured=True, market_supported=True,
                 market_minimum=Decimal("5"), max_order_quote=Decimal("5"),

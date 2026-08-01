@@ -33,6 +33,14 @@ class KrakenGatewayTests(unittest.IsolatedAsyncioTestCase):
         with self.assertRaises(UnsafeApiKeyPermissions):
             validate_api_key_permissions(info)
 
+    async def test_active_key_permissions_are_fetched_from_kraken(self) -> None:
+        info = await KrakenGateway(lambda: FakeKrakenExchange()).fetch_api_key_info()
+
+        self.assertEqual(
+            info.permissions,
+            frozenset({"query-funds", "query-open-trades", "modify-trades"}),
+        )
+
     async def test_market_order_preserves_client_id_for_reconciliation(self) -> None:
         fake = FakeKrakenExchange()
         gateway = KrakenGateway(lambda: fake)

@@ -89,6 +89,9 @@ class FakeKrakenExchange:
     async def fetch_balance(self) -> dict[str, Any]:
         return deepcopy(self._balances)
 
+    async def private_post_get_api_key_info(self) -> dict[str, Any]:
+        return {"result": {"permissions": ["query-funds", "query-open-trades", "modify-trades"]}}
+
     async def fetch_orders(self, symbol: str | None = None) -> list[dict[str, Any]]:
         return [
             deepcopy(order)

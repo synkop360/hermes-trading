@@ -19,6 +19,8 @@ class ExchangeGateway(Protocol):
 
     async def fetch_balances(self) -> dict[str, Decimal]: ...
 
+    async def fetch_api_key_info(self) -> "ApiKeyInfo": ...
+
     async def fetch_orders(self, asset: str | None = None) -> tuple["ExchangeOrder", ...]: ...
 
     async def fetch_order(self, exchange_order_id: str, asset: str) -> "ExchangeOrder": ...
@@ -191,6 +193,17 @@ class KrakenGateway:
             for currency, value in balances.items()
             if value is not None
         }
+
+    async def fetch_api_key_info(self) -> ApiKeyInfo:
+        endpoint = getattr(self._client(), "private_post_get_api_key_info", None)
+        if not callable(endpoint):
+            raise ExchangePayloadError("Kraken GetApiKeyInfo endpoint is unavailable")
+        payload = _mapping(await self._remote(endpoint), "Kraken API key info response")
+        result = _mapping(payload.get("result", payload), "Kraken API key info")
+        permissions = result.get("permissions")
+        if not isinstance(permissions, list) or not all(isinstance(item, str) for item in permissions):
+            raise ExchangePayloadError("Kraken API key permissions are unavailable")
+        return ApiKeyInfo(frozenset(permissions))
 
     async def fetch_orders(self, asset: str | None = None) -> tuple[ExchangeOrder, ...]:
         client = self._client()

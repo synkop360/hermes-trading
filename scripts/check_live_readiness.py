@@ -3,14 +3,15 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from decimal import Decimal, InvalidOperation
+import asyncio
 import os
 import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from hermes_trading.adapters.execution import ExecutionSafetyError, resolve_execution_settings
-from hermes_trading.exchange import ApiKeyInfo, UnsafeApiKeyPermissions, validate_api_key_permissions
+from hermes_trading.adapters.execution import ExecutionSafetyError, _default_exchange, resolve_execution_settings
+from hermes_trading.exchange import ApiKeyInfo, KrakenGateway, UnsafeApiKeyPermissions, validate_api_key_permissions
 from hermes_trading.persistence import StateRepository
 from hermes_trading.risk import resolve_risk_limits
 
@@ -55,7 +56,7 @@ def check_readiness(context: ReadinessContext) -> ReadinessReport:
             validate_api_key_permissions(ApiKeyInfo(permissions))
         except (UnsafeApiKeyPermissions, ValueError) as error:
             failures.append(f"API permissions are unsafe: {error}")
-        required = {"query-funds", "modify-trades"}
+        required = {"query-funds", "query-open-trades", "modify-trades"}
         missing = sorted(required - permissions)
         if missing:
             failures.append(f"API permissions are missing: {', '.join(missing)}")
@@ -110,12 +111,12 @@ def _context_from_environment() -> ReadinessContext:
             )
         finally:
             repository.close()
+    permissions = _active_kraken_permissions(settings.mode)
     permission_text = os.getenv("HERMES_KRAKEN_API_PERMISSIONS")
-    permissions = None
-    if permission_text:
-        permissions = frozenset(
-            item.strip().lower() for item in permission_text.split(",") if item.strip()
-        )
+    if permission_text and permissions is not None:
+        declared = frozenset(item.strip().lower() for item in permission_text.split(",") if item.strip())
+        if declared != permissions:
+            raise ValueError("declared Kraken permissions do not match the active API key")
     risk_names = (
         "HERMES_TRADING_RISK_PER_TRADE_PCT",
         "HERMES_TRADING_MAX_SYMBOL_EXPOSURE_PCT",
@@ -124,6 +125,20 @@ def _context_from_environment() -> ReadinessContext:
         "HERMES_TRADING_MAX_DRAWDOWN_PCT",
         "HERMES_TRADING_MAX_ORDER_USDT",
     )
+
+
+def _active_kraken_permissions(mode: str) -> frozenset[str] | None:
+    if mode != "live":
+        return None
+
+    async def fetch() -> frozenset[str]:
+        gateway = KrakenGateway(_default_exchange, validate_only=True)
+        try:
+            return (await gateway.fetch_api_key_info()).permissions
+        finally:
+            await gateway.close()
+
+    return asyncio.run(fetch())
     risk_configured = all(os.getenv(name, "").strip() for name in risk_names)
     limits = resolve_risk_limits()
     return ReadinessContext(
