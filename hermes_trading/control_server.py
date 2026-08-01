@@ -22,14 +22,21 @@ class ControlServerConfig:
     hmac_secret: str
 
 
+_SUPPORTED_LOOPBACK_HOSTS = {"127.0.0.1", "localhost"}
+
+
+def _validate_control_host(host: str) -> None:
+    if host not in _SUPPORTED_LOOPBACK_HOSTS:
+        raise ControlServerConfigError("HERMES_CONTROL_HOST must be supported loopback only")
+
+
 def resolve_control_server_config(env: Mapping[str, str] | None = None) -> ControlServerConfig:
     values = env if env is not None else os.environ
     hmac_secret = values.get("HERMES_CONTROL_HMAC_SECRET", "").strip()
     if not hmac_secret:
         raise ControlServerConfigError("HERMES_CONTROL_HMAC_SECRET is required")
     host = values.get("HERMES_CONTROL_HOST", "127.0.0.1").strip() or "127.0.0.1"
-    if host not in {"127.0.0.1", "localhost", "::1"}:
-        raise ControlServerConfigError("HERMES_CONTROL_HOST must be loopback only")
+    _validate_control_host(host)
     try:
         port = int(values.get("HERMES_CONTROL_PORT", "8765"))
     except ValueError as error:
@@ -45,6 +52,7 @@ def resolve_control_server_config(env: Mapping[str, str] | None = None) -> Contr
 
 
 def build_control_server(config: ControlServerConfig) -> tuple[HTTPServer, StateRepository]:
+    _validate_control_host(config.host)
     config.state_dir.mkdir(parents=True, exist_ok=True)
     repository = StateRepository.open(config.state_dir / "trading.db")
     repository.migrate()
