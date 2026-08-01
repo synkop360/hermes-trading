@@ -179,6 +179,25 @@ class LiveCycleTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(gateway.validation_calls, 1)
         self.assertEqual(len(self.repository.order_intents()), 1)
 
+    async def test_risk_reducing_exit_precedes_an_earlier_asset_entry(self) -> None:
+        events: list[str] = []
+        gateway = ValidationGateway(events)
+        self.repository.save_position(
+            Position(
+                "eth-open", "ETH/USDT", PositionStatus.OPEN, Decimal("0.1"),
+                Decimal("100"), Decimal("90"), "test", (NOW - timedelta(hours=2)).isoformat(),
+            )
+        )
+
+        result = await run_live_cycle(
+            ["BTC/USDT", "ETH/USDT"], self.repository, self.projector,
+            FakeMarketData(events), entry_strategy(), gateway,
+            validate_only=True, now=lambda: NOW,
+        )
+
+        self.assertEqual(gateway.validation_calls, 1)
+        self.assertEqual(self.repository.order_intents()[0].asset, "ETH/USDT")
+
     def test_risk_context_uses_durable_daily_pnl_and_drawdown(self) -> None:
         self.repository.save_position(closed_position("win", Decimal("10"), NOW - timedelta(hours=2)))
         self.repository.save_position(closed_position("loss", Decimal("-20"), NOW - timedelta(hours=1)))

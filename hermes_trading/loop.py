@@ -374,15 +374,35 @@ async def run_live_cycle(
     market_blockers: list[str] = []
 
     for asset in assets:
+        if snapshots.get(asset) is not None:
+            continue
+        state.open_incident(
+            f"live-cycle:market:{asset}",
+            "market_snapshot_missing",
+            severity="critical",
+            opened_at=current_time,
+        )
+        market_blockers.append(f"{asset}:market_snapshot_missing")
+    if market_blockers:
+        return _live_cycle_result(
+            "blocked_market", ",".join(market_blockers), state, existing_order_ids,
+            (), report, warnings=(funds_warning,) if funds_warning else (),
+        )
+
+    # Exits reduce exposure, so an active position that must exit always gets
+    # the single safe submission slot before a new entry on another asset.
+    def exit_priority(asset: str) -> int:
+        snapshot = snapshots[asset]
+        position = next(
+            (candidate for candidate in state.active_positions() if candidate.asset == asset),
+            None,
+        )
+        signal = evaluate_strategy(snapshot, resolve_asset_strategy(strategy, asset), position)
+        return 0 if signal.action == "exit" else 1
+
+    for asset in sorted(assets, key=exit_priority):
         snapshot = snapshots.get(asset)
         if snapshot is None:
-            state.open_incident(
-                f"live-cycle:market:{asset}",
-                "market_snapshot_missing",
-                severity="critical",
-                opened_at=current_time,
-            )
-            market_blockers.append(f"{asset}:market_snapshot_missing")
             continue
         asset_strategy = resolve_asset_strategy(strategy, asset)
         position = next(
