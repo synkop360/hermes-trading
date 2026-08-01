@@ -11,6 +11,8 @@ from typing import Any, Awaitable, Callable
 
 import httpx
 
+from hermes_trading.profitability import ProfitabilityReport, render_profitability_markdown
+
 
 class NotificationConfigError(RuntimeError):
     """Raised when notifications are enabled but incomplete."""
@@ -276,6 +278,10 @@ def _format_order_message(order: dict[str, Any]) -> str:
 
 def build_error_notification(error: Exception, consecutive_failures: int) -> str:
     return f"Hermes Trading | Worker error {consecutive_failures}/5: {error}"
+
+
+def build_profitability_notification(report: ProfitabilityReport) -> str:
+    return render_profitability_markdown(report)
 
 
 def build_due_periodic_summaries(

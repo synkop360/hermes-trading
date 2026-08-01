@@ -42,6 +42,19 @@ class ScoreTests(unittest.TestCase):
 
         self.assertLess(score(trades, goal), 0)
 
+    def test_score_prefers_net_realized_pnl_over_legacy_percentage(self):
+        goal = {"target_return_30d": 0.05, "max_drawdown": 0.08, "min_sharpe": 1.0}
+        trades = [
+            {
+                "realized_pnl_pct": 0.10,
+                "realized_pnl": "-20",
+                "entry_cost": "100",
+                "equity": 80.0,
+            }
+        ]
+
+        self.assertLess(score(trades, goal), 0)
+
 
 class ReflectionTests(unittest.TestCase):
     def _write_minimal_reflection_state(self, state: Path) -> None:

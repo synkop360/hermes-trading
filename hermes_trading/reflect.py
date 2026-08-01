@@ -13,6 +13,7 @@ from typing import Any
 import httpx
 import yaml
 
+from hermes_trading.costs import CostLedger
 from hermes_trading.score import score
 from hermes_trading.model_runner import ReflectionModelRunner
 from hermes_trading.persistence.repository import StateRepository
@@ -541,7 +542,9 @@ def _generate_asset_proposal(
         fallback_model = env.get("HERMES_OPENAI_FALLBACK_MODEL", DEFAULT_OPENAI_REFLECTION_MODEL)
         openai_run = (lambda request: _run_openai_prompt(request, fallback_model, env)) if _has_openai_api_key(env) else None
         result = ReflectionModelRunner(
-            ProviderRouter(repository, HermesCatalog.load(cache_path)), openai_run=openai_run
+            ProviderRouter(repository, HermesCatalog.load(cache_path)),
+            openai_run=openai_run,
+            cost_ledger=CostLedger(state_dir),
         ).run(prompt)
         proposal = json.loads(result.output)
         if not isinstance(proposal, dict):

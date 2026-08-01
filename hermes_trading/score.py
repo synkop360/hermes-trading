@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import math
+from decimal import Decimal, InvalidOperation
 from statistics import mean, pstdev
 
 
@@ -34,7 +35,7 @@ def score(trades: list[dict], goal: dict) -> float:
     if not trades:
         return -0.2
 
-    returns = [float(trade.get("realized_pnl_pct", 0.0)) for trade in trades]
+    returns = [_net_return(trade) for trade in trades]
     equity = [float(trade.get("equity", 100.0)) for trade in trades]
     realized_return = sum(returns)
     drawdown = _max_drawdown(equity)
@@ -52,3 +53,14 @@ def score(trades: list[dict], goal: dict) -> float:
     if drawdown > max_drawdown:
         composite -= 0.6
     return _clip(round(composite, 4))
+
+
+def _net_return(trade: dict) -> float:
+    try:
+        if trade.get("realized_pnl") is not None and trade.get("entry_cost") is not None:
+            entry_cost = Decimal(str(trade["entry_cost"]))
+            if entry_cost > 0:
+                return float(Decimal(str(trade["realized_pnl"])) / entry_cost)
+    except (InvalidOperation, TypeError, ValueError):
+        pass
+    return float(trade.get("realized_pnl_pct", 0.0))
