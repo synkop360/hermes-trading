@@ -102,8 +102,7 @@ def resolve_trading_config(env: dict[str, str] | None = None) -> TradingConfig:
     values = env if env is not None else os.environ
     mode = values.get("HERMES_TRADING_MODE", "paper").strip().lower()
     if mode in {"paper", "training", "train", "demo"}:
-        normalized = "training" if mode in {"training", "train", "demo"} else "paper"
-        return TradingConfig(mode=normalized, execution="simulated", accepts_real_orders=False)
+        return TradingConfig(mode="training", execution="simulated", accepts_real_orders=False)
     if mode != "live":
         raise TradingModeError(f"unsupported HERMES_TRADING_MODE={mode!r}")
 
@@ -397,7 +396,7 @@ async def run_live_cycle(
         if signal.action == "exit":
             assert position is not None
             execution_results.append(await execution.submit_exit(decision, position, gateway))
-            continue
+            break
 
         rules = await gateway.load_rules(asset)
         exchange_minimum = rules.min_cost
@@ -407,6 +406,7 @@ async def run_live_cycle(
             report.balances,
             state.active_positions(),
             current_time,
+            state,
         )
         risk_decision = risk.authorize_entry(
             context=context,
@@ -422,6 +422,9 @@ async def run_live_cycle(
         execution_results.append(
             await execution.submit_entry(decision, risk_decision, gateway)
         )
+        # Reconciliation and protection must complete before another asset can
+        # submit with stale balances or portfolio exposure.
+        break
 
     try:
         report = await reconciliation.run(gateway)
@@ -624,6 +627,7 @@ def _risk_context(
     balances: Mapping[str, Decimal],
     positions: tuple[Position, ...],
     observed_at: datetime,
+    state: StateRepository,
 ) -> RiskContext:
     quote = asset.split("/", 1)[1]
     free_quote = balances.get(quote)
@@ -642,19 +646,47 @@ def _risk_context(
         (position.quantity * position.entry_price for position in positions), Decimal("0")
     )
     equity = free_quote + total_exposure if free_quote is not None else None
+    daily_pnl, drawdown = _realized_risk_metrics(state, equity, observed_at)
     return RiskContext(
         symbol=asset,
         equity=equity,
         free_quote=free_quote,
         symbol_exposure=symbol_exposure if free_quote is not None else None,
         total_exposure=total_exposure if free_quote is not None else None,
-        daily_pnl=Decimal("0") if free_quote is not None else None,
-        drawdown=Decimal("0") if free_quote is not None else None,
+        daily_pnl=daily_pnl,
+        drawdown=drawdown,
         spread_bps=spread,
         spread_available=spread_available,
         spread_observed_at=observed_at,
         active_position=any(position.asset == asset for position in positions),
     )
+
+
+def _realized_risk_metrics(
+    state: StateRepository, equity: Decimal | None, observed_at: datetime
+) -> tuple[Decimal | None, Decimal | None]:
+    """Derive net P&L and drawdown from the durable closed-position history."""
+    if equity is None:
+        return None, None
+    closed = state.closed_positions()
+    day_start = observed_at.astimezone(UTC).replace(hour=0, minute=0, second=0, microsecond=0)
+    daily_pnl = sum(
+        (
+            position.realized_pnl for position in closed
+            if position.closed_at is not None
+            and datetime.fromisoformat(position.closed_at).astimezone(UTC) >= day_start
+        ),
+        Decimal("0"),
+    )
+    running_equity = equity - sum((position.realized_pnl for position in closed), Decimal("0"))
+    peak_equity = running_equity
+    drawdown = Decimal("0")
+    for position in closed:
+        running_equity += position.realized_pnl
+        peak_equity = max(peak_equity, running_equity)
+        if peak_equity > 0:
+            drawdown = max(drawdown, (peak_equity - running_equity) / peak_equity)
+    return daily_pnl, drawdown
 
 
 async def _notify_cycle_funds(

@@ -6,10 +6,10 @@ from pathlib import Path
 import tempfile
 import unittest
 
-from hermes_trading.domain import OrderStatus
+from hermes_trading.domain import OrderStatus, Position, PositionStatus
 from hermes_trading.exchange import ExchangeOrder, KrakenGateway, MarketRules
 from hermes_trading.funds import resolve_funds_alert_settings
-from hermes_trading.loop import run_live_cycle
+from hermes_trading.loop import _risk_context, resolve_trading_config, run_live_cycle
 from hermes_trading.market_data import ClosedCandle, MarketSnapshot
 from hermes_trading.persistence import StateRepository
 from hermes_trading.persistence.artifacts import ArtifactProjector
@@ -164,6 +164,35 @@ class LiveCycleTests(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(self.repository.risk_decisions()[0].allowed)
         self.assertEqual(len(self.repository.order_intents()), 1)
         self.assertTrue((self.state_dir / "orders.jsonl").exists())
+
+    async def test_multi_asset_cycle_submits_one_intent_before_reconciliation_and_protection(self) -> None:
+        events: list[str] = []
+        gateway = ValidationGateway(events)
+
+        result = await run_live_cycle(
+            ["BTC/USDT", "ETH/USDT"], self.repository, self.projector,
+            FakeMarketData(events), entry_strategy(), gateway,
+            validate_only=True, now=lambda: NOW,
+        )
+
+        self.assertEqual(result.status, "validation_only")
+        self.assertEqual(gateway.validation_calls, 1)
+        self.assertEqual(len(self.repository.order_intents()), 1)
+
+    def test_risk_context_uses_durable_daily_pnl_and_drawdown(self) -> None:
+        self.repository.save_position(closed_position("win", Decimal("10"), NOW - timedelta(hours=2)))
+        self.repository.save_position(closed_position("loss", Decimal("-20"), NOW - timedelta(hours=1)))
+
+        context = _risk_context(
+            "BTC/USDT", entry_snapshot("BTC/USDT").price,
+            {"USDT": Decimal("90")}, (), NOW, self.repository,
+        )
+
+        self.assertEqual(context.daily_pnl, Decimal("-10"))
+        self.assertEqual(context.drawdown, Decimal("20") / Decimal("110"))
+
+    def test_paper_alias_remains_in_training_mode(self) -> None:
+        self.assertEqual(resolve_trading_config({"HERMES_TRADING_MODE": "paper"}).mode, "training")
 
     async def test_unknown_quote_balance_records_no_order_and_human_reason(self) -> None:
         events: list[str] = []
@@ -387,6 +416,14 @@ def exchange_order(
         order_id, client_order_id, asset, side, "market", status, amount,
         filled, amount - filled, average_price, Decimal("0"), "USDT",
         NOW.isoformat(), NOW.isoformat(),
+    )
+
+
+def closed_position(position_id: str, pnl: Decimal, closed_at: datetime) -> Position:
+    return Position(
+        position_id, "BTC/USDT", PositionStatus.CLOSED, Decimal("0.1"),
+        Decimal("100"), Decimal("90"), "test", (closed_at - timedelta(hours=1)).isoformat(),
+        closed_at.isoformat(), pnl, Decimal("0"),
     )
 
 

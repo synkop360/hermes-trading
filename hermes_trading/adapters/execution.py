@@ -37,8 +37,7 @@ def resolve_execution_settings(env: dict[str, str] | None = None) -> ExecutionSe
     values = env if env is not None else os.environ
     mode = values.get("HERMES_TRADING_MODE", "paper").strip().lower()
     if mode in {"paper", "training", "train", "demo"}:
-        normalized = "training" if mode in {"training", "train", "demo"} else "paper"
-        return ExecutionSettings(normalized, "simulated", validate_only=True, allow_real_orders=False)
+        return ExecutionSettings("training", "simulated", validate_only=True, allow_real_orders=False)
 
     if mode != "live":
         raise ExecutionSafetyError(f"unsupported HERMES_TRADING_MODE={mode!r}")

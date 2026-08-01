@@ -209,6 +209,18 @@ class StateRepository:
         )
         return tuple(self._position_from_row(row) for row in rows)
 
+    def closed_positions(self) -> tuple[Position, ...]:
+        rows = self._connection.execute(
+            """
+            SELECT position_id, asset, status, quantity, entry_price, stop_price,
+                   strategy_version, opened_at, closed_at, realized_pnl, fees
+            FROM positions
+            WHERE status = 'closed' AND closed_at IS NOT NULL
+            ORDER BY closed_at, position_id
+            """
+        )
+        return tuple(self._position_from_row(row) for row in rows)
+
     def position_by_id(self, position_id: str) -> Position | None:
         row = self._connection.execute("SELECT * FROM positions WHERE position_id = ?", (position_id,)).fetchone()
         return self._position_from_row(row) if row is not None else None
