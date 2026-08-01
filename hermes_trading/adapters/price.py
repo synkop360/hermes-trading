@@ -11,6 +11,7 @@ import ccxt.async_support as ccxt
 from hermes_trading.adapters import require_schema
 
 SCHEMA_VERSION = 1
+DEFAULT_CANDLE_LIMIT = 256
 
 
 class PriceClient:
@@ -71,7 +72,7 @@ class PriceClient:
     async def fetch(self, asset: str, timeframe: str = "1h") -> dict[str, Any]:
         ticker_task = asyncio.create_task(self._exchange.fetch_ticker(asset))
         candles_task = asyncio.create_task(
-            self._exchange.fetch_ohlcv(asset, timeframe=timeframe, limit=32)
+            self._exchange.fetch_ohlcv(asset, timeframe=timeframe, limit=DEFAULT_CANDLE_LIMIT)
         )
         tasks = (ticker_task, candles_task)
         try:
@@ -221,4 +222,4 @@ async def _cancel_and_await(tasks: Sequence[asyncio.Task[Any]]) -> None:
         await asyncio.gather(*tasks, return_exceptions=True)
 
 
-__all__ = ["PriceClient", "SCHEMA_VERSION", "fetch"]
+__all__ = ["DEFAULT_CANDLE_LIMIT", "PriceClient", "SCHEMA_VERSION", "fetch"]

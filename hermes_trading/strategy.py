@@ -82,7 +82,17 @@ def _rsi_recovery_matches(snapshot: MarketSnapshot, rule: dict[str, Any]) -> boo
     threshold = _decimal_setting(rule.get("threshold", "25"), "RSI threshold")
     previous = _rsi(values[-16:-1])
     current = _rsi(values[-15:])
-    return previous <= threshold and current > threshold and values[-1] > values[-2]
+    recovered = previous <= threshold and current > threshold and values[-1] > values[-2]
+    if not recovered:
+        return False
+    if not bool(rule.get("require_ema_rising", False)):
+        return True
+    period = int(_decimal_setting(rule.get("trend_ema_period", "200"), "trend_ema_period"))
+    if period < 2 or len(values) < period + 1:
+        return False
+    previous_ema = _ema(values[-(period + 1):-1], period)
+    current_ema = _ema(values[-period:], period)
+    return current_ema > previous_ema
 
 
 def _rsi(values: list[Decimal]) -> Decimal:
@@ -90,6 +100,16 @@ def _rsi(values: list[Decimal]) -> Decimal:
     gains = sum((max(change, Decimal("0")) for change in changes), Decimal("0"))
     losses = sum((-min(change, Decimal("0")) for change in changes), Decimal("0"))
     return Decimal("100") if losses == 0 else Decimal("100") - Decimal("100") / (Decimal("1") + gains / losses)
+
+
+def _ema(values: list[Decimal], period: int) -> Decimal:
+    if len(values) != period:
+        raise ValueError("EMA requires exactly one full period")
+    multiplier = Decimal("2") / Decimal(period + 1)
+    result = values[0]
+    for value in values[1:]:
+        result = (value - result) * multiplier + result
+    return result
 
 
 def _optional_positive_setting(value: object) -> Decimal | None:

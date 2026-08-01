@@ -84,6 +84,17 @@ class PositionEngineTests(unittest.TestCase):
         self.assertEqual(signal.action, "enter")
         self.assertEqual(signal.reason, "rsi_recovery")
 
+    def test_rsi_recovery_with_ema_filter_fails_closed_without_full_history(self) -> None:
+        strategy = {
+            "entry": {
+                "indicator": "rsi_recovery", "threshold": "25", "direction": "long",
+                "require_ema_rising": True, "trend_ema_period": "200",
+            }
+        }
+        signal = evaluate_strategy(self.entry_candle, strategy, None)
+
+        self.assertEqual(signal.action, "no_trade")
+
     def test_stop_exit_uses_low_and_charges_fees(self) -> None:
         self.engine.process_candle(self.entry_candle, entry_strategy())
         result = self.engine.process_candle(
