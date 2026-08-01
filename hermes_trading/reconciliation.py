@@ -3,13 +3,16 @@ from __future__ import annotations
 from dataclasses import dataclass
 from decimal import Decimal
 from pathlib import Path
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
 
 from hermes_trading.domain import OrderRecord, OrderStatus, Position, PositionStatus, json_value
 from hermes_trading.exchange import ExchangeGateway, ExchangeOrder
 from hermes_trading.identifiers import reconciled_entry_position_id
 from hermes_trading.persistence.artifacts import ArtifactProjector
 from hermes_trading.persistence.repository import StateRepository
+
+if TYPE_CHECKING:
+    from hermes_trading.execution import ExecutionService
 
 
 IssueSeverity = Literal["info", "warning", "critical"]
@@ -150,6 +153,76 @@ class ReconciliationService:
         if self.repository.intent_by_client_id(client_order_id) is None:
             raise ValueError(f"unknown client order id {client_order_id!r}")
         return await self.run(gateway)
+
+    async def verify_protective_stops(
+        self, gateway: ExchangeGateway, execution: "ExecutionService"
+    ) -> ReconciliationReport:
+        """Fail closed at startup when an open position lacks its active stop.
+
+        This separate pre-entry check is deliberately not wired into the worker
+        yet.  It is callable by the future live startup path and only operates
+        through the exchange gateway supplied by that path.
+        """
+        remote_orders = await gateway.fetch_orders()
+        issues: list[ReconciliationIssue] = []
+        remote_by_client_id = {
+            order.client_order_id: order
+            for order in remote_orders
+            if order.client_order_id is not None
+        }
+        for position in self.repository.active_positions():
+            if self._has_matching_protective_stop(position, remote_by_client_id):
+                continue
+            issues.append(
+                ReconciliationIssue(
+                    "missing_protective_stop",
+                    "critical",
+                    f"Open {position.asset} position has no active protective stop.",
+                )
+            )
+            await execution.emergency_close(
+                position,
+                gateway,
+                reason="startup_missing_protective_stop",
+            )
+        self._persist_issues(issues)
+        issues.extend(self._persistent_blockers(issues))
+        report = ReconciliationReport(
+            safe_for_new_entries=not any(issue.blocking for issue in issues),
+            issues=tuple(issues),
+            balances={},
+            next_reconciliation_seconds=(
+                self.fast_cadence_seconds if issues else self.normal_cadence_seconds
+            ),
+        )
+        self._project(report)
+        return report
+
+    def _has_matching_protective_stop(
+        self, position: Position, remote_by_client_id: dict[str, ExchangeOrder]
+    ) -> bool:
+        for intent in self.repository.order_intents():
+            if (
+                intent.position_id != position.position_id
+                or intent.side != "sell"
+                or intent.order_type != "stop-loss"
+                or intent.quantity != position.quantity
+                or intent.stop_price != position.stop_price
+            ):
+                continue
+            remote = remote_by_client_id.get(intent.client_order_id)
+            if remote is None:
+                continue
+            if (
+                remote.asset == position.asset
+                and remote.side == "sell"
+                and remote.order_type == "stop-loss"
+                and remote.amount == position.quantity
+                and _canonical_status(remote.status)
+                in {OrderStatus.SUBMITTED, OrderStatus.OPEN, OrderStatus.PARTIALLY_FILLED}
+            ):
+                return True
+        return False
 
     def _persist_remote_order(
         self, intent, remote: ExchangeOrder, *, reconstruct_position: bool

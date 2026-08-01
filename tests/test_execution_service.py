@@ -220,7 +220,7 @@ class ExecutionServiceTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(tables["orders"][0]["status"], "rejected")
         self.assertEqual(tables["incidents"][0]["reason"], "exchange_rejected")
 
-    async def test_explicit_protective_stop_rejection_is_durable_and_terminal(self) -> None:
+    async def test_explicit_protective_stop_rejection_emergency_closes_and_halts_entries(self) -> None:
         gateway = RejectedStopGateway(
             lambda identifier: self.assertIsNotNone(self.repository.intent_by_client_id(identifier))
         )
@@ -229,11 +229,12 @@ class ExecutionServiceTests(unittest.IsolatedAsyncioTestCase):
             sample_signal(action="protective_stop"), sample_position(), gateway
         )
 
-        self.assertEqual(result.status, "rejected")
-        self.assertEqual(result.reason, "exchange_rejected")
+        self.assertEqual(result.status, "emergency_closed")
         tables = self.repository.export_canonical_tables()
-        self.assertEqual(tables["orders"][0]["status"], "rejected")
-        self.assertEqual(tables["incidents"][0]["reason"], "exchange_rejected")
+        self.assertIn("stop-loss", [intent["order_type"] for intent in tables["order_intents"]])
+        self.assertIn("exchange_rejected", [incident["reason"] for incident in tables["incidents"]])
+        self.assertTrue(self.repository.risk_state().kill_switch)
+        self.assertEqual(gateway.market_calls, 1)
 
     async def test_rejected_risk_decision_never_submits_an_order(self) -> None:
         gateway = InspectingGateway(lambda identifier: self.fail("exchange must not be called"))
