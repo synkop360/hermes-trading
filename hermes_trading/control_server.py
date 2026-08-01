@@ -20,13 +20,17 @@ class ControlServerConfig:
     host: str
     port: int
     hmac_secret: str
+    private_network_bind: bool = False
 
 
 _SUPPORTED_LOOPBACK_HOSTS = {"127.0.0.1", "localhost"}
+_SUPPORTED_PRIVATE_NETWORK_HOSTS = {"0.0.0.0"}
 
 
-def _validate_control_host(host: str) -> None:
+def _validate_control_host(host: str, *, private_network_bind: bool = False) -> None:
     if host not in _SUPPORTED_LOOPBACK_HOSTS:
+        if private_network_bind and host in _SUPPORTED_PRIVATE_NETWORK_HOSTS:
+            return
         raise ControlServerConfigError("HERMES_CONTROL_HOST must be supported loopback only")
 
 
@@ -36,7 +40,8 @@ def resolve_control_server_config(env: Mapping[str, str] | None = None) -> Contr
     if not hmac_secret:
         raise ControlServerConfigError("HERMES_CONTROL_HMAC_SECRET is required")
     host = values.get("HERMES_CONTROL_HOST", "127.0.0.1").strip() or "127.0.0.1"
-    _validate_control_host(host)
+    private_network_bind = _truthy(values.get("HERMES_CONTROL_BIND_PRIVATE_NETWORK", "false"))
+    _validate_control_host(host, private_network_bind=private_network_bind)
     try:
         port = int(values.get("HERMES_CONTROL_PORT", "8765"))
     except ValueError as error:
@@ -48,14 +53,19 @@ def resolve_control_server_config(env: Mapping[str, str] | None = None) -> Contr
         host=host,
         port=port,
         hmac_secret=hmac_secret,
+        private_network_bind=private_network_bind,
     )
 
 
 def build_control_server(config: ControlServerConfig) -> tuple[HTTPServer, StateRepository]:
-    _validate_control_host(config.host)
+    _validate_control_host(config.host, private_network_bind=config.private_network_bind)
     config.state_dir.mkdir(parents=True, exist_ok=True)
     repository = StateRepository.open(config.state_dir / "trading.db")
     repository.migrate()
     api = LocalControlApi(repository, config.state_dir, secret=config.hmac_secret)
     server = HTTPServer((config.host, config.port), make_control_handler(api))
     return server, repository
+
+
+def _truthy(value: str) -> bool:
+    return value.strip().lower() in {"1", "true", "yes", "on"}

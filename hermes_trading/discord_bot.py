@@ -29,6 +29,7 @@ class DiscordBotConfig:
     control_base_url: str
     hmac_secret: str
     totp_secret: str
+    control_allowed_hosts: frozenset[str]
 
 
 class ControlClientLike(Protocol):
@@ -53,6 +54,7 @@ class DiscordControlBot:
             config.control_base_url,
             config.hmac_secret,
             now=self._now,
+            allowed_hosts=config.control_allowed_hosts,
         )
 
     def status(self, *, user_id: int, otp: str) -> str:
@@ -120,11 +122,14 @@ def resolve_discord_bot_config(env: Mapping[str, str] | None = None) -> DiscordB
     hmac_secret = _required(values, "HERMES_CONTROL_HMAC_SECRET")
     totp_secret = _required(values, "HERMES_DISCORD_TOTP_SECRET")
     control_base_url = values.get("HERMES_CONTROL_BASE_URL", "http://127.0.0.1:8765").strip()
+    allowed_hosts = _allowed_control_hosts(values.get("HERMES_CONTROL_ALLOWED_HOSTS", ""))
     try:
-        ControlClient(control_base_url, hmac_secret)
+        ControlClient(control_base_url, hmac_secret, allowed_hosts=allowed_hosts)
     except ControlClientConfigError as error:
-        raise DiscordBotConfigError("HERMES_CONTROL_BASE_URL must be an HTTP loopback URL") from error
-    return DiscordBotConfig(token, allowed_user_ids, control_base_url, hmac_secret, totp_secret)
+        raise DiscordBotConfigError(
+            "HERMES_CONTROL_BASE_URL must be an HTTP loopback URL or an explicitly allowed host"
+        ) from error
+    return DiscordBotConfig(token, allowed_user_ids, control_base_url, hmac_secret, totp_secret, allowed_hosts)
 
 
 def totp_code(secret: str, at: datetime | None = None, *, step_seconds: int = 30, digits: int = 6) -> str:
@@ -165,6 +170,10 @@ def _allowed_user_ids(raw: str) -> frozenset[int]:
     if not user_ids:
         raise DiscordBotConfigError("HERMES_DISCORD_ALLOWED_USER_IDS must contain at least one user ID")
     return user_ids
+
+
+def _allowed_control_hosts(raw: str) -> frozenset[str]:
+    return frozenset(part.strip().lower() for part in raw.replace(";", ",").split(",") if part.strip())
 
 
 def _base32_padded(value: str) -> str:

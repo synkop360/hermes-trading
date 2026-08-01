@@ -34,7 +34,8 @@ The Discord bot service needs:
 - `HERMES_DISCORD_ALLOWED_USER_IDS`
 - `HERMES_CONTROL_HMAC_SECRET`, same value as the Control API service
 - `HERMES_DISCORD_TOTP_SECRET`
-- `HERMES_CONTROL_BASE_URL=http://127.0.0.1:8765`
+- `HERMES_CONTROL_BASE_URL=http://127.0.0.1:8765` for a co-located local setup, or the private Railway Control API URL for separate services
+- `HERMES_CONTROL_ALLOWED_HOSTS=<control-api-private-host>` when `HERMES_CONTROL_BASE_URL` is not loopback
 
 Local preflight, without printing secret values:
 
@@ -51,17 +52,18 @@ Do not change the existing worker variables when provisioning the Control API or
 1. Create or select the Control API Railway service.
 2. Set its command to `uv run python scripts/run_control_api.py`.
 3. Attach the same `/app/state` volume or confirm the intended shared state path before starting it.
-4. Set `HERMES_CONTROL_HMAC_SECRET` and `HERMES_STATE_DIR=/app/state`.
+4. Set `HERMES_CONTROL_HMAC_SECRET`, `HERMES_STATE_DIR=/app/state`, `HERMES_CONTROL_HOST=0.0.0.0`, and `HERMES_CONTROL_BIND_PRIVATE_NETWORK=true`.
 5. Deploy the Control API service and smoke test `uv run python scripts/control_command.py status`.
 
-The current Control API and Discord bot code is intentionally loopback-only. A Discord bot running in a separate Railway service cannot call the Control API through Railway private networking until a later hardening change explicitly supports private-network host validation. Until then, keep the bot deployment pending or co-locate it with a loopback Control API process in a controlled service design.
+The Control API and Discord bot allow Railway private-network URLs only through an explicit host allowlist. Do not use a public Railway domain for the Control API.
 
-Pending separate-service hardening:
+Discord bot service:
 
-1. Add explicit private-network allowlisting for `HERMES_CONTROL_BASE_URL`.
-2. Keep HMAC nonce replay protection enabled.
-3. Keep commands limited to status and non-promoting qualification.
-4. Verify `promoted=false` and `real_orders_allowed=false` after deployment.
+1. Create or select the Discord bot Railway service.
+2. Set its command to `uv run python scripts/run_discord_bot.py`.
+3. Set the Discord bot token, allowed user IDs, TOTP secret, shared HMAC secret, `HERMES_CONTROL_BASE_URL`, and `HERMES_CONTROL_ALLOWED_HOSTS`.
+4. Deploy the Discord bot service.
+5. Verify `/status` and `/qualification` from an allowed Discord account with a fresh TOTP code.
 
 Expected safe smoke-test results:
 

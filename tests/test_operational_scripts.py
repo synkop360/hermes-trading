@@ -106,3 +106,38 @@ class OperationalScriptTests(unittest.TestCase):
         )
 
         self.assertIn("invalid discord-bot: HERMES_CONTROL_BASE_URL must be an HTTP loopback URL", result)
+
+    def test_control_discord_secret_preflight_accepts_allowed_private_control_url(self) -> None:
+        script_path = ROOT / "scripts" / "check_control_discord_secrets.py"
+        spec = importlib.util.spec_from_file_location("check_control_discord_secrets", script_path)
+        self.assertIsNotNone(spec)
+        self.assertIsNotNone(spec.loader)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+
+        result = module.check_readiness(
+            "discord-bot",
+            {
+                "HERMES_CONTROL_HMAC_SECRET": "control-secret-value",
+                "HERMES_DISCORD_BOT_TOKEN": "discord-token-value",
+                "HERMES_DISCORD_ALLOWED_USER_IDS": "123",
+                "HERMES_DISCORD_TOTP_SECRET": "JBSWY3DPEHPK3PXP",
+                "HERMES_CONTROL_BASE_URL": "http://control-api.railway.internal:8765",
+                "HERMES_CONTROL_ALLOWED_HOSTS": "control-api.railway.internal",
+            },
+        )
+
+        self.assertIn("ready discord-bot: control URL host is explicitly allowed", result)
+
+    def test_control_command_parses_allowed_control_hosts(self) -> None:
+        script_path = ROOT / "scripts" / "control_command.py"
+        spec = importlib.util.spec_from_file_location("control_command", script_path)
+        self.assertIsNotNone(spec)
+        self.assertIsNotNone(spec.loader)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+
+        self.assertEqual(
+            module.allowed_control_hosts("control-api.railway.internal; other.internal"),
+            frozenset({"control-api.railway.internal", "other.internal"}),
+        )

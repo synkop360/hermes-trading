@@ -124,6 +124,20 @@ class DiscordBotConfigTests(unittest.TestCase):
                 }
             )
 
+    def test_config_accepts_private_network_control_url_when_host_is_allowed(self) -> None:
+        config = resolve_discord_bot_config(
+            {
+                "HERMES_DISCORD_BOT_TOKEN": "bot-token",
+                "HERMES_DISCORD_ALLOWED_USER_IDS": "123",
+                "HERMES_CONTROL_HMAC_SECRET": "control-secret",
+                "HERMES_DISCORD_TOTP_SECRET": TOTP_SECRET,
+                "HERMES_CONTROL_BASE_URL": "http://control-api.railway.internal:8765",
+                "HERMES_CONTROL_ALLOWED_HOSTS": "control-api.railway.internal",
+            }
+        )
+
+        self.assertEqual(config.control_base_url, "http://control-api.railway.internal:8765")
+
 
 class DiscordControlBotTests(unittest.TestCase):
     def test_status_rejects_unauthorized_user_and_bad_totp(self) -> None:

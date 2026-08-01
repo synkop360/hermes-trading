@@ -16,11 +16,19 @@ def main() -> None:
     secret = os.getenv("HERMES_CONTROL_HMAC_SECRET", "").strip()
     if not secret:
         raise SystemExit("HERMES_CONTROL_HMAC_SECRET is required")
-    client = ControlClient(args.base_url, secret)
+    client = ControlClient(
+        args.base_url,
+        secret,
+        allowed_hosts=allowed_control_hosts(os.getenv("HERMES_CONTROL_ALLOWED_HOSTS", "")),
+    )
     if args.command == "status":
         print(control_status_message(client.status()))
         return
     print(qualification_message(client.qualification(args.phase)))
+
+
+def allowed_control_hosts(raw: str) -> frozenset[str]:
+    return frozenset(part.strip().lower() for part in raw.replace(";", ",").split(",") if part.strip())
 
 
 if __name__ == "__main__":

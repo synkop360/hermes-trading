@@ -34,6 +34,17 @@ class ControlServerTests(unittest.TestCase):
                 }
             )
 
+    def test_config_accepts_private_network_bind_when_explicitly_enabled(self) -> None:
+        config = resolve_control_server_config(
+            {
+                "HERMES_CONTROL_HMAC_SECRET": "secret",
+                "HERMES_CONTROL_HOST": "0.0.0.0",
+                "HERMES_CONTROL_BIND_PRIVATE_NETWORK": "true",
+            }
+        )
+
+        self.assertEqual(config.host, "0.0.0.0")
+
     def test_config_rejects_ipv6_loopback_without_ipv6_server_support(self) -> None:
         with self.assertRaises(ControlServerConfigError):
             resolve_control_server_config(

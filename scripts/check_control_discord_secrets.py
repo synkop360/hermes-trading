@@ -60,11 +60,20 @@ def _discord_specific_status(env: Mapping[str, str]) -> list[str]:
 
     base_url = env.get("HERMES_CONTROL_BASE_URL", "http://127.0.0.1:8765").strip()
     parsed = urlparse(base_url)
-    if parsed.scheme != "http" or parsed.hostname not in {"127.0.0.1", "localhost"}:
-        lines.append("invalid discord-bot: HERMES_CONTROL_BASE_URL must be an HTTP loopback URL")
-    else:
+    allowed_hosts = _allowed_hosts(env.get("HERMES_CONTROL_ALLOWED_HOSTS", ""))
+    if parsed.scheme != "http":
+        lines.append("invalid discord-bot: HERMES_CONTROL_BASE_URL must be HTTP")
+    elif parsed.hostname in {"127.0.0.1", "localhost"}:
         lines.append("ready discord-bot: control URL is loopback")
+    elif parsed.hostname in allowed_hosts:
+        lines.append("ready discord-bot: control URL host is explicitly allowed")
+    else:
+        lines.append("invalid discord-bot: HERMES_CONTROL_BASE_URL must be an HTTP loopback URL")
     return lines
+
+
+def _allowed_hosts(raw: str) -> frozenset[str]:
+    return frozenset(part.strip().lower() for part in raw.replace(";", ",").split(",") if part.strip())
 
 
 if __name__ == "__main__":

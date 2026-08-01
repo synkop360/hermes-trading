@@ -17,7 +17,7 @@ Current status:
 - Keep `HERMES_TRADING_MODE=training` on the current Railway worker unless an explicit later promotion plan says otherwise.
 - Keep `HERMES_TRADING_ALLOW_REAL_ORDERS=false`.
 - The control API only accepts HMAC signed requests and rejects replayed nonces.
-- The control server and bot client reject non-loopback control URLs.
+- The control server and bot client reject non-loopback control URLs unless a private Railway host is explicitly allowlisted.
 - Discord commands currently expose only status and validation qualification requests.
 - Qualification requests return `promoted=false`; they never promote a phase.
 
@@ -37,7 +37,8 @@ Defaults:
 - `HERMES_CONTROL_PORT=8765`
 - `HERMES_STATE_DIR=state`
 
-The host must be loopback: `127.0.0.1`, `localhost`, or `::1`.
+The host must be loopback: `127.0.0.1` or `localhost`.
+For a separate private Railway Control API service, set `HERMES_CONTROL_HOST=0.0.0.0` only with `HERMES_CONTROL_BIND_PRIVATE_NETWORK=true`, and do not expose a public domain.
 
 ## Local Control Client
 
@@ -60,6 +61,7 @@ Required environment variables:
 - `HERMES_CONTROL_HMAC_SECRET`
 - `HERMES_DISCORD_TOTP_SECRET`
 - `HERMES_CONTROL_BASE_URL`, optional, defaults to `http://127.0.0.1:8765`
+- `HERMES_CONTROL_ALLOWED_HOSTS`, required only when the Control API URL is a private Railway host instead of loopback
 
 Start the bot:
 

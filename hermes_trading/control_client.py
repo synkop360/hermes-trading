@@ -27,8 +27,9 @@ class ControlClient:
         request_json: RequestJson | None = None,
         now: Callable[[], datetime] | None = None,
         nonce: Callable[[], str] | None = None,
+        allowed_hosts: frozenset[str] | None = None,
     ) -> None:
-        _validate_loopback_url(base_url)
+        _validate_control_url(base_url, allowed_hosts or frozenset())
         self._base_url = base_url.rstrip("/")
         self._hmac_secret = hmac_secret
         self._request_json = request_json or _httpx_request_json
@@ -80,10 +81,15 @@ def _httpx_request_json(method: str, url: str, headers: Mapping[str, str], body:
     return payload
 
 
-def _validate_loopback_url(value: str) -> None:
+def _validate_control_url(value: str, allowed_hosts: frozenset[str]) -> None:
     parsed = urlparse(value)
-    if parsed.scheme != "http" or parsed.hostname not in {"127.0.0.1", "localhost", "::1"}:
-        raise ControlClientConfigError("control client base URL must be HTTP loopback")
+    if parsed.scheme != "http":
+        raise ControlClientConfigError("control client base URL must be HTTP")
+    if parsed.hostname in {"127.0.0.1", "localhost", "::1"}:
+        return
+    if parsed.hostname in allowed_hosts:
+        return
+    raise ControlClientConfigError("control client base URL host must be loopback or explicitly allowed")
 
 
 def _bool_text(value: object) -> str:
