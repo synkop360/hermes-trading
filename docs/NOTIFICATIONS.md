@@ -201,6 +201,15 @@ HERMES_NOTIFY_PROFITABILITY_FREQUENCIES=[1d,1w]
 
 Chaque periode terminee est publiee une seule fois; l'anti-doublon est conserve dans `state/notification_profitability_summaries.json`. Les couts inconnus restent indiques comme manquants et bloquent la gate economique: Hermes ne les traite jamais comme zero.
 
+Pour inclure une part attribuable de l'abonnement Railway, renseignez une estimation mensuelle puis, si besoin, la part reservee a Hermes:
+
+```text
+HERMES_RAILWAY_MONTHLY_COST_USD=5.00
+HERMES_RAILWAY_SUBSCRIPTION_ALLOCATION_PCT=100
+```
+
+Le worker ramene cette estimation a la fenetre du rapport. Sans ces variables, le cout Railway est explicitement `missing`; il ne peut donc pas autoriser une extension live sur la base d'un calcul incomplet.
+
 ## Alertes fonds bas
 
 Les alertes fonds bas sont des notifications de securite. Elles sont desactivees par defaut et passent par Discord quand les notifications sont actives.

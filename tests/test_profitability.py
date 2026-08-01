@@ -116,6 +116,15 @@ class ProfitabilityTests(unittest.TestCase):
             self.assertTrue((state / "profitability.json").exists())
             self.assertIn("Hermes Trading | Profitability", (state / "profitability_report.md").read_text())
 
+    def test_update_marks_railway_cost_missing_when_no_cost_is_configured(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            report = update_profitability_artifacts(
+                Path(temp_dir), capital=Decimal("100"), days=Decimal("30")
+            )
+
+        self.assertIn("railway_worker", report.missing_required_costs)
+        self.assertFalse(economic_gate(report).passed)
+
 
 class ProfitabilityLoopTests(unittest.IsolatedAsyncioTestCase):
     async def test_best_effort_update_returns_report_for_notification_scheduling(self):

@@ -6,7 +6,7 @@ from decimal import Decimal, DivisionByZero, InvalidOperation
 from pathlib import Path
 from typing import Any, Iterable
 
-from hermes_trading.costs import CostLedger
+from hermes_trading.costs import CostEvent, CostLedger, RailwayCostSource
 
 
 TRADING_COST_CATEGORIES = {"kraken_fee", "slippage"}
@@ -45,6 +45,7 @@ class ProfitabilityService:
         *,
         capital: Decimal,
         days: Decimal,
+        supplemental_costs: Iterable[CostEvent] = (),
     ) -> ProfitabilityReport:
         if self.ledger is None:
             raise ValueError("profitability calculation requires a cost ledger")
@@ -57,11 +58,18 @@ class ProfitabilityService:
             Decimal("0"),
         )
         costs = self.ledger.costs_between()
-        missing = tuple(category for category in self.ledger.missing_categories() if category in REQUIRED_COST_CATEGORIES)
+        missing = set(self.ledger.missing_categories())
+        for event in supplemental_costs:
+            if event.currency == "USD" and event.amount is not None:
+                costs[event.category] = costs.get(event.category, Decimal("0")) + event.amount
+            if event.amount is None or event.quality == "missing":
+                missing.add(event.category)
         return self.calculate_from_values(
             gross_pnl=gross_pnl,
             costs=costs,
-            missing_required_costs=missing,
+            missing_required_costs=tuple(
+                category for category in missing if category in REQUIRED_COST_CATEGORIES
+            ),
             capital=capital,
             days=days,
         )
@@ -151,10 +159,15 @@ def update_profitability_artifacts(
         positions = []
     if not isinstance(positions, list):
         positions = []
+    railway_cost = RailwayCostSource.from_env().cost_for_window(
+        days=days,
+        month_days=Decimal("30"),
+    )
     report = ProfitabilityService(CostLedger(state_dir)).calculate(
         positions,
         capital=capital,
         days=days,
+        supplemental_costs=(railway_cost,),
     )
     write_profitability_artifacts(state_dir, report)
     return report
