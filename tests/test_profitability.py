@@ -1,4 +1,5 @@
 import tempfile
+import json
 import unittest
 from datetime import UTC, datetime
 from decimal import Decimal
@@ -9,6 +10,7 @@ from hermes_trading.profitability import (
     ProfitabilityService,
     economic_gate,
     render_profitability_markdown,
+    update_profitability_artifacts,
 )
 from hermes_trading.notifications import build_profitability_notification
 
@@ -93,6 +95,25 @@ class ProfitabilityTests(unittest.TestCase):
         )
 
         self.assertEqual(build_profitability_notification(report), render_profitability_markdown(report))
+
+    def test_update_profitability_artifacts_reads_state_files(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            state = Path(temp_dir)
+            (state / "positions.json").write_text(
+                json.dumps([
+                    {"status": "closed", "realized_pnl": "20"},
+                    {"status": "open", "realized_pnl": "999"},
+                ]),
+                encoding="utf-8",
+            )
+            ledger = CostLedger(state)
+            ledger.record(CostEvent("railway_worker", Decimal("5"), "USD", "estimated", "configured", NOW))
+
+            report = update_profitability_artifacts(state, capital=Decimal("100"), days=Decimal("10"))
+
+            self.assertEqual(report.net_pnl, Decimal("15"))
+            self.assertTrue((state / "profitability.json").exists())
+            self.assertIn("Hermes Trading | Profitability", (state / "profitability_report.md").read_text())
 
 
 if __name__ == "__main__":

@@ -10,7 +10,10 @@ from hermes_trading.costs import (
     CostEvent,
     CostLedger,
     RailwayCostSource,
+    kraken_fee_event,
     openai_cost_event,
+    openai_usage_event,
+    slippage_cost_event,
 )
 
 
@@ -69,6 +72,18 @@ class CostLedgerTests(unittest.TestCase):
         self.assertEqual(event.amount, Decimal("0.0036"))
         self.assertEqual(event.metadata["pricing_version"], "2026-07-30")
 
+    def test_openai_usage_without_pricing_is_missing_not_zero(self):
+        event = openai_usage_event(
+            input_tokens=1000,
+            output_tokens=200,
+            model="gpt-test",
+            pricing=None,
+            occurred_at=NOW,
+        )
+
+        self.assertIsNone(event.amount)
+        self.assertEqual(event.quality, "missing")
+
     def test_append_only_ledger_projects_totals_and_missing_costs(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             ledger = CostLedger(Path(temp_dir))
@@ -88,6 +103,29 @@ class CostLedgerTests(unittest.TestCase):
         cost = source.cost_for_window(days=Decimal("15"), month_days=Decimal("30"), now=NOW)
 
         self.assertEqual(cost.amount, Decimal("2.5"))
+
+    def test_kraken_fee_and_slippage_events_are_positive_costs(self):
+        fee = kraken_fee_event(
+            amount=Decimal("0.01"),
+            currency="USDT",
+            asset="BTC/USDT",
+            order_id="KRAKEN-1",
+            occurred_at=NOW,
+        )
+        slippage = slippage_cost_event(
+            side="buy",
+            quantity=Decimal("0.1"),
+            reference_price=Decimal("100"),
+            average_price=Decimal("101"),
+            asset="BTC/USDT",
+            order_id="KRAKEN-1",
+            occurred_at=NOW,
+        )
+
+        self.assertEqual(fee.category, "kraken_fee")
+        self.assertEqual(fee.amount, Decimal("0.01"))
+        self.assertEqual(slippage.category, "slippage")
+        self.assertEqual(slippage.amount, Decimal("0.1"))
 
 
 if __name__ == "__main__":

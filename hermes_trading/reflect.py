@@ -13,7 +13,7 @@ from typing import Any
 import httpx
 import yaml
 
-from hermes_trading.costs import CostLedger
+from hermes_trading.costs import CostLedger, openai_usage_event
 from hermes_trading.score import score
 from hermes_trading.model_runner import ReflectionModelRunner
 from hermes_trading.persistence.repository import StateRepository
@@ -540,11 +540,14 @@ def _generate_asset_proposal(
         repository.migrate()
         cache_path = Path(env.get("HERMES_HOME", str(Path.home() / ".hermes"))) / "provider_models_cache.json"
         fallback_model = env.get("HERMES_OPENAI_FALLBACK_MODEL", DEFAULT_OPENAI_REFLECTION_MODEL)
-        openai_run = (lambda request: _run_openai_prompt(request, fallback_model, env)) if _has_openai_api_key(env) else None
+        ledger = CostLedger(state_dir)
+        openai_run = (
+            lambda request: _run_openai_prompt(request, fallback_model, env, cost_ledger=ledger)
+        ) if _has_openai_api_key(env) else None
         result = ReflectionModelRunner(
             ProviderRouter(repository, HermesCatalog.load(cache_path)),
             openai_run=openai_run,
-            cost_ledger=CostLedger(state_dir),
+            cost_ledger=ledger,
         ).run(prompt)
         proposal = json.loads(result.output)
         if not isinstance(proposal, dict):
@@ -723,7 +726,13 @@ def _extract_openai_text(payload: dict[str, Any]) -> str:
     return "\n".join(chunks).strip()
 
 
-def _run_openai_prompt(prompt: str, model: str, env: dict[str, str]) -> str:
+def _run_openai_prompt(
+    prompt: str,
+    model: str,
+    env: dict[str, str],
+    *,
+    cost_ledger: CostLedger | None = None,
+) -> str:
     api_key = env.get("OPENAI_API_KEY") or env.get("HERMES_OPENAI_API_KEY")
     if not api_key:
         raise RuntimeError("OpenAI API key is not configured")
@@ -740,7 +749,31 @@ def _run_openai_prompt(prompt: str, model: str, env: dict[str, str]) -> str:
         timeout=60,
     )
     response.raise_for_status()
-    return _extract_openai_text(response.json())
+    payload = response.json()
+    if cost_ledger is not None:
+        usage = payload.get("usage") if isinstance(payload.get("usage"), dict) else {}
+        cost_ledger.record(
+            openai_usage_event(
+                input_tokens=int(usage.get("input_tokens", 0) or 0),
+                output_tokens=int(usage.get("output_tokens", 0) or 0),
+                model=model,
+                pricing=_openai_pricing(env),
+            )
+        )
+    return _extract_openai_text(payload)
+
+
+def _openai_pricing(env: dict[str, str]) -> dict[str, str] | None:
+    version = env.get("HERMES_OPENAI_PRICING_VERSION")
+    input_per_1m = env.get("HERMES_OPENAI_INPUT_COST_PER_1M")
+    output_per_1m = env.get("HERMES_OPENAI_OUTPUT_COST_PER_1M")
+    if not (version and input_per_1m and output_per_1m):
+        return None
+    return {
+        "version": version,
+        "input_per_1m": input_per_1m,
+        "output_per_1m": output_per_1m,
+    }
 
 
 def _legacy_normalize_strategy_proposal(

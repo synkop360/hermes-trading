@@ -21,6 +21,7 @@ from hermes_trading.adapters.execution import (
     resolve_execution_settings,
 )
 from hermes_trading.config import LIVE_CONFIRM_PHRASE
+from hermes_trading.costs import CostLedger
 from hermes_trading.domain import Decision, OrderRecord, Position, json_value
 from hermes_trading.exchange import ExchangeGateway, KrakenGateway
 from hermes_trading.execution import ExecutionResult, ExecutionService
@@ -34,6 +35,7 @@ from hermes_trading.market_data import MarketDataCoordinator
 from hermes_trading.persistence.artifacts import ArtifactProjector
 from hermes_trading.persistence.repository import StateRepository
 from hermes_trading.positions import PositionEngine, PositionProcessResult
+from hermes_trading.profitability import update_profitability_artifacts
 from hermes_trading.reconciliation import ReconciliationReport, ReconciliationService
 from hermes_trading.risk import RiskContext, RiskDecision, RiskEngine, resolve_risk_limits
 from hermes_trading.strategy import StrategySignal, _decimal_setting, evaluate_strategy
@@ -187,6 +189,24 @@ async def _notify_all(messages: list[str], settings: NotificationSettings | None
             print(f"notification error: {exc}", flush=True)
 
 
+async def _update_profitability_best_effort(state_dir: Path) -> None:
+    try:
+        update_profitability_artifacts(
+            state_dir,
+            capital=Decimal(os.getenv("HERMES_PROFITABILITY_CAPITAL_USD", "100")),
+            days=Decimal(os.getenv("HERMES_PROFITABILITY_WINDOW_DAYS", "30")),
+        )
+    except Exception as exc:
+        await _write_json(
+            state_dir / "profitability_error.json",
+            {
+                "status": "error",
+                "error": f"{type(exc).__name__}: {exc}",
+                "updated_at": datetime.now(UTC).isoformat(),
+            },
+        )
+
+
 def _load_yaml(path: Path) -> dict[str, Any]:
     class DecimalSafeLoader(yaml.SafeLoader):
         pass
@@ -255,7 +275,11 @@ async def run_live_cycle(
         raise ValueError("live cycle clock must include a timezone")
     current_time = current_time.astimezone(UTC)
     reconciliation = ReconciliationService(state, projector=projector)
-    execution = ExecutionService(state, allow_submission=True)
+    execution = ExecutionService(
+        state,
+        allow_submission=True,
+        cost_ledger=CostLedger(projector.state_dir),
+    )
     risk = RiskEngine(
         state,
         projector,
@@ -719,6 +743,7 @@ async def _run_training_loop(
                 messages = build_cycle_notifications(trades, orders, notification_settings)
                 messages.extend(build_summary_notifications(state_dir, trades, notification_settings, pnl_summary, started_at))
                 await _notify_all(messages, notification_settings)
+                await _update_profitability_best_effort(state_dir)
                 consecutive_failures = 0
             except SchemaError:
                 raise
@@ -801,6 +826,7 @@ async def _run_validation_only_loop(
                     )
                 )
                 await _notify_all(messages, notification_settings)
+                await _update_profitability_best_effort(state_dir)
                 print(
                     "Hermes validation cycle "
                     f"status={cycle.status} reason={cycle.heartbeat['reason']} "

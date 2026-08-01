@@ -15,6 +15,7 @@ from hermes_trading.domain import (
     Position,
     PositionStatus,
 )
+from hermes_trading.costs import CostLedger, kraken_fee_event, slippage_cost_event
 from hermes_trading.exchange import ExchangeGateway, ExchangeOrder
 from hermes_trading.persistence.repository import StateRepository
 from hermes_trading.risk import RiskDecision
@@ -54,9 +55,16 @@ class ExecutionService:
     this task; production execution remains guarded by the existing facade.
     """
 
-    def __init__(self, repository: StateRepository, *, allow_submission: bool = False) -> None:
+    def __init__(
+        self,
+        repository: StateRepository,
+        *,
+        allow_submission: bool = False,
+        cost_ledger: CostLedger | None = None,
+    ) -> None:
         self.repository = repository
         self._allow_submission = allow_submission
+        self.cost_ledger = cost_ledger
 
     async def submit_entry(
         self,
@@ -403,6 +411,7 @@ class ExecutionService:
                     "exchange_rejected",
                     severity="critical" if exchange_order.order_type == "stop-loss" else "warning",
                 )
+            self._record_costs(identifier, exchange_order, status)
         except Exception as error:
             return ExecutionResult("reconciliation_required", identifier, type(error).__name__, exchange_order)
         if status is OrderStatus.REJECTED:
@@ -417,6 +426,35 @@ class ExecutionService:
             raise ValueError("position asset must match execution decision")
         if position.status not in {PositionStatus.OPENING, PositionStatus.OPEN, PositionStatus.CLOSING}:
             raise ValueError("execution requires an active position")
+
+    def _record_costs(self, identifier: str, exchange_order: ExchangeOrder, status: OrderStatus) -> None:
+        if self.cost_ledger is None or status is not OrderStatus.FILLED:
+            return
+        occurred_at = datetime.fromisoformat(exchange_order.updated_at)
+        if exchange_order.fee > 0:
+            self.cost_ledger.record(
+                kraken_fee_event(
+                    amount=exchange_order.fee,
+                    currency=exchange_order.fee_currency,
+                    asset=exchange_order.asset,
+                    order_id=exchange_order.exchange_order_id,
+                    occurred_at=occurred_at,
+                )
+            )
+        intent = self.repository.intent_by_client_id(identifier)
+        if intent is None or exchange_order.average_price is None or exchange_order.filled <= 0:
+            return
+        self.cost_ledger.record(
+            slippage_cost_event(
+                side=exchange_order.side,
+                quantity=exchange_order.filled,
+                reference_price=intent.reference_price,
+                average_price=exchange_order.average_price,
+                asset=exchange_order.asset,
+                order_id=exchange_order.exchange_order_id,
+                occurred_at=occurred_at,
+            )
+        )
 
 
 def _positive_decimal(value: Decimal | None, name: str) -> Decimal:

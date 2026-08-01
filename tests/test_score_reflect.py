@@ -151,7 +151,8 @@ class ReflectionTests(unittest.TestCase):
 
                 def json(self):
                     return {
-                        "output_text": '{"variable":"entry.threshold","value":34,"reason":"test retry"}'
+                        "output_text": '{"variable":"entry.threshold","value":34,"reason":"test retry"}',
+                        "usage": {"input_tokens": 1000, "output_tokens": 200},
                     }
 
             env = {
@@ -170,6 +171,35 @@ class ReflectionTests(unittest.TestCase):
             self.assertEqual(updated["entry"]["threshold"], 30)
             self.assertEqual(calls, [])
             self.assertFalse(post.called)
+
+    def test_openai_fallback_records_missing_cost_when_pricing_is_absent(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            state = Path(temp_dir)
+            output = {
+                "output_text": '{"variable":"entry.threshold","value":34,"reason":"test"}',
+                "usage": {"input_tokens": 1000, "output_tokens": 200},
+            }
+
+            class FakeOpenAIResponse:
+                def raise_for_status(self):
+                    return None
+
+                def json(self):
+                    return output
+
+            from hermes_trading.costs import CostLedger
+            from hermes_trading.reflect import _run_openai_prompt
+
+            with patch("hermes_trading.reflect.httpx.post", return_value=FakeOpenAIResponse()):
+                _run_openai_prompt(
+                    "prompt",
+                    "gpt-test",
+                    {"OPENAI_API_KEY": "set"},
+                    cost_ledger=CostLedger(state),
+                )
+
+            self.assertIn('"category":"openai"', (state / "cost_events.jsonl").read_text())
+            self.assertIn('"quality":"missing"', (state / "cost_events.jsonl").read_text())
 
     def test_hermes_reflection_can_update_one_symbol_override(self):
         with tempfile.TemporaryDirectory() as temp_dir:

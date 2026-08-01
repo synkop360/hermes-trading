@@ -146,8 +146,41 @@ def openai_cost_event(
     pricing: dict[str, str],
     occurred_at: datetime | None = None,
 ) -> CostEvent:
+    return openai_usage_event(
+        input_tokens=input_tokens,
+        output_tokens=output_tokens,
+        model=model,
+        pricing=pricing,
+        occurred_at=occurred_at,
+    )
+
+
+def openai_usage_event(
+    *,
+    input_tokens: int,
+    output_tokens: int,
+    model: str,
+    pricing: dict[str, str] | None,
+    occurred_at: datetime | None = None,
+) -> CostEvent:
+    metadata: dict[str, Any] = {
+        "model": model,
+        "input_tokens": input_tokens,
+        "output_tokens": output_tokens,
+    }
+    if pricing is None:
+        return CostEvent(
+            "openai",
+            None,
+            "USD",
+            "missing",
+            "responses_api",
+            (occurred_at or datetime.now(UTC)).astimezone(UTC),
+            metadata=metadata,
+        )
     input_cost = Decimal(str(input_tokens)) * Decimal(str(pricing["input_per_1m"])) / Decimal("1000000")
     output_cost = Decimal(str(output_tokens)) * Decimal(str(pricing["output_per_1m"])) / Decimal("1000000")
+    metadata["pricing_version"] = pricing["version"]
     return CostEvent(
         "openai",
         input_cost + output_cost,
@@ -155,12 +188,7 @@ def openai_cost_event(
         "actual",
         "responses_api",
         (occurred_at or datetime.now(UTC)).astimezone(UTC),
-        metadata={
-            "model": model,
-            "input_tokens": input_tokens,
-            "output_tokens": output_tokens,
-            "pricing_version": pricing["version"],
-        },
+        metadata=metadata,
     )
 
 
@@ -185,6 +213,58 @@ def hermes_usage_event(
             "model": model,
             "input_tokens": usage.get("input_tokens"),
             "output_tokens": usage.get("output_tokens"),
+        },
+    )
+
+
+def kraken_fee_event(
+    *,
+    amount: Decimal,
+    currency: str | None,
+    asset: str,
+    order_id: str,
+    occurred_at: datetime | None = None,
+) -> CostEvent:
+    original_currency = currency or "USD"
+    normalized_currency = "USD" if original_currency in {"USD", "USDT", "USDC"} else original_currency
+    return CostEvent(
+        "kraken_fee",
+        amount,
+        normalized_currency,
+        "actual",
+        "kraken",
+        (occurred_at or datetime.now(UTC)).astimezone(UTC),
+        metadata={"asset": asset, "order_id": order_id, "fee_currency": original_currency},
+    )
+
+
+def slippage_cost_event(
+    *,
+    side: str,
+    quantity: Decimal,
+    reference_price: Decimal,
+    average_price: Decimal,
+    asset: str,
+    order_id: str,
+    occurred_at: datetime | None = None,
+) -> CostEvent:
+    direction = Decimal("1") if side == "buy" else Decimal("-1")
+    raw = (average_price - reference_price) * quantity * direction
+    amount = max(raw, Decimal("0"))
+    return CostEvent(
+        "slippage",
+        amount,
+        "USD",
+        "actual",
+        "kraken_fill_vs_decision",
+        (occurred_at or datetime.now(UTC)).astimezone(UTC),
+        metadata={
+            "asset": asset,
+            "order_id": order_id,
+            "side": side,
+            "quantity": str(quantity),
+            "reference_price": str(reference_price),
+            "average_price": str(average_price),
         },
     )
 
@@ -233,5 +313,8 @@ __all__ = [
     "CostLedger",
     "RailwayCostSource",
     "hermes_usage_event",
+    "kraken_fee_event",
     "openai_cost_event",
+    "openai_usage_event",
+    "slippage_cost_event",
 ]

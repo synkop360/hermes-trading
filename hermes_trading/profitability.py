@@ -138,6 +138,28 @@ def write_profitability_artifacts(state_dir: Path, report: ProfitabilityReport) 
     )
 
 
+def update_profitability_artifacts(
+    state_dir: Path,
+    *,
+    capital: Decimal,
+    days: Decimal,
+) -> ProfitabilityReport:
+    positions_path = state_dir / "positions.json"
+    if positions_path.exists():
+        positions = json.loads(positions_path.read_text(encoding="utf-8") or "[]")
+    else:
+        positions = []
+    if not isinstance(positions, list):
+        positions = []
+    report = ProfitabilityService(CostLedger(state_dir)).calculate(
+        positions,
+        capital=capital,
+        days=days,
+    )
+    write_profitability_artifacts(state_dir, report)
+    return report
+
+
 def _sum_categories(costs: dict[str, Decimal], categories: set[str]) -> Decimal:
     return sum((Decimal(str(amount)) for category, amount in costs.items() if category in categories), Decimal("0"))
 
@@ -186,5 +208,6 @@ __all__ = [
     "ProfitabilityService",
     "economic_gate",
     "render_profitability_markdown",
+    "update_profitability_artifacts",
     "write_profitability_artifacts",
 ]

@@ -7,6 +7,7 @@ import tempfile
 import unittest
 
 from hermes_trading.domain import Decision, OrderStatus, Position, PositionStatus
+from hermes_trading.costs import CostLedger
 from hermes_trading.execution import ExecutionService, client_order_id
 from hermes_trading.exchange import ExchangeOrder, KrakenGateway
 from hermes_trading.persistence import StateRepository
@@ -123,6 +124,9 @@ def _order(
     amount: Decimal,
     order_type: str = "market",
     status: str = "pending",
+    filled: Decimal | None = None,
+    average_price: Decimal | None = None,
+    fee: Decimal = Decimal("0"),
 ) -> ExchangeOrder:
     timestamp = datetime(2026, 7, 30, 20, 0, tzinfo=UTC).isoformat()
     return ExchangeOrder(
@@ -133,11 +137,11 @@ def _order(
         order_type=order_type,
         status=status,
         amount=amount,
-        filled=Decimal("0"),
-        remaining=amount,
-        average_price=None,
-        fee=Decimal("0"),
-        fee_currency=None,
+        filled=filled if filled is not None else Decimal("0"),
+        remaining=amount - (filled if filled is not None else Decimal("0")),
+        average_price=average_price,
+        fee=fee,
+        fee_currency="USDT" if fee else None,
         created_at=timestamp,
         updated_at=timestamp,
     )
@@ -175,6 +179,35 @@ class ExecutionServiceTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(result.status, "submitted")
         self.assertEqual(gateway.market_calls, 1)
         self.assertEqual(self.repository.export_canonical_tables()["orders"][0]["status"], "submitted")
+
+    async def test_filled_order_records_fee_and_slippage_costs(self) -> None:
+        ledger = CostLedger(Path(self.temporary_directory.name))
+        service = ExecutionService(self.repository, allow_submission=True, cost_ledger=ledger)
+
+        class FilledGateway(InspectingGateway):
+            async def create_market_order(self, *, asset, side, amount, client_order_id):
+                self._assert_before_call(client_order_id)
+                return _order(
+                    client_order_id=client_order_id,
+                    asset=asset,
+                    side=side,
+                    amount=amount,
+                    status=OrderStatus.FILLED,
+                    filled=amount,
+                    average_price=Decimal("65100"),
+                    fee=Decimal("0.01"),
+                )
+
+        result = await service.submit_entry(
+            sample_signal(),
+            sample_risk_decision(),
+            FilledGateway(lambda identifier: self.assertIsNotNone(self.repository.intent_by_client_id(identifier))),
+        )
+
+        self.assertEqual(result.status, "submitted")
+        totals = ledger.costs_between()
+        self.assertEqual(totals["kraken_fee"], Decimal("0.01"))
+        self.assertEqual(totals["slippage"], Decimal("0.007692307692307692307692307692"))
 
     async def test_default_service_is_inert_without_an_explicit_submission_guard(self) -> None:
         gateway = InspectingGateway(lambda identifier: self.fail("exchange must not be called"))
