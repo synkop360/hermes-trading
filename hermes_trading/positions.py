@@ -171,7 +171,12 @@ class PositionEngine:
 
     def _exit(self, snapshot: MarketSnapshot, decision: Decision, strategy: dict[str, Any], settings: SimulationSettings, position: Position, signal: StrategySignal) -> tuple[Position, OrderIntent, OrderRecord, Fill]:
         candle = snapshot.candle
-        base_price = min(candle.open, position.stop_price) if signal.reason == "stop_loss" else candle.close
+        if signal.reason == "stop_loss":
+            base_price = min(candle.open, position.stop_price)
+        elif signal.reason == "take_profit":
+            base_price = max(candle.open, signal.reference_price)
+        else:
+            base_price = candle.close
         fill_price = base_price * (Decimal("1") - settings.slippage_rate)
         exit_rule = strategy.get("exit")
         maker = signal.reason == "explicit_exit" and isinstance(exit_rule, dict) and str(exit_rule.get("fee", "taker")).lower() == "maker"

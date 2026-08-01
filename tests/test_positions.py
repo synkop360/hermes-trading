@@ -11,9 +11,10 @@ from hermes_trading.notifications import _build_periodic_summary_message
 from hermes_trading.persistence import StateRepository
 from hermes_trading.persistence.artifacts import ArtifactProjector
 from hermes_trading.positions import PositionEngine
+from hermes_trading.strategy import evaluate_strategy
 
 
-def candle(close_at: datetime, *, open: str, low: str, close: str) -> MarketSnapshot:
+def candle(close_at: datetime, *, open: str, low: str, close: str, high: str | None = None) -> MarketSnapshot:
     return MarketSnapshot(
         asset="BTC/USDT",
         timeframe="1h",
@@ -24,7 +25,7 @@ def candle(close_at: datetime, *, open: str, low: str, close: str) -> MarketSnap
             open_timestamp=close_at - timedelta(hours=1),
             close_timestamp=close_at,
             open=Decimal(open),
-            high=max(Decimal(open), Decimal(close)),
+            high=Decimal(high) if high is not None else max(Decimal(open), Decimal(close)),
             low=Decimal(low),
             close=Decimal(close),
             volume=Decimal("1"),
@@ -62,6 +63,27 @@ class PositionEngineTests(unittest.TestCase):
         self.assertEqual(result.position.status.value, "open")
         self.assertEqual(result.closed_positions, ())
 
+    def test_rsi_recovery_requires_a_cross_above_the_threshold_and_price_recovery(self) -> None:
+        closes = tuple(Decimal(value) for value in range(100, 85, -1)) + (Decimal("91"),)
+        snapshot = MarketSnapshot(
+            asset="BTC/USDT", timeframe="1h", availability="available",
+            decision_action="evaluate", reason="closed_candle_available",
+            candle=ClosedCandle(
+                self.entry_candle.candle.open_timestamp, self.entry_candle.candle.close_timestamp,
+                Decimal("86"), Decimal("91"), Decimal("86"), Decimal("91"), Decimal("1"),
+            ),
+            price={"closes": closes},
+        )
+
+        signal = evaluate_strategy(
+            snapshot,
+            {"entry": {"indicator": "rsi_recovery", "threshold": "25", "direction": "long"}},
+            None,
+        )
+
+        self.assertEqual(signal.action, "enter")
+        self.assertEqual(signal.reason, "rsi_recovery")
+
     def test_stop_exit_uses_low_and_charges_fees(self) -> None:
         self.engine.process_candle(self.entry_candle, entry_strategy())
         result = self.engine.process_candle(
@@ -73,6 +95,36 @@ class PositionEngineTests(unittest.TestCase):
         self.assertEqual(closed.status.value, "closed")
         self.assertLess(closed.realized_pnl, Decimal("0"))
         self.assertGreater(closed.fees, Decimal("0"))
+
+    def test_take_profit_closes_at_the_target_price(self) -> None:
+        strategy = entry_strategy()
+        strategy["exit"] = {"take_profit_pct": "1"}
+        self.engine.process_candle(self.entry_candle, strategy)
+
+        result = self.engine.process_candle(
+            candle(datetime(2026, 7, 30, 21, tzinfo=UTC), open="80", low="80", high="82", close="81"),
+            strategy,
+        )
+
+        self.assertEqual(result.reason, "take_profit")
+        self.assertEqual(result.closed_positions[0].status.value, "closed")
+        self.assertGreater(result.closed_positions[0].realized_pnl, Decimal("0"))
+
+    def test_max_bars_closes_an_open_position(self) -> None:
+        strategy = entry_strategy()
+        strategy["exit"] = {"max_bars": "2"}
+        self.engine.process_candle(self.entry_candle, strategy)
+
+        first = self.engine.process_candle(
+            candle(datetime(2026, 7, 30, 21, tzinfo=UTC), open="80", low="80", close="80"), strategy
+        )
+        second = self.engine.process_candle(
+            candle(datetime(2026, 7, 30, 22, tzinfo=UTC), open="80", low="80", close="80"), strategy
+        )
+
+        self.assertEqual(first.position.status.value, "open")
+        self.assertEqual(second.reason, "max_bars")
+        self.assertEqual(second.closed_positions[0].status.value, "closed")
 
     def test_same_candle_is_not_processed_twice(self) -> None:
         first = self.engine.process_candle(self.entry_candle, entry_strategy())
