@@ -80,6 +80,17 @@
 - The Discord bot token used during implementation was temporary and should be regenerated after validation.
 - Real orders remain disabled and no phase was promoted.
 
+## Qualification Evidence Hardening, 2026-08-01
+
+- New plan saved at `docs/superpowers/plans/2026-08-01-qualification-evidence-hardening.md`.
+- Local implementation now collects `fees_and_slippage_charged` from `state/cost_events.jsonl` when actual USD `kraken_fee` and `slippage` events are present.
+- Local implementation now collects `replay_without_lookahead` from `state/qualification-replay.json` when a replay report has `status=pass`, `candles_checked > 0`, and `lookahead_violations = 0`.
+- A replay report with positive `lookahead_violations` fails the replay gate explicitly.
+- New safe operator command: `uv run python scripts/qualification_evidence_status.py --state-dir state`.
+- This block has not yet been deployed to Railway. Current Railway deployment remains `2efd6df4-e22f-4271-980c-d1f81ff198fc`.
+- Local verification passed: `uv run python -m unittest discover -s tests` ran 347 tests with `OK`; `git diff --check` passed; `graphify update .` completed.
+- Read-only Railway checks after the local work returned `HERMES_TRADING_MODE=training`, `HERMES_TRADING_ALLOW_REAL_ORDERS=false`, `status=ok mode=training real_orders_allowed=false`, and `qualification phase=validation_ready promotable=false promoted=false`.
+
 ## Current real qualification result
 
 Manual Railway command used:
@@ -114,6 +125,9 @@ This is correct behavior. Nothing has been promoted.
 - `5178822 feat: colocate control and discord with worker`
 - `95b207c fix: support deployed control command smoke tests`
 - `cc0dd9b fix: build colocated control server in serving thread`
+- `3bfb7ea feat: collect fee and slippage qualification evidence`
+- `376c375 feat: collect replay qualification evidence`
+- `eb09a76 feat: add qualification evidence status command`
 
 ## Verification commands
 
@@ -129,10 +143,12 @@ The last full test run before the latest small control-auth addition passed 292 
 
 ## Immediate next work
 
-1. Regenerate the temporary Discord bot token used during implementation, update `HERMES_DISCORD_BOT_TOKEN`, and redeploy.
-2. From Discord, validate `/status` and `/qualification` with the allowed user and a fresh TOTP code.
-3. Keep collecting qualification evidence for replay, fee/slippage, duplicate-candle protection, and risk-limit exercises. Missing evidence should remain visible as `MISSING`/`FAIL`.
-4. Keep the service co-located unless uptime/cost tradeoffs change. If splitting services later, preserve private networking and never expose the Control API publicly.
+1. Decide whether to deploy the qualification evidence hardening commits to Railway now or batch them with the next validation update.
+2. Regenerate the temporary Discord bot token before production, update `HERMES_DISCORD_BOT_TOKEN`, and redeploy.
+3. From Discord, validate `/status` and `/qualification` again with the allowed user and a fresh TOTP code after token rotation.
+4. Produce or attach a real `qualification-replay.json` report for the current strategy and assets.
+5. Keep collecting qualification evidence for duplicate-candle protection and risk-limit exercises. Missing evidence should remain visible as `MISSING`/`FAIL`.
+6. Keep the service co-located unless uptime/cost tradeoffs change. If splitting services later, preserve private networking and never expose the Control API publicly.
 
 ## Operational cautions
 
