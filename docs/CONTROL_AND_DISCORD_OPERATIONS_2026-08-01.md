@@ -101,4 +101,27 @@ On 2026-08-01, the local pre-deploy checks passed:
 
 Read-only Railway checks confirmed project `awake-abundance`, production service `hermes-trading` is online, `HERMES_TRADING_MODE=training`, and `HERMES_TRADING_ALLOW_REAL_ORDERS=false`.
 
-No deploy was performed. No Railway variables were changed. Real orders were not enabled. Deployment remains pending explicit confirmation and review of the private Discord bot/control secrets.
+## Worker Deploy Verification
+
+After explicit user confirmation on 2026-08-01, the worker service was deployed with:
+
+```powershell
+railway.cmd up --service hermes-trading --environment production --message "Deploy Hermes control and Discord hardening"
+```
+
+Deployment `68f878ea-a973-4be8-b471-b760e6a4beac` completed with status `SUCCESS`. Railway status reports the production `hermes-trading` service online, mounted at `/app/state`, and the deployment logs show:
+
+```text
+Booting hermes-trading worker for BTC/USDT, ETH/USDT, XRP/USDT, SHIB/USDT in training mode
+```
+
+Post-deploy SSH verification returned:
+
+```text
+HERMES_TRADING_MODE=training
+HERMES_TRADING_ALLOW_REAL_ORDERS=false
+```
+
+No Railway variables were changed. Real orders were not enabled. No phase was promoted.
+
+Railway currently lists only the `hermes-trading` worker service. The Control API and Discord bot are packaged and documented, but separate Railway services and private secrets still need to be provisioned before service-level smoke tests.

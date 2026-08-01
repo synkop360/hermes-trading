@@ -50,6 +50,19 @@
 - No Railway deploy was performed, no Railway variables were changed, and real orders were not enabled.
 - Deployment remains pending explicit confirmation and private secrets review.
 
+## Post-deploy verification, 2026-08-01
+
+- User gave explicit `Go deploy`.
+- Added `.dockerignore` so Railway Docker builds include only `Dockerfile`, `pyproject.toml`, `uv.lock`, `hermes_trading/`, and `scripts/`.
+- Ran `railway.cmd up --service hermes-trading --environment production --message "Deploy Hermes control and Discord hardening"`.
+- Railway deployment `68f878ea-a973-4be8-b471-b760e6a4beac` completed with status `SUCCESS`.
+- `railway.cmd status` reported project `awake-abundance`, production service `hermes-trading` online, volume `/app/state`, deployment `68f878ea-a973-4be8-b471-b760e6a4beac`.
+- Deployment logs show `Booting hermes-trading worker for BTC/USDT, ETH/USDT, XRP/USDT, SHIB/USDT in training mode`.
+- Post-deploy SSH checks returned `HERMES_TRADING_MODE=training` and `HERMES_TRADING_ALLOW_REAL_ORDERS=false`.
+- A temporary SSH key-verification outage occurred immediately after deploy; retry succeeded.
+- Railway currently lists only the `hermes-trading` worker service. Separate Control API and Discord bot services are packaged and documented but still need Railway service provisioning and private secrets before service-level smoke tests.
+- No Railway variables were changed, real orders were not enabled, and no phase was promoted.
+
 ## Current real qualification result
 
 Manual Railway command used:
