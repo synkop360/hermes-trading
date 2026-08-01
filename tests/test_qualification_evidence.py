@@ -90,6 +90,45 @@ class QualificationEvidenceCollectorTests(unittest.TestCase):
         self.assertEqual(checks["fees_and_slippage_charged"].status.value, "pass")
         self.assertEqual(checks["fees_and_slippage_charged"].observed, "kraken_fee=0.01 slippage=0.10")
 
+    def test_replay_report_marks_no_lookahead_passed(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            state = Path(temp_dir)
+            (state / "qualification-replay.json").write_text(
+                json.dumps({
+                    "run_id": "replay-2026-08-01",
+                    "status": "pass",
+                    "candles_checked": 120,
+                    "lookahead_violations": 0,
+                }),
+                encoding="utf-8",
+            )
+
+            checks = QualificationEvidenceCollector(state).collect()
+
+        self.assertEqual(checks["replay_without_lookahead"].status.value, "pass")
+        self.assertEqual(
+            checks["replay_without_lookahead"].observed,
+            "replay-2026-08-01 candles=120 violations=0",
+        )
+
+    def test_replay_report_marks_lookahead_violations_failed(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            state = Path(temp_dir)
+            (state / "qualification-replay.json").write_text(
+                json.dumps({
+                    "run_id": "replay-2026-08-01",
+                    "status": "pass",
+                    "candles_checked": 120,
+                    "lookahead_violations": 2,
+                }),
+                encoding="utf-8",
+            )
+
+            checks = QualificationEvidenceCollector(state).collect()
+
+        self.assertEqual(checks["replay_without_lookahead"].status.value, "fail")
+        self.assertEqual(checks["replay_without_lookahead"].reason, "replay detected lookahead violations")
+
 
 if __name__ == "__main__":
     unittest.main()

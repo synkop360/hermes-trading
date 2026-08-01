@@ -31,6 +31,10 @@ class QualificationEvidenceCollector:
             key: _parse_check(raw.get(key), missing_reason)
             for key, missing_reason in EVIDENCE_KEYS.items()
         }
+        if checks["replay_without_lookahead"].status == GateStatus.MISSING:
+            replay_check = _replay_without_lookahead_check(self._state_dir / "qualification-replay.json")
+            if replay_check is not None:
+                checks["replay_without_lookahead"] = replay_check
         if checks["fees_and_slippage_charged"].status == GateStatus.MISSING:
             cost_check = _fees_and_slippage_check(self._state_dir / "cost_events.jsonl")
             if cost_check is not None:
@@ -75,6 +79,23 @@ def _parse_check(value: Any, missing_reason: str) -> EvidenceCheck:
     required = str(value.get("required", "true"))
     reason = str(value.get("reason", "satisfied" if status == GateStatus.PASS else missing_reason))
     return EvidenceCheck(status, observed, required, reason)
+
+
+def _replay_without_lookahead_check(path: Path) -> EvidenceCheck | None:
+    payload = _read_json_object(path)
+    if not payload:
+        return None
+    run_id = str(payload.get("run_id", "replay"))
+    candles_checked = _int(payload.get("candles_checked"))
+    violations = _int(payload.get("lookahead_violations"))
+    if candles_checked is None or violations is None:
+        return None
+    observed = f"{run_id} candles={candles_checked} violations={violations}"
+    if violations > 0:
+        return EvidenceCheck.failed(observed, "violations = 0", "replay detected lookahead violations")
+    if payload.get("status") == "pass" and candles_checked > 0:
+        return EvidenceCheck.passed(observed, "status=pass candles_checked > 0 violations = 0", "replay completed without lookahead")
+    return None
 
 
 def _fees_and_slippage_check(path: Path) -> EvidenceCheck | None:
@@ -122,4 +143,11 @@ def _decimal(value: object) -> Decimal | None:
     try:
         return Decimal(str(value))
     except (InvalidOperation, ValueError):
+        return None
+
+
+def _int(value: object) -> int | None:
+    try:
+        return int(str(value))
+    except (TypeError, ValueError):
         return None
