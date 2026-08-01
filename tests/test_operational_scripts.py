@@ -1,4 +1,6 @@
 import importlib.util
+import subprocess
+import sys
 import unittest
 from pathlib import Path
 
@@ -147,3 +149,21 @@ class OperationalScriptTests(unittest.TestCase):
         content = (ROOT / "scripts" / "control_command.py").read_text(encoding="utf-8")
 
         self.assertIn("sys.path.insert(0, str(Path(__file__).resolve().parents[1]))", content)
+
+    def test_qualification_evidence_status_script_imports_project(self) -> None:
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(ROOT / "scripts" / "qualification_evidence_status.py"),
+                "--state-dir",
+                str(ROOT / ".test-tmp-qualification-evidence-status"),
+            ],
+            cwd=ROOT,
+            text=True,
+            capture_output=True,
+            timeout=30,
+        )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("replay_without_lookahead=", result.stdout)
+        self.assertIn("fees_and_slippage_charged=", result.stdout)
