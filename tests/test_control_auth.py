@@ -1,5 +1,5 @@
 import unittest
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 import tempfile
 
@@ -49,6 +49,40 @@ class ControlAuthTests(unittest.TestCase):
                         signature,
                         SQLiteNonceReplayStore(repository),
                         now=NOW,
+                    )
+                )
+            finally:
+                repository.close()
+
+    def test_signed_command_rejects_persistent_replay_at_timestamp_boundary(self):
+        with tempfile.TemporaryDirectory() as directory:
+            database_path = Path(directory) / "trading.db"
+            repository = StateRepository.open(database_path)
+            repository.migrate()
+            try:
+                boundary_now = NOW + timedelta(minutes=5)
+                signature = sign_command("secret", "nonce-1", NOW, '{"command":"status"}')
+
+                self.assertTrue(
+                    verify_command(
+                        "secret",
+                        "nonce-1",
+                        NOW,
+                        '{"command":"status"}',
+                        signature,
+                        SQLiteNonceReplayStore(repository),
+                        now=boundary_now,
+                    )
+                )
+                self.assertFalse(
+                    verify_command(
+                        "secret",
+                        "nonce-1",
+                        NOW,
+                        '{"command":"status"}',
+                        signature,
+                        SQLiteNonceReplayStore(repository),
+                        now=boundary_now,
                     )
                 )
             finally:

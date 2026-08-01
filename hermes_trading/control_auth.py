@@ -54,5 +54,5 @@ def verify_command(
     return used_nonces.add_once(
         nonce,
         accepted_at=current,
-        expires_at=command_timestamp + timedelta(minutes=5),
+        expires_at=current + timedelta(minutes=5),
     )
