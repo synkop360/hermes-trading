@@ -142,3 +142,8 @@ class OperationalScriptTests(unittest.TestCase):
             module.allowed_control_hosts("control-api.railway.internal; other.internal"),
             frozenset({"control-api.railway.internal", "other.internal"}),
         )
+
+    def test_control_command_supports_direct_container_execution(self) -> None:
+        content = (ROOT / "scripts" / "control_command.py").read_text(encoding="utf-8")
+
+        self.assertIn("sys.path.insert(0, str(Path(__file__).resolve().parents[1]))", content)
