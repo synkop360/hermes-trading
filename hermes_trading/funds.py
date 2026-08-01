@@ -4,8 +4,9 @@ import os
 import json
 from dataclasses import dataclass
 from datetime import datetime, timezone
+from decimal import Decimal
 from pathlib import Path
-from typing import Any, Literal
+from typing import Any, Literal, Mapping
 
 import ccxt.async_support as ccxt
 
@@ -327,3 +328,32 @@ async def build_due_funds_alert(
     available = await fetch_available_funds(settings, exchange_factory=exchange_factory)
     snapshot = build_funds_snapshot(settings, available=available)
     return build_funds_alert_message(state_dir / "funds_alert.json", settings, snapshot, now)
+
+
+def build_due_funds_alert_from_balances(
+    state_dir: Path,
+    settings: FundsAlertSettings,
+    balances: Mapping[str, Decimal],
+    now: datetime | None = None,
+    *,
+    exchange_min_cost: Decimal | None = None,
+) -> str | None:
+    """Build an alert from the cycle's canonical balance snapshot.
+
+    Live orchestration must not perform a second ad-hoc balance request merely
+    to notify. Missing quote data is left visible to the risk gate rather than
+    being silently converted to zero.
+    """
+    if not settings.enabled:
+        return None
+    available = balances.get(settings.quote)
+    if available is None:
+        return None
+    snapshot = build_funds_snapshot(
+        settings,
+        available=float(available),
+        exchange_min_cost=(float(exchange_min_cost) if exchange_min_cost is not None else None),
+    )
+    return build_funds_alert_message(
+        state_dir / "funds_alert.json", settings, snapshot, now
+    )

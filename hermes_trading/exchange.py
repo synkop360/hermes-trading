@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import UTC, datetime
 from decimal import Decimal, InvalidOperation
 from typing import Any, Awaitable, Callable, Literal, Mapping, Protocol
@@ -136,8 +136,11 @@ def validate_api_key_permissions(info: ApiKeyInfo) -> None:
 class KrakenGateway:
     """Cycle-scoped CCXT adapter with a narrow, Decimal-only contract."""
 
-    def __init__(self, exchange_factory: Callable[[], Any]) -> None:
+    def __init__(
+        self, exchange_factory: Callable[[], Any], *, validate_only: bool = False
+    ) -> None:
         self._exchange_factory = exchange_factory
+        self._validate_only = validate_only
         self._exchange: Any | None = None
         self._closed = False
 
@@ -258,7 +261,9 @@ class KrakenGateway:
         normalized_amount = _positive_decimal(amount, "order amount")
         if not client_order_id.strip():
             raise ValueError("client order id is required")
-        params = {"cl_ord_id": client_order_id, **extra_params}
+        params: dict[str, Any] = {"cl_ord_id": client_order_id, **extra_params}
+        if self._validate_only:
+            params["validate"] = True
         payload = await self._remote(
             lambda: self._client().create_order(
                 asset,
@@ -269,7 +274,8 @@ class KrakenGateway:
                 params,
             )
         )
-        return _order(payload, asset)
+        order = _order(payload, asset)
+        return replace(order, status=OrderStatus.VALIDATED) if self._validate_only else order
 
     async def _remote(self, operation: Callable[[], Awaitable[Any]]) -> Any:
         try:

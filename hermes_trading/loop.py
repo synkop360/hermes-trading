@@ -5,24 +5,38 @@ import json
 import os
 import re
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 from decimal import Decimal
 from pathlib import Path
-from typing import Any, Awaitable, Callable
+from typing import Any, Awaitable, Callable, Mapping
+from uuid import NAMESPACE_URL, uuid5
 
 import aiofiles
 import yaml
 
 from hermes_trading.adapters import SchemaError
 from hermes_trading.adapters import macro, news, onchain, price
-from hermes_trading.adapters.execution import execute_signal, resolve_execution_settings
+from hermes_trading.adapters.execution import (
+    _default_exchange as _default_execution_exchange,
+    resolve_execution_settings,
+)
 from hermes_trading.config import LIVE_CONFIRM_PHRASE
-from hermes_trading.domain import Position, json_value
-from hermes_trading.funds import build_due_funds_alert, resolve_funds_alert_settings
+from hermes_trading.domain import Decision, OrderRecord, Position, json_value
+from hermes_trading.exchange import ExchangeGateway, KrakenGateway
+from hermes_trading.execution import ExecutionResult, ExecutionService
+from hermes_trading.funds import (
+    FundsAlertSettings,
+    build_due_funds_alert,
+    build_due_funds_alert_from_balances,
+    resolve_funds_alert_settings,
+)
 from hermes_trading.market_data import MarketDataCoordinator
 from hermes_trading.persistence.artifacts import ArtifactProjector
 from hermes_trading.persistence.repository import StateRepository
 from hermes_trading.positions import PositionEngine, PositionProcessResult
+from hermes_trading.reconciliation import ReconciliationReport, ReconciliationService
+from hermes_trading.risk import RiskContext, RiskDecision, RiskEngine, resolve_risk_limits
+from hermes_trading.strategy import StrategySignal, _decimal_setting, evaluate_strategy
 from hermes_trading.notifications import (
     PnlSummaryCounter,
     build_cycle_notifications,
@@ -69,6 +83,19 @@ class CycleResult:
     @property
     def degraded(self) -> bool:
         return any(result.projection_error is not None for result in self.results)
+
+
+@dataclass(frozen=True)
+class LiveCycleResult:
+    status: str
+    new_orders: tuple[OrderRecord, ...]
+    risk_decisions: tuple[RiskDecision, ...]
+    reconciliation: ReconciliationReport | None
+    heartbeat: Mapping[str, Any]
+
+    @property
+    def orders(self) -> tuple[OrderRecord, ...]:
+        return self.new_orders
 
 
 def resolve_trading_config(env: dict[str, str] | None = None) -> TradingConfig:
@@ -275,6 +302,382 @@ async def run_cycle(
     return CycleResult(results=results, mode=mode)
 
 
+async def run_live_cycle(
+    assets: list[str],
+    state: StateRepository,
+    projector: ArtifactProjector,
+    market_data: MarketDataCoordinator,
+    strategy: dict[str, Any],
+    gateway: ExchangeGateway,
+    *,
+    validate_only: bool,
+    funds_alert_settings: FundsAlertSettings | None = None,
+    notify: Callable[[str], Awaitable[None]] | None = None,
+    now: Callable[[], datetime] | None = None,
+) -> LiveCycleResult:
+    """Run one fail-closed Kraken validation cycle.
+
+    Real submission stays unavailable here until the later qualification plan
+    supplies its durable approval gate. The explicit gateway keeps tests and
+    deployments from constructing credentials as a side effect of importing
+    the worker.
+    """
+    if not validate_only:
+        raise TradingModeError(
+            "live cycle blocked: only validation-only is available before qualification"
+        )
+    current_time = (now or (lambda: datetime.now(UTC)))()
+    if current_time.tzinfo is None:
+        raise ValueError("live cycle clock must include a timezone")
+    current_time = current_time.astimezone(UTC)
+    reconciliation = ReconciliationService(state, projector=projector)
+    execution = ExecutionService(state, allow_submission=True)
+    risk = RiskEngine(
+        state,
+        projector,
+        limits=resolve_risk_limits(),
+        now=lambda: current_time,
+    )
+    existing_order_ids = {
+        str(row["order_id"])
+        for row in state.export_canonical_tables()["orders"]
+    }
+
+    try:
+        report = await reconciliation.run(gateway)
+    except Exception as error:
+        reason = f"reconciliation_unavailable:{type(error).__name__}"
+        state.open_incident(
+            "live-cycle:reconciliation", reason, severity="critical", opened_at=current_time
+        )
+        return _blocked_live_cycle("blocked_reconciliation", reason, None)
+    if not report.safe_for_new_entries:
+        return _blocked_live_cycle(
+            "blocked_reconciliation", _issue_summary(report), report
+        )
+
+    protection = await reconciliation.verify_protective_stops(gateway, execution)
+    if not protection.safe_for_new_entries:
+        return _blocked_live_cycle(
+            "blocked_protection", _issue_summary(protection), protection
+        )
+
+    funds_warning = await _notify_cycle_funds(
+        projector,
+        report.balances,
+        funds_alert_settings,
+        notify,
+        current_time,
+    )
+    snapshots = await market_data.collect(assets)
+    risk_decisions: list[RiskDecision] = []
+    execution_results: list[ExecutionResult] = []
+    market_blockers: list[str] = []
+
+    for asset in assets:
+        snapshot = snapshots.get(asset)
+        if snapshot is None:
+            state.open_incident(
+                f"live-cycle:market:{asset}",
+                "market_snapshot_missing",
+                severity="critical",
+                opened_at=current_time,
+            )
+            market_blockers.append(f"{asset}:market_snapshot_missing")
+            continue
+        asset_strategy = resolve_asset_strategy(strategy, asset)
+        position = next(
+            (candidate for candidate in state.active_positions() if candidate.asset == asset),
+            None,
+        )
+        signal = evaluate_strategy(snapshot, asset_strategy, position)
+        if signal.action not in {"enter", "exit"}:
+            continue
+        decision = _live_decision(signal, asset_strategy, current_time)
+        if signal.action == "exit":
+            assert position is not None
+            execution_results.append(await execution.submit_exit(decision, position, gateway))
+            continue
+
+        rules = await gateway.load_rules(asset)
+        exchange_minimum = rules.min_cost
+        context = _risk_context(
+            asset,
+            snapshot.price or {},
+            report.balances,
+            state.active_positions(),
+            current_time,
+        )
+        risk_decision = risk.authorize_entry(
+            context=context,
+            stop_loss_pct=_strategy_fraction(asset_strategy, "stop_loss_pct"),
+            position_size_r=_decimal_setting(
+                asset_strategy.get("position_size_r", "0.5"), "position_size_r"
+            ),
+            exchange_min_cost=(exchange_minimum or Decimal("0")),
+        )
+        risk_decisions.append(risk_decision)
+        if not risk_decision.allowed:
+            continue
+        execution_results.append(
+            await execution.submit_entry(decision, risk_decision, gateway)
+        )
+
+    try:
+        report = await reconciliation.run(gateway)
+    except Exception as error:
+        reason = f"post_execution_reconciliation_unavailable:{type(error).__name__}"
+        state.open_incident(
+            "live-cycle:post-reconciliation", reason,
+            severity="critical", opened_at=current_time,
+        )
+        return _live_cycle_result(
+            "blocked_reconciliation", reason, state, existing_order_ids,
+            tuple(risk_decisions), None, warnings=(funds_warning,) if funds_warning else (),
+        )
+
+    protection_results: list[ExecutionResult] = []
+    for position in state.active_positions():
+        asset_strategy = resolve_asset_strategy(strategy, position.asset)
+        stop_fraction = _strategy_fraction(asset_strategy, "stop_loss_pct")
+        desired_stop = position.entry_price * (Decimal("1") - stop_fraction)
+        if position.stop_price != desired_stop:
+            position = Position(
+                position.position_id,
+                position.asset,
+                position.status,
+                position.quantity,
+                position.entry_price,
+                desired_stop,
+                position.strategy_version,
+                position.opened_at,
+                position.closed_at,
+                position.realized_pnl,
+                position.fees,
+            )
+            state.save_position(position)
+        protection_signal = Decision(
+            decision_id=f"position:{position.position_id}:protective-stop",
+            asset=position.asset,
+            action="protective_stop",
+            reason="filled_entry_requires_stop",
+            candle_id=f"position:{position.position_id}:{position.opened_at}",
+            strategy_version=position.strategy_version,
+            reference_price=position.entry_price,
+            decided_at=current_time.isoformat(),
+        )
+        protection_results.append(
+            await execution.ensure_protective_stop(
+                protection_signal, position, gateway
+            )
+        )
+    if protection_results:
+        failed_protection = next(
+            (
+                result.reason or result.status
+                for result in protection_results
+                if result.status not in {"submitted"}
+            ),
+            None,
+        )
+        if failed_protection is not None:
+            return _live_cycle_result(
+                "blocked_protection", failed_protection, state, existing_order_ids,
+                tuple(risk_decisions), report,
+                warnings=(funds_warning,) if funds_warning else (),
+            )
+        try:
+            report = await reconciliation.run(gateway)
+        except Exception as error:
+            reason = f"post_protection_reconciliation_unavailable:{type(error).__name__}"
+            state.open_incident(
+                "live-cycle:post-protection-reconciliation",
+                reason,
+                severity="critical",
+                opened_at=current_time,
+            )
+            return _live_cycle_result(
+                "blocked_reconciliation", reason, state, existing_order_ids,
+                tuple(risk_decisions), report,
+                warnings=(funds_warning,) if funds_warning else (),
+            )
+
+    projection_error: str | None = None
+    try:
+        projector.reconcile(state)
+    except Exception as error:
+        projection_error = f"artifact_projection_failed:{type(error).__name__}"
+        state.open_incident(
+            "live-cycle:artifact-projection", projection_error,
+            severity="warning", opened_at=current_time,
+        )
+
+    blocking_execution = next(
+        (
+            result.reason or result.status
+            for result in execution_results
+            if result.status in {"reconciliation_required", "rejected"}
+        ),
+        None,
+    )
+    if not report.safe_for_new_entries or blocking_execution is not None:
+        reason = blocking_execution or _issue_summary(report)
+        return _live_cycle_result(
+            "blocked_reconciliation", reason, state, existing_order_ids,
+            tuple(risk_decisions), report, projection_error=projection_error,
+            warnings=(funds_warning,) if funds_warning else (),
+        )
+    if market_blockers:
+        return _live_cycle_result(
+            "blocked_market", ",".join(market_blockers), state, existing_order_ids,
+            tuple(risk_decisions), report, projection_error=projection_error,
+            warnings=(funds_warning,) if funds_warning else (),
+        )
+    if projection_error is not None:
+        status, reason = "degraded", projection_error
+    elif any(decision.allowed for decision in risk_decisions):
+        status, reason = "validation_only", "orders_validated_without_remote_submission"
+    elif risk_decisions:
+        status = "blocked_risk"
+        reason = ",".join(decision.reason_code for decision in risk_decisions)
+    else:
+        status, reason = "no_trade", "no_entry_or_exit_signal"
+    return _live_cycle_result(
+        status, reason, state, existing_order_ids,
+        tuple(risk_decisions), report, projection_error=projection_error,
+        warnings=(funds_warning,) if funds_warning else (),
+    )
+
+
+def _blocked_live_cycle(
+    status: str, reason: str, report: ReconciliationReport | None
+) -> LiveCycleResult:
+    return LiveCycleResult(
+        status=status,
+        new_orders=(),
+        risk_decisions=(),
+        reconciliation=report,
+        heartbeat={"status": status, "reason": reason, "order_count": 0},
+    )
+
+
+def _live_cycle_result(
+    status: str,
+    reason: str,
+    state: StateRepository,
+    existing_order_ids: set[str],
+    risk_decisions: tuple[RiskDecision, ...],
+    report: ReconciliationReport | None,
+    *,
+    projection_error: str | None = None,
+    warnings: tuple[str, ...] = (),
+) -> LiveCycleResult:
+    new_orders = tuple(
+        state.order_by_client_id(str(row["client_order_id"]))
+        for row in state.export_canonical_tables()["orders"]
+        if str(row["order_id"]) not in existing_order_ids
+    )
+    canonical_orders = tuple(order for order in new_orders if order is not None)
+    heartbeat = {
+        "status": status,
+        "reason": reason,
+        "mode": "validation-only",
+        "order_count": len(canonical_orders),
+        "risk_decision_count": len(risk_decisions),
+        "safe_for_new_entries": bool(report and report.safe_for_new_entries),
+        "projection_error": projection_error,
+        "warnings": warnings,
+    }
+    return LiveCycleResult(
+        status, canonical_orders, risk_decisions, report, heartbeat
+    )
+
+
+def _issue_summary(report: ReconciliationReport) -> str:
+    return ",".join(issue.code for issue in report.issues) or "reconciliation_blocked"
+
+
+def _live_decision(
+    signal: StrategySignal, strategy: Mapping[str, Any], now: datetime
+) -> Decision:
+    strategy_version = str(strategy.get("version", "01"))
+    identity = f"{signal.asset}|{signal.action}|{signal.candle_id}|{strategy_version}"
+    return Decision(
+        decision_id=f"live-{uuid5(NAMESPACE_URL, identity)}",
+        asset=signal.asset,
+        action=signal.action,
+        reason=signal.reason,
+        candle_id=signal.candle_id,
+        strategy_version=strategy_version,
+        reference_price=signal.reference_price,
+        decided_at=now.isoformat(),
+    )
+
+
+def _strategy_fraction(strategy: Mapping[str, Any], name: str) -> Decimal:
+    return _decimal_setting(strategy.get(name, "0"), name) / Decimal("100")
+
+
+def _risk_context(
+    asset: str,
+    price: Mapping[str, Any],
+    balances: Mapping[str, Decimal],
+    positions: tuple[Position, ...],
+    observed_at: datetime,
+) -> RiskContext:
+    quote = asset.split("/", 1)[1]
+    free_quote = balances.get(quote)
+    bid = price.get("bid")
+    ask = price.get("ask")
+    spread_available = isinstance(bid, Decimal) and isinstance(ask, Decimal) and bid > 0 and ask >= bid
+    spread = None
+    if spread_available:
+        midpoint = (bid + ask) / Decimal("2")
+        spread = (ask - bid) / midpoint * Decimal("10000")
+    symbol_exposure = sum(
+        (position.quantity * position.entry_price for position in positions if position.asset == asset),
+        Decimal("0"),
+    )
+    total_exposure = sum(
+        (position.quantity * position.entry_price for position in positions), Decimal("0")
+    )
+    equity = free_quote + total_exposure if free_quote is not None else None
+    return RiskContext(
+        symbol=asset,
+        equity=equity,
+        free_quote=free_quote,
+        symbol_exposure=symbol_exposure if free_quote is not None else None,
+        total_exposure=total_exposure if free_quote is not None else None,
+        daily_pnl=Decimal("0") if free_quote is not None else None,
+        drawdown=Decimal("0") if free_quote is not None else None,
+        spread_bps=spread,
+        spread_available=spread_available,
+        spread_observed_at=observed_at,
+        active_position=any(position.asset == asset for position in positions),
+    )
+
+
+async def _notify_cycle_funds(
+    projector: ArtifactProjector,
+    balances: Mapping[str, Decimal],
+    settings: FundsAlertSettings | None,
+    notify: Callable[[str], Awaitable[None]] | None,
+    now: datetime,
+) -> str | None:
+    if settings is None:
+        return None
+    message = build_due_funds_alert_from_balances(
+        projector.state_dir, settings, balances, now
+    )
+    if message is None or notify is None:
+        return None
+    try:
+        await notify(message)
+    except Exception as error:
+        return f"funds_alert_transport_failed:{type(error).__name__}"
+    return None
+
+
 def _cycle_trades(cycle: CycleResult) -> list[dict[str, Any]]:
     trades = []
     for position in cycle.closed_positions:
@@ -358,6 +761,106 @@ async def _run_training_loop(
         state.close()
 
 
+async def _run_validation_only_loop(
+    assets: list[str],
+    state_dir: Path,
+    interval_seconds: int,
+    notification_settings: NotificationSettings,
+    funds_alert_settings: FundsAlertSettings,
+    pnl_summary: PnlSummaryCounter,
+) -> None:
+    state_dir.mkdir(parents=True, exist_ok=True)
+    state = StateRepository.open(state_dir / "trading.db")
+    state.migrate()
+    projector = ArtifactProjector(state_dir)
+    market_data = MarketDataCoordinator(
+        repository=state,
+        news_fetch=lambda: _retry("news", news.fetch),
+        macro_fetch=lambda: _retry("macro", macro.fetch),
+        onchain_fetch=lambda: _retry("onchain", onchain.fetch),
+    )
+    consecutive_failures = 0
+
+    async def notify_one(message: str) -> None:
+        await _notify_all([message], notification_settings)
+
+    try:
+        while True:
+            started_at = datetime.now(UTC)
+            gateway = KrakenGateway(
+                _default_execution_exchange,
+                validate_only=True,
+            )
+            try:
+                strategy = _load_yaml(state_dir / "strategy.yaml")
+                cycle = await run_live_cycle(
+                    assets,
+                    state,
+                    projector,
+                    market_data,
+                    strategy,
+                    gateway,
+                    validate_only=True,
+                    funds_alert_settings=funds_alert_settings,
+                    notify=notify_one,
+                    now=lambda: started_at,
+                )
+                heartbeat = {
+                    "timestamp": started_at.isoformat(),
+                    "assets": assets,
+                    "strategy_version": strategy.get("version", "01"),
+                    "mode": "live",
+                    "execution": "kraken-validation-only",
+                    **dict(cycle.heartbeat),
+                }
+                await _write_json(state_dir / "heartbeat.json", heartbeat)
+                orders = [json_value(order) for order in cycle.new_orders]
+                messages = build_cycle_notifications([], orders, notification_settings)
+                messages.extend(
+                    build_summary_notifications(
+                        state_dir, [], notification_settings, pnl_summary, started_at
+                    )
+                )
+                await _notify_all(messages, notification_settings)
+                print(
+                    "Hermes validation cycle "
+                    f"status={cycle.status} reason={cycle.heartbeat['reason']} "
+                    f"orders={len(cycle.new_orders)}",
+                    flush=True,
+                )
+                consecutive_failures = 0
+            except SchemaError:
+                raise
+            except Exception as error:
+                consecutive_failures += 1
+                await _write_json(
+                    state_dir / "heartbeat.json",
+                    {
+                        "timestamp": started_at.isoformat(),
+                        "assets": assets,
+                        "mode": "live",
+                        "execution": "kraken-validation-only",
+                        "status": "error",
+                        "reason": f"cycle_failed:{type(error).__name__}",
+                        "error": str(error),
+                        "consecutive_failures": consecutive_failures,
+                    },
+                )
+                await _notify_all(
+                    [build_error_notification(error, consecutive_failures)],
+                    notification_settings,
+                )
+                if consecutive_failures >= 5:
+                    raise RuntimeError(
+                        "circuit breaker opened after 5 consecutive validation failures"
+                    ) from error
+            finally:
+                await gateway.close()
+            await asyncio.sleep(interval_seconds)
+    finally:
+        state.close()
+
+
 async def run_loop(asset: str | list[str], state_dir: Path, interval_seconds: int = 60) -> None:
     trading = resolve_trading_config()
     execution_settings = resolve_execution_settings()
@@ -373,87 +876,15 @@ async def run_loop(asset: str | list[str], state_dir: Path, interval_seconds: in
             funds_alert_settings, pnl_summary,
         )
         return
-    consecutive_failures = 0
-    state_dir.mkdir(parents=True, exist_ok=True)
-
-    while True:
-        started_at = datetime.now(timezone.utc)
-        try:
-            strategy = _load_yaml(state_dir / "strategy.yaml")
-            decisions = []
-            trades = []
-            orders = []
-            for watched_asset in assets:
-                _, decision = await _evaluate_asset(watched_asset, strategy)
-                decision["mode"] = trading.mode
-                decisions.append(decision)
-                await _append_jsonl(state_dir / "decisions.jsonl", decision)
-                asset_strategy = resolve_asset_strategy(
-                    strategy,
-                    watched_asset,
-                )
-
-                order = await execute_signal(
-                    decision.get("signal"),
-                    asset_strategy,
-                    execution_settings,
-                )
-                if order:
-                    orders.append(order)
-                    await _append_jsonl(state_dir / "orders.jsonl", order)
-                if decision["trade_closed"]:
-                    trades.append(decision)
-                    await _append_jsonl(state_dir / "trades.jsonl", decision)
-                    print(
-                        f"Closed {trading.mode} trade {decision['asset']} pnl={decision['realized_pnl_pct']}",
-                        flush=True,
-                    )
-
-            await _write_json(
-                state_dir / "heartbeat.json",
-                {
-                    "timestamp": started_at.isoformat(),
-                    "assets": assets,
-                    "strategy_version": strategy.get("version", "01"),
-                    "mode": trading.mode,
-                    "execution": trading.execution,
-                    "status": "ok",
-                    "decision_count": len(decisions),
-                    "closed_trade_count": len(trades),
-                    "order_count": len(orders),
-                    "live_validate_only": execution_settings.validate_only,
-                    "trade_closed": bool(trades),
-                },
-            )
-            messages = build_cycle_notifications(trades, orders, notification_settings)
-            messages.extend(
-                build_summary_notifications(state_dir, trades, notification_settings, pnl_summary, started_at)
-            )
-            funds_alert = await build_due_funds_alert(state_dir, funds_alert_settings, started_at)
-            if funds_alert:
-                messages.append(funds_alert)
-            await _notify_all(messages, notification_settings)
-            consecutive_failures = 0
-        except SchemaError:
-            raise
-        except Exception as exc:
-            consecutive_failures += 1
-            await _write_json(
-                state_dir / "heartbeat.json",
-                {
-                    "timestamp": started_at.isoformat(),
-                    "assets": assets,
-                    "mode": trading.mode,
-                    "execution": trading.execution,
-                    "status": "error",
-                    "error": str(exc),
-                    "live_validate_only": execution_settings.validate_only,
-                    "consecutive_failures": consecutive_failures,
-                },
-            )
-            await _notify_all([build_error_notification(exc, consecutive_failures)], notification_settings)
-            print(f"worker error {consecutive_failures}/5: {exc}", flush=True)
-            if consecutive_failures >= 5:
-                raise RuntimeError("circuit breaker opened after 5 consecutive failures") from exc
-
-        await asyncio.sleep(interval_seconds)
+    if not execution_settings.validate_only or execution_settings.allow_real_orders:
+        raise TradingModeError(
+            "real order worker remains blocked until qualification and explicit promotion"
+        )
+    await _run_validation_only_loop(
+        assets,
+        state_dir,
+        interval_seconds,
+        notification_settings,
+        funds_alert_settings,
+        pnl_summary,
+    )

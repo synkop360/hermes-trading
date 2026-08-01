@@ -122,7 +122,20 @@ class ReconciliationService:
                 remote,
                 reconstruct_position=not any(issue.blocking for issue in comparison_issues),
             )
-            if _canonical_status(remote.status) not in _TERMINAL_STATUSES:
+            active_protective_stop = (
+                intent.order_type == "stop-loss"
+                and remote.side == "sell"
+                and remote.order_type == "stop-loss"
+                and remote.asset == intent.asset
+                and remote.amount == intent.quantity
+                and remote.trigger_price == intent.stop_price
+                and _canonical_status(remote.status)
+                in {OrderStatus.SUBMITTED, OrderStatus.OPEN, OrderStatus.PARTIALLY_FILLED}
+            )
+            if (
+                _canonical_status(remote.status) not in _TERMINAL_STATUSES
+                and not active_protective_stop
+            ):
                 issues.append(
                     ReconciliationIssue(
                         "transient_remote_order",
@@ -413,7 +426,9 @@ class ReconciliationService:
         self.projector.write_snapshot("system_status.json", status)
 
 
-_TERMINAL_STATUSES = frozenset({OrderStatus.FILLED, OrderStatus.CANCELED, OrderStatus.REJECTED})
+_TERMINAL_STATUSES = frozenset(
+    {OrderStatus.VALIDATED, OrderStatus.FILLED, OrderStatus.CANCELED, OrderStatus.REJECTED}
+)
 
 
 def _canonical_status(status: object) -> OrderStatus:
