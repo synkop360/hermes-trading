@@ -20,6 +20,7 @@ from hermes_trading.domain import (
 )
 from hermes_trading.identifiers import entry_client_order_id
 from hermes_trading.providers import ProviderAttempt
+from hermes_trading.qualification import QualificationSnapshot
 from hermes_trading.persistence.migrations import (
     V1_COLUMNS,
     UnsupportedSchemaError,
@@ -222,6 +223,28 @@ class StateRepository:
             """
         )
         return tuple(self._position_from_row(row) for row in rows)
+
+    def record_qualification_snapshot(
+        self, qualification_run_id: str, snapshot: QualificationSnapshot, completed_at: datetime
+    ) -> None:
+        timestamp = completed_at.astimezone(UTC).isoformat()
+        status = "promotable" if snapshot.promotable else "blocked"
+        with self._connection:
+            self._connection.execute(
+                "INSERT INTO qualification_runs (qualification_run_id, status, reason, revision, started_at, completed_at) VALUES (?, ?, ?, 1, ?, ?)",
+                (qualification_run_id, status, snapshot.requested_phase.value, timestamp, timestamp),
+            )
+            for gate in snapshot.gates:
+                self._connection.execute(
+                    "INSERT INTO qualification_checks (qualification_check_id, qualification_run_id, status, reason, revision, checked_at) VALUES (?, ?, ?, ?, 1, ?)",
+                    (f"{qualification_run_id}:{gate.name}", qualification_run_id, gate.status.value, json.dumps({"name": gate.name, "observed": gate.observed, "required": gate.required, "reason": gate.reason}, sort_keys=True), timestamp),
+                )
+
+    def qualification_runs(self) -> list[dict[str, object]]:
+        rows = self._connection.execute(
+            "SELECT r.qualification_run_id, r.status, r.reason, r.completed_at, COUNT(c.qualification_check_id) AS gate_count FROM qualification_runs r LEFT JOIN qualification_checks c ON c.qualification_run_id = r.qualification_run_id GROUP BY r.qualification_run_id ORDER BY r.started_at, r.qualification_run_id"
+        )
+        return [dict(row) for row in rows]
 
     def position_by_id(self, position_id: str) -> Position | None:
         row = self._connection.execute("SELECT * FROM positions WHERE position_id = ?", (position_id,)).fetchone()

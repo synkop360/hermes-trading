@@ -1,11 +1,14 @@
 import unittest
+import tempfile
 from datetime import UTC, datetime, timedelta
+from pathlib import Path
 
 from hermes_trading.qualification import (
     QualificationEvidence,
     QualificationPhase,
     QualificationService,
 )
+from hermes_trading.persistence.repository import StateRepository
 
 
 NOW = datetime(2026, 8, 1, tzinfo=UTC)
@@ -61,6 +64,19 @@ class QualificationServiceTests(unittest.TestCase):
         self.assertTrue(training.valid)
         self.assertFalse(live.promotable)
         self.assertEqual(live.gate("costs_complete").status.value, "fail")
+
+    def test_snapshot_is_persisted_append_only_with_its_gates(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            repository = StateRepository.open(Path(temp_dir) / "trading.db")
+            repository.migrate()
+            snapshot = self.service.evaluate(QualificationPhase.VALIDATION_READY, evidence(), now=NOW)
+            repository.record_qualification_snapshot("qualification-1", snapshot, NOW)
+            repository.record_qualification_snapshot("qualification-2", snapshot, NOW)
+            rows = repository.qualification_runs()
+            repository.close()
+
+        self.assertEqual([row["qualification_run_id"] for row in rows], ["qualification-1", "qualification-2"])
+        self.assertEqual(rows[0]["gate_count"], 7)
 
 
 if __name__ == "__main__":
