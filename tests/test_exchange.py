@@ -104,7 +104,7 @@ class KrakenGatewayTests(unittest.IsolatedAsyncioTestCase):
         fake = FakeKrakenExchange()
         gateway = KrakenGateway(lambda: fake)
 
-        await gateway.create_stop_order(
+        order = await gateway.create_stop_order(
             asset="BTC/USDT",
             side="sell",
             amount=Decimal("0.0001"),
@@ -123,6 +123,7 @@ class KrakenGatewayTests(unittest.IsolatedAsyncioTestCase):
                 "params": {"cl_ord_id": "ht-btc-stop", "stopLossPrice": "64000"},
             },
         )
+        self.assertEqual(order.trigger_price, Decimal("64000"))
 
     async def test_context_manager_closes_exchange_after_cancellation(self) -> None:
         fake = FakeKrakenExchange()

@@ -44,6 +44,9 @@ class StopGateway:
 
     def __init__(self) -> None:
         self.stop_error: BaseException | None = None
+        self.fetch_error: BaseException | None = None
+        self.stop_response_overrides: dict[str, object] = {}
+        self.amount_precision = 8
         self.last_stop: ExchangeOrder | None = None
         self.market_sell_calls = 0
         self.cancelled_ids: list[str] = []
@@ -51,15 +54,19 @@ class StopGateway:
         self._sequence = 0
 
     async def load_rules(self, asset: str) -> MarketRules:
-        return MarketRules(asset, Decimal("0.00001"), Decimal("5"), 8, 2)
+        return MarketRules(asset, Decimal("0.00001"), Decimal("5"), self.amount_precision, 2)
 
     async def fetch_orders(self, asset: str | None = None) -> tuple[ExchangeOrder, ...]:
+        if self.fetch_error is not None:
+            raise self.fetch_error
         return tuple(order for order in self.orders.values() if asset is None or order.asset == asset)
 
     async def create_stop_order(self, *, asset: str, side: str, amount: Decimal, stop_price: Decimal, client_order_id: str) -> ExchangeOrder:
         if self.stop_error is not None:
             raise self.stop_error
-        order = self._order(asset, side, "stop-loss", amount, client_order_id)
+        order = self._order(asset, side, "stop-loss", amount, client_order_id, stop_price)
+        if self.stop_response_overrides:
+            order = ExchangeOrder(**{**order.__dict__, **self.stop_response_overrides})
         self.last_stop = order
         self.orders[order.exchange_order_id] = order
         return order
@@ -80,7 +87,7 @@ class StopGateway:
         self.orders[exchange_order_id] = cancelled
         return cancelled
 
-    def _order(self, asset: str, side: str, order_type: str, amount: Decimal, client_order_id: str) -> ExchangeOrder:
+    def _order(self, asset: str, side: str, order_type: str, amount: Decimal, client_order_id: str, trigger_price: Decimal | None = None) -> ExchangeOrder:
         self._sequence += 1
         timestamp = datetime(2026, 7, 30, 20, 0, tzinfo=UTC).isoformat()
         return ExchangeOrder(
@@ -98,6 +105,7 @@ class StopGateway:
             fee_currency="USDT",
             created_at=timestamp,
             updated_at=timestamp,
+            trigger_price=trigger_price,
         )
 
 
@@ -128,6 +136,54 @@ class ProtectiveStopTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(self.gateway.market_sell_calls, 1)
         incidents = self.repository.export_canonical_tables()["incidents"]
         self.assertEqual(incidents[0]["severity"], "critical")
+
+    async def test_wrong_stop_response_is_not_accepted_as_protection(self) -> None:
+        self.gateway.stop_response_overrides = {"side": "buy"}
+
+        result = await self.service.ensure_protective_stop(
+            protective_decision(), position(), self.gateway
+        )
+
+        self.assertEqual(result.status, "emergency_closed")
+        self.assertTrue(self.repository.risk_state().kill_switch)
+        self.assertEqual(self.gateway.market_sell_calls, 1)
+
+    async def test_stop_response_with_wrong_trigger_is_not_accepted_as_protection(self) -> None:
+        self.gateway.stop_response_overrides = {"trigger_price": Decimal("64674")}
+
+        result = await self.service.ensure_protective_stop(
+            protective_decision(), position(), self.gateway
+        )
+
+        self.assertEqual(result.status, "emergency_closed")
+        self.assertTrue(self.repository.risk_state().kill_switch)
+
+    async def test_precision_dust_fails_closed_instead_of_reporting_a_partial_stop(self) -> None:
+        self.gateway.amount_precision = 5
+
+        result = await self.service.ensure_protective_stop(
+            protective_decision(), position(quantity="0.000076"), self.gateway
+        )
+
+        self.assertEqual(result.status, "emergency_closed")
+        self.assertIsNone(self.gateway.last_stop)
+        self.assertTrue(self.repository.risk_state().kill_switch)
+
+    async def test_startup_order_lookup_failure_halts_and_emergency_closes(self) -> None:
+        self.repository.save_position(position())
+        self.gateway.fetch_error = TimeoutError("exchange unavailable")
+
+        report = await ReconciliationService(self.repository).verify_protective_stops(
+            self.gateway, self.service
+        )
+
+        self.assertFalse(report.safe_for_new_entries)
+        self.assertTrue(self.repository.risk_state().kill_switch)
+        self.assertEqual(self.gateway.market_sell_calls, 1)
+        self.assertIn(
+            "protective_stop_lookup_failed",
+            [issue.code for issue in report.issues],
+        )
 
     async def test_changed_stop_cancels_previous_remote_stop_before_replacing_it(self) -> None:
         old = position(stop_price="64680")

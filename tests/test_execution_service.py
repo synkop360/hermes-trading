@@ -64,13 +64,14 @@ class InspectingGateway:
     async def create_stop_order(self, *, asset, side, amount, stop_price, client_order_id):
         self._assert_before_call(client_order_id)
         self.stop_calls += 1
-        return _order(
+        order = _order(
             client_order_id=client_order_id,
             asset=asset,
             side=side,
             amount=amount,
             order_type="stop-loss",
         )
+        return ExchangeOrder(**{**order.__dict__, "trigger_price": stop_price})
 
 
 class UnknownStatusGateway(InspectingGateway):
@@ -103,7 +104,7 @@ class RejectedStopGateway(InspectingGateway):
     async def create_stop_order(self, *, asset, side, amount, stop_price, client_order_id):
         self._assert_before_call(client_order_id)
         self.stop_calls += 1
-        return _order(
+        order = _order(
             client_order_id=client_order_id,
             asset=asset,
             side=side,
@@ -111,6 +112,7 @@ class RejectedStopGateway(InspectingGateway):
             order_type="stop-loss",
             status=OrderStatus.REJECTED,
         )
+        return ExchangeOrder(**{**order.__dict__, "trigger_price": stop_price})
 
 
 def _order(

@@ -157,6 +157,33 @@ class ExecutionService:
                 signal=signal,
                 reason=f"protective_stop_submission_failed:{type(error).__name__}",
             )
+        try:
+            status = _canonical_order_status(order.status)
+        except Exception as error:
+            return await self.emergency_close(
+                position,
+                gateway,
+                signal=signal,
+                reason=f"protective_stop_unconfirmed:{type(error).__name__}",
+            )
+        if status is OrderStatus.REJECTED:
+            self._record_exchange_result(identifier, order)
+            return await self.emergency_close(
+                position,
+                gateway,
+                signal=signal,
+                reason="protective_stop_rejected:exchange_rejected",
+            )
+        confirmation_error = _stop_confirmation_error(
+            order, identifier, position.asset, quantity, stop_price
+        )
+        if confirmation_error is not None:
+            return await self.emergency_close(
+                position,
+                gateway,
+                signal=signal,
+                reason=f"protective_stop_unconfirmed:{confirmation_error}",
+            )
         result = self._record_exchange_result(identifier, order)
         if result.status == "submitted":
             return result
@@ -227,6 +254,8 @@ class ExecutionService:
         rules = await load_rules(position.asset)
         normalized_quantity = _normalize_down(quantity, rules.amount_precision)
         normalized_stop_price = _normalize_down(stop_price, rules.price_precision)
+        if normalized_quantity != quantity:
+            raise ValueError("stop precision leaves an uncovered position remainder")
         return (
             _positive_decimal(normalized_quantity, "normalized stop quantity"),
             _positive_decimal(normalized_stop_price, "normalized stop price"),
@@ -267,7 +296,7 @@ class ExecutionService:
             for intent in active
             if intent.quantity == quantity and intent.stop_price == stop_price
             and (remote := remote_by_client_id.get(intent.client_order_id)) is not None
-            and _is_active_stop(remote, position.asset, quantity)
+            and _is_active_stop(remote, position.asset, quantity, stop_price)
         ]
         keep = desired[0] if desired else None
         if keep is not None and len(active) == 1:
@@ -276,7 +305,9 @@ class ExecutionService:
             if keep is not None and intent.client_order_id == keep.client_order_id:
                 continue
             remote = remote_by_client_id.get(intent.client_order_id)
-            if remote is None or not _is_active_stop(remote, position.asset, intent.quantity):
+            if remote is None or not _is_active_stop(
+                remote, position.asset, intent.quantity, intent.stop_price
+            ):
                 raise RuntimeError("existing protective stop is not active remotely")
             cancelled = await gateway.cancel_order(remote.exchange_order_id, position.asset)
             recorded = self._record_exchange_result(intent.client_order_id, cancelled)
@@ -403,15 +434,35 @@ def _normalize_down(value: Decimal, precision: int | None) -> Decimal:
     return value.quantize(quantum, rounding=ROUND_DOWN)
 
 
-def _is_active_stop(order: ExchangeOrder, asset: str, quantity: Decimal) -> bool:
+def _is_active_stop(
+    order: ExchangeOrder,
+    asset: str,
+    quantity: Decimal,
+    trigger_price: Decimal | None = None,
+) -> bool:
     return (
         order.asset == asset
         and order.side == "sell"
         and order.order_type == "stop-loss"
         and order.amount == quantity
+        and (trigger_price is None or order.trigger_price == trigger_price)
         and _canonical_order_status(order.status)
         in {OrderStatus.SUBMITTED, OrderStatus.OPEN, OrderStatus.PARTIALLY_FILLED}
     )
+
+
+def _stop_confirmation_error(
+    order: ExchangeOrder,
+    client_order_id: str,
+    asset: str,
+    quantity: Decimal,
+    trigger_price: Decimal,
+) -> str | None:
+    if order.client_order_id != client_order_id:
+        return "client_order_id_mismatch"
+    if not _is_active_stop(order, asset, quantity, trigger_price):
+        return "identity_quantity_or_trigger_mismatch"
+    return None
 
 
 def _emergency_signal(position: Position) -> Decision:

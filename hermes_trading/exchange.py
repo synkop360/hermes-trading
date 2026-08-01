@@ -95,11 +95,12 @@ class ExchangeOrder:
     fee_currency: str | None
     created_at: str
     updated_at: str
+    trigger_price: Decimal | None = None
 
     def __post_init__(self) -> None:
         if not self.exchange_order_id or not self.asset or not self.side or not self.order_type:
             raise ValueError("exchange order identity fields are required")
-        for name in ("amount", "filled", "remaining", "average_price", "fee"):
+        for name in ("amount", "filled", "remaining", "average_price", "fee", "trigger_price"):
             value = getattr(self, name)
             if value is not None and (not value.is_finite() or value < 0):
                 raise ValueError(f"{name} must be a non-negative finite Decimal")
@@ -323,12 +324,32 @@ def _order(payload: object, fallback_asset: str | None) -> ExchangeOrder:
         fee_currency=_optional_text(fee_raw.get("currency")),
         created_at=created_at,
         updated_at=updated_at,
+        trigger_price=_stop_trigger_price(raw, info),
     )
 
 
 def _client_order_id(raw: Mapping[str, Any], info: Mapping[str, Any]) -> str | None:
     return _optional_text(
         raw.get("clientOrderId", raw.get("client_order_id", info.get("cl_ord_id", info.get("client_order_id"))))
+    )
+
+
+def _stop_trigger_price(raw: Mapping[str, Any], info: Mapping[str, Any]) -> Decimal | None:
+    return _optional_decimal(
+        _first_present(
+            raw,
+            "triggerPrice",
+            "stopPrice",
+            "stop_loss_price",
+        )
+        or _first_present(
+            info,
+            "triggerPrice",
+            "stopPrice",
+            "stopLossPrice",
+            "stop_loss_price",
+        ),
+        "order stop trigger price",
     )
 
 

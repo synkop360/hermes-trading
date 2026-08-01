@@ -53,6 +53,7 @@ class FakeKrakenExchange:
         order_type: str = "market",
         amount: str = "0.0001",
         fee: str = "0",
+        stop_price: str | None = None,
         timestamp: str = "2026-07-30T12:00:00Z",
     ) -> str:
         order_id = exchange_order_id or self._next_order_id()
@@ -70,7 +71,7 @@ class FakeKrakenExchange:
             "fee": {"cost": fee, "currency": "USDT"},
             "datetime": timestamp,
             "lastTradeDatetime": timestamp,
-            "info": {"cl_ord_id": client_order_id},
+            "info": {"cl_ord_id": client_order_id, "stopLossPrice": stop_price},
         }
         base = asset.split("/", 1)[0]
         if Decimal(filled) > 0:
@@ -131,6 +132,7 @@ class FakeKrakenExchange:
             side=side,
             order_type=order_type,
             amount=amount,
+            stop_price=request["params"].get("stopLossPrice"),
         )
         return deepcopy(self._orders[order_id])
 

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from decimal import Decimal
 from pathlib import Path
 from typing import TYPE_CHECKING, Literal
@@ -163,14 +164,44 @@ class ReconciliationService:
         yet.  It is callable by the future live startup path and only operates
         through the exchange gateway supplied by that path.
         """
-        remote_orders = await gateway.fetch_orders()
+        positions = self.repository.active_positions()
+        try:
+            remote_orders = await gateway.fetch_orders()
+        except Exception as error:
+            reason = f"protective_stop_lookup_failed:{type(error).__name__}"
+            now = datetime.now(UTC)
+            self.repository.set_risk_state(
+                kill_switch=True, reason=reason, updated_at=now
+            )
+            self.repository.open_incident(
+                "protective-stop:startup", reason, severity="critical", opened_at=now
+            )
+            issues = [
+                ReconciliationIssue(
+                    "protective_stop_lookup_failed",
+                    "critical",
+                    "Protective stops could not be verified at the exchange.",
+                )
+            ]
+            for position in positions:
+                await self._emergency_close_or_record(
+                    execution, position, gateway, reason
+                )
+            report = ReconciliationReport(
+                safe_for_new_entries=False,
+                issues=tuple(issues),
+                balances={},
+                next_reconciliation_seconds=self.fast_cadence_seconds,
+            )
+            self._project(report)
+            return report
         issues: list[ReconciliationIssue] = []
         remote_by_client_id = {
             order.client_order_id: order
             for order in remote_orders
             if order.client_order_id is not None
         }
-        for position in self.repository.active_positions():
+        for position in positions:
             if self._has_matching_protective_stop(position, remote_by_client_id):
                 continue
             issues.append(
@@ -180,10 +211,11 @@ class ReconciliationService:
                     f"Open {position.asset} position has no active protective stop.",
                 )
             )
-            await execution.emergency_close(
+            await self._emergency_close_or_record(
+                execution,
                 position,
                 gateway,
-                reason="startup_missing_protective_stop",
+                "startup_missing_protective_stop",
             )
         self._persist_issues(issues)
         issues.extend(self._persistent_blockers(issues))
@@ -197,6 +229,22 @@ class ReconciliationService:
         )
         self._project(report)
         return report
+
+    async def _emergency_close_or_record(
+        self,
+        execution: "ExecutionService",
+        position: Position,
+        gateway: ExchangeGateway,
+        reason: str,
+    ) -> None:
+        try:
+            await execution.emergency_close(position, gateway, reason=reason)
+        except Exception as error:
+            self.repository.open_incident(
+                f"protective-stop:{position.position_id}",
+                f"{reason}:emergency_close_failed:{type(error).__name__}",
+                severity="critical",
+            )
 
     def _has_matching_protective_stop(
         self, position: Position, remote_by_client_id: dict[str, ExchangeOrder]
@@ -218,6 +266,7 @@ class ReconciliationService:
                 and remote.side == "sell"
                 and remote.order_type == "stop-loss"
                 and remote.amount == position.quantity
+                and remote.trigger_price == position.stop_price
                 and _canonical_status(remote.status)
                 in {OrderStatus.SUBMITTED, OrderStatus.OPEN, OrderStatus.PARTIALLY_FILLED}
             ):
