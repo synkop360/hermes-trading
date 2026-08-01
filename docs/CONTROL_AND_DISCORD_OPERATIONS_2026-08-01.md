@@ -103,6 +103,12 @@ Expected keys:
 
 Missing keys remain visible as `missing` gates in qualification reports.
 
+Generate the replay evidence file from the current journals:
+
+```powershell
+uv run python scripts/generate_qualification_replay.py --state-dir state
+```
+
 Print the current evidence status without secrets or trading actions:
 
 ```powershell
@@ -112,6 +118,7 @@ uv run python scripts/qualification_evidence_status.py --state-dir state
 In Railway, use the mounted state directory:
 
 ```powershell
+railway.cmd ssh "cd /app && uv run python scripts/generate_qualification_replay.py --state-dir /app/state"
 railway.cmd ssh "cd /app && uv run python scripts/qualification_evidence_status.py --state-dir /app/state"
 ```
 

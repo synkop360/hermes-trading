@@ -37,6 +37,8 @@ class OperationalScriptTests(unittest.TestCase):
             "run_control_api.py",
             "run_discord_bot.py",
             "check_control_discord_secrets.py",
+            "generate_qualification_replay.py",
+            "qualification_evidence_status.py",
         ):
             script_path = ROOT / "scripts" / script_name
             spec = importlib.util.spec_from_file_location(script_name, script_path)
@@ -167,3 +169,39 @@ class OperationalScriptTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("replay_without_lookahead=", result.stdout)
         self.assertIn("fees_and_slippage_charged=", result.stdout)
+
+    def test_generate_qualification_replay_writes_journal_scan_report(self) -> None:
+        state_dir = ROOT / ".test-tmp-generate-qualification-replay"
+        state_dir.mkdir(exist_ok=True)
+        (state_dir / "decisions.jsonl").write_text(
+            '{"timestamp":"2026-08-01T10:00:00+00:00","asset":"BTC/USDT","event":"decision"}\n'
+            '{"action":"enter","asset":"BTC/USDT","candle_id":"BTC/USDT:1h:2026-08-01T09:00:00+00:00",'
+            '"decided_at":"2026-08-01T09:00:00+00:00","decision_id":"decision-1"}\n'
+            '{"timestamp":"2026-08-01T10:01:00+00:00","asset":"ETH/USDT","event":"decision"}\n',
+            encoding="utf-8",
+        )
+        (state_dir / "trades.jsonl").write_text(
+            '{"timestamp":"2026-08-01T10:02:00+00:00","asset":"BTC/USDT","event":"trade"}\n',
+            encoding="utf-8",
+        )
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(ROOT / "scripts" / "generate_qualification_replay.py"),
+                "--state-dir",
+                str(state_dir),
+                "--generated-at",
+                "2026-08-01T12:00:00+00:00",
+            ],
+            cwd=ROOT,
+            text=True,
+            capture_output=True,
+            timeout=30,
+        )
+
+        report = __import__("json").loads((state_dir / "qualification-replay.json").read_text(encoding="utf-8"))
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(report["status"], "pass")
+        self.assertEqual(report["candles_checked"], 3)
+        self.assertEqual(report["events_checked"], 4)
+        self.assertEqual(report["lookahead_violations"], 0)
