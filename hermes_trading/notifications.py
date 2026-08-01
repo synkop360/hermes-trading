@@ -12,6 +12,7 @@ from typing import Any, Awaitable, Callable
 import httpx
 
 from hermes_trading.profitability import ProfitabilityReport, render_profitability_markdown
+from hermes_trading.qualification_runner import QualificationReport
 
 
 class NotificationConfigError(RuntimeError):
@@ -286,6 +287,34 @@ def build_error_notification(error: Exception, consecutive_failures: int) -> str
 
 def build_profitability_notification(report: ProfitabilityReport) -> str:
     return render_profitability_markdown(report)
+
+
+def build_qualification_notification(report: QualificationReport) -> str:
+    promotable = "true" if report.snapshot.promotable else "false"
+    return "\n".join(
+        [
+            report.markdown,
+            f"Run: {report.run_id}",
+            f"Promotable: {promotable}",
+        ]
+    )
+
+
+def build_worker_feature_update(feature: str, detail: str, *, status: str = "available") -> str:
+    return f"Hermes Trading | Worker feature {status} {feature}: {detail}"
+
+
+class WorkerFeatureUpdateLedger:
+    def __init__(self, state_dir: Path) -> None:
+        self._path = state_dir / "worker_feature_updates.json"
+
+    def record_once(self, feature: str, detail: str, *, now: datetime) -> str | None:
+        markers = _load_summary_markers(self._path)
+        if markers.get(feature):
+            return None
+        markers[feature] = now.isoformat()
+        self._path.write_text(json.dumps(markers, indent=2, sort_keys=True), encoding="utf-8")
+        return build_worker_feature_update(feature, detail)
 
 
 def build_due_profitability_notifications(

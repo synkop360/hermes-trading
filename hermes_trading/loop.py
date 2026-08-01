@@ -48,10 +48,12 @@ from hermes_trading.notifications import (
     build_cycle_notifications,
     build_due_profitability_notifications,
     build_error_notification,
+    build_qualification_notification,
     build_summary_notifications,
     NotificationSettings,
     resolve_notification_settings,
     send_notification,
+    WorkerFeatureUpdateLedger,
 )
 from hermes_trading.qualification import QualificationPhase, QualificationService
 from hermes_trading.qualification_runner import QualificationCycleSchedule, QualificationRunner
@@ -720,6 +722,28 @@ def _cycle_orders(cycle: CycleResult) -> list[dict[str, Any]]:
     return [json_value(order) for order in cycle.orders]
 
 
+def _worker_feature_update_messages(state_dir: Path, now: datetime) -> list[str]:
+    enabled = {
+        item.strip()
+        for item in os.getenv("HERMES_WORKER_FEATURE_UPDATES", "").split(",")
+        if item.strip()
+    }
+    details = {
+        "control_api": "private local HMAC status and qualification endpoints are available",
+        "qualification_evidence": "typed qualification evidence reports missing proofs explicitly",
+        "discord_webhook_qualification": "qualification summaries can be sent through the existing Discord webhook",
+        "discord_bot": "separate Discord bot service is packaged and ready for private secrets",
+    }
+    ledger = WorkerFeatureUpdateLedger(state_dir)
+    return [
+        message
+        for feature, detail in details.items()
+        if feature in enabled
+        for message in [ledger.record_once(feature, detail, now=now)]
+        if message is not None
+    ]
+
+
 async def _run_training_loop(
     assets: list[str], state_dir: Path, interval_seconds: int, trading: TradingConfig,
     notification_settings: NotificationSettings, funds_alert_settings: Any,
@@ -750,8 +774,9 @@ async def _run_training_loop(
                 trades = _cycle_trades(cycle)
                 orders = _cycle_orders(cycle)
                 profitability_report = await _update_profitability_best_effort(state_dir)
+                qualification_report = None
                 if qualification_schedule.record_cycle():
-                    QualificationRunner(state, state_dir, QualificationService()).run_from_state(
+                    qualification_report = QualificationRunner(state, state_dir, QualificationService()).run_from_state(
                         QualificationPhase.VALIDATION_READY, now=started_at
                     )
                 heartbeat = _attach_profitability_gate(
@@ -768,6 +793,9 @@ async def _run_training_loop(
                 )
                 await _write_json(state_dir / "heartbeat.json", heartbeat)
                 messages = build_cycle_notifications(trades, orders, notification_settings)
+                messages.extend(_worker_feature_update_messages(state_dir, started_at))
+                if qualification_report is not None:
+                    messages.append(build_qualification_notification(qualification_report))
                 messages.extend(build_summary_notifications(state_dir, trades, notification_settings, pnl_summary, started_at))
                 if profitability_report:
                     messages.extend(
