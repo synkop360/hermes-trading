@@ -86,16 +86,16 @@ Discord slash commands:
 
 Responses are ephemeral. Unauthorized Discord users and invalid TOTP codes are rejected before the bot calls the control API.
 
-Smoke test Discord connectivity and command publication without printing secrets:
+Smoke test Discord connectivity, command publication, and message sending to the `trading` channel without printing secrets:
 
 ```powershell
-uv run python scripts/discord_bot_smoke.py --send-dm
+uv run python scripts/discord_bot_smoke.py --send-channel-message --channel-name trading
 ```
 
-On Railway, this verifies the bot token, the global `status` and `qualification` slash commands, and sends a DM to the first allowed Discord user:
+On Railway, this verifies the bot token, the global `status` and `qualification` slash commands, then posts a prompt in the `trading` channel asking the operator to respond with `/status` and `/qualification`:
 
 ```powershell
-railway.cmd ssh "cd /app && uv run python scripts/discord_bot_smoke.py --send-dm"
+railway.cmd ssh "cd /app && uv run python scripts/discord_bot_smoke.py --send-channel-message --channel-name trading"
 ```
 
 ## Qualification Evidence
