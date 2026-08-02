@@ -151,6 +151,20 @@ def _write_reflection_state(
     )
 
 
+def _legacy_reflection_timestamp(state_dir: Path, asset: str) -> datetime | None:
+    for record in reversed(_load_jsonl(state_dir / "hypotheses.jsonl")):
+        mode = str(record.get("mode", ""))
+        if not mode.startswith("hermes_"):
+            continue
+        record_asset = str(record.get("asset", "")).upper()
+        if record_asset and record_asset != asset.upper():
+            continue
+        timestamp = _parse_timestamp(record.get("timestamp"))
+        if timestamp is not None:
+            return timestamp
+    return None
+
+
 def _parse_timestamp(value: Any) -> datetime | None:
     if not value:
         return None
@@ -167,7 +181,11 @@ def _parse_timestamp(value: Any) -> datetime | None:
 
 
 def _record_timestamp(record: dict[str, Any]) -> datetime | None:
-    return _parse_timestamp(record.get("timestamp"))
+    for field in ("timestamp", "decided_at", "closed_at", "created_at", "updated_at"):
+        parsed = _parse_timestamp(record.get(field))
+        if parsed is not None:
+            return parsed
+    return None
 
 
 def _records_after(
@@ -272,27 +290,40 @@ def _asset_needs_reflection(
 
     reasons = []
 
-    # No-trade decisions remain observable, but cannot tune a strategy on their
-    # own: only a sufficiently large, independent closed-trade sample may do so.
-    eligible_sample = len(trades) >= policy.min_closed_trades and len(new_trades) >= policy.min_new_trades
+    # No-trade decisions may tune accessibility only after the strategy has a
+    # sufficiently large closed-trade history. They cannot bootstrap a brand-new
+    # strategy on their own.
+    has_trade_history = len(trades) >= policy.min_closed_trades
+    trade_sample_eligible = has_trade_history and len(new_trades) >= policy.min_new_trades
+    no_trade_drought_eligible = (
+        has_trade_history
+        and len(new_trades) == 0
+        and len(no_trade_decisions) >= policy.min_new_decisions
+    )
+    eligible_sample = trade_sample_eligible or no_trade_drought_eligible
     cooling_down = hours_since_reflection is not None and hours_since_reflection < policy.cooldown_hours
 
-    if eligible_sample and len(new_decisions) >= policy.min_new_decisions:
+    if trade_sample_eligible and len(new_decisions) >= policy.min_new_decisions:
         reasons.append(
             f"{len(new_decisions)} new decisions"
         )
 
-    if eligible_sample:
+    if trade_sample_eligible:
         reasons.append(
             f"{len(new_trades)} new trades"
         )
 
-    if eligible_sample and consecutive_losses >= policy.max_consecutive_losses:
+    if no_trade_drought_eligible:
+        reasons.append(
+            f"{len(no_trade_decisions)} no-trade decisions"
+        )
+
+    if trade_sample_eligible and consecutive_losses >= policy.max_consecutive_losses:
         reasons.append(
             f"{consecutive_losses} consecutive losses"
         )
 
-    if eligible_sample and current_score <= policy.score_threshold:
+    if trade_sample_eligible and current_score <= policy.score_threshold:
         reasons.append(
             f"score {current_score} <= {policy.score_threshold}"
         )
@@ -300,7 +331,7 @@ def _asset_needs_reflection(
     has_new_data = bool(new_trades or new_decisions)
 
     if (
-        eligible_sample
+        trade_sample_eligible
         and hours_since_reflection is not None
         and hours_since_reflection >= policy.max_age_hours
     ):
@@ -359,7 +390,7 @@ def _no_trade_accessibility_proposal(
     current_threshold = _entry_threshold(effective_strategy)
     min_recent_entry_value = metrics.get("min_recent_entry_value")
 
-    if current_threshold is None or min_recent_entry_value is None:
+    if current_threshold is None:
         return proposal
 
     if int(metrics.get("new_trades", 0)) > 0:
@@ -367,6 +398,23 @@ def _no_trade_accessibility_proposal(
 
     if int(metrics.get("new_no_trade_decisions", 0)) < policy.min_new_decisions:
         return proposal
+
+    if min_recent_entry_value is None:
+        if proposal is not None:
+            return proposal
+        target = min(policy.max_entry_threshold, current_threshold + 2.0)
+        if target <= current_threshold:
+            return proposal
+        return {
+            "asset": asset,
+            "variable": "entry.threshold",
+            "value": target,
+            "reason": (
+                "no-trade accessibility guard: recent live decisions did not include "
+                "indicator values, so the training entry threshold is raised by the "
+                "maximum validated step."
+            ),
+        }
 
     if float(min_recent_entry_value) <= current_threshold:
         return proposal
@@ -378,7 +426,11 @@ def _no_trade_accessibility_proposal(
         except (TypeError, ValueError):
             pass
 
-    target = min(policy.max_entry_threshold, math.ceil(float(min_recent_entry_value) + 1.0))
+    target = min(
+        policy.max_entry_threshold,
+        current_threshold + 2.0,
+        math.ceil(float(min_recent_entry_value) + 1.0),
+    )
     target = max(current_threshold + 1.0, target)
 
     return {
@@ -1003,6 +1055,11 @@ def run_hermes_reflection(
         last_reflection_at = _parse_timestamp(
             asset_state.get("last_reflection_at")
         )
+        if last_reflection_at is None:
+            last_reflection_at = _legacy_reflection_timestamp(
+                state_dir,
+                asset,
+            )
 
         should_reflect, trigger_reasons, metrics = (
             _asset_needs_reflection(

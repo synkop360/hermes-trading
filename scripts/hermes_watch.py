@@ -23,6 +23,7 @@ STATE_FILES = [
     "trades.jsonl",
     "orders.jsonl",
     "hypotheses.jsonl",
+    "reflection_state.json",
 ]
 DEFAULT_NO_TRADE_DECISIONS = 30
 

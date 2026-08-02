@@ -346,6 +346,76 @@ class ReflectionTests(unittest.TestCase):
             eth = updated["symbols"]["ETH/USDT"]
             self.assertEqual(eth["entry"]["threshold"], 25)
 
+    def test_no_trade_drought_uses_legacy_hypothesis_timestamp_when_reflection_state_is_missing(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            state = Path(temp_dir)
+            (state / "history").mkdir()
+            (state / "strategy.yaml").write_text(
+                yaml.safe_dump(
+                    {
+                        "version": "83",
+                        "entry": {
+                            "indicator": "rsi_recovery",
+                            "threshold": 25,
+                            "direction": "long",
+                        },
+                        "symbols": {
+                            "BTC/USDT": {
+                                "entry": {"threshold": 25},
+                                "position_size_r": 0.1,
+                            }
+                        },
+                    },
+                    sort_keys=False,
+                )
+            )
+            (state / "goal.yaml").write_text(yaml.safe_dump({"assets": ["BTC/USDT"]}))
+            trades = [
+                {
+                    "timestamp": f"2026-08-01T10:{minute:02d}:00+00:00",
+                    "asset": "BTC/USDT",
+                    "realized_pnl_pct": -0.01,
+                    "equity": 99.0 - minute / 100,
+                }
+                for minute in range(20)
+            ]
+            (state / "trades.jsonl").write_text(
+                "\n".join(json.dumps(row) for row in trades) + "\n",
+                encoding="utf-8",
+            )
+            (state / "hypotheses.jsonl").write_text(
+                json.dumps({"timestamp": "2026-08-01T12:00:00+00:00", "mode": "hermes_asset"}) + "\n",
+                encoding="utf-8",
+            )
+            decisions = [
+                {
+                    "decided_at": f"2026-08-02T19:{minute:02d}:00+00:00",
+                    "asset": "BTC/USDT",
+                    "threshold": 25,
+                    "trade_closed": False,
+                }
+                for minute in range(31)
+            ]
+            (state / "decisions.jsonl").write_text(
+                "\n".join(json.dumps(row) for row in decisions) + "\n",
+                encoding="utf-8",
+            )
+
+            def fake_run(command, **kwargs):
+                raise RuntimeError("HTTP 429: too many requests")
+
+            with patch("hermes_trading.reflect.subprocess.run", side_effect=fake_run):
+                updated = run_hermes_reflection(
+                    state,
+                    env={
+                        "HERMES_REFLECTION_MODELS": "nous:z-ai/glm-5.2",
+                        "HERMES_REFLECT_COOLDOWN_HOURS": "0",
+                    },
+                )
+
+            self.assertEqual(updated["symbols"]["BTC/USDT"]["entry"]["threshold"], 27)
+            self.assertEqual(updated["version"], "84")
+
 
 class BootstrapTests(unittest.TestCase):
     def test_ensure_state_files_seeds_empty_volume(self):
@@ -358,6 +428,13 @@ class BootstrapTests(unittest.TestCase):
             self.assertEqual(yaml.safe_load((state / "strategy.yaml").read_text())["version"], "01")
             self.assertTrue((state / "history").is_dir())
             self.assertTrue((state / "trades.jsonl").exists())
+
+
+class WatcherSyncTests(unittest.TestCase):
+    def test_watcher_syncs_reflection_state(self):
+        from scripts import hermes_watch
+
+        self.assertIn("reflection_state.json", hermes_watch.STATE_FILES)
 
 
 class NewsAdapterTests(unittest.TestCase):
