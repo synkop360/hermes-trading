@@ -124,6 +124,20 @@
 - Remote Control API smoke tests returned `status=ok mode=training real_orders_allowed=false` and `qualification phase=validation_ready promotable=false promoted=false`.
 - Qualification remains blocked by non-evidence gates such as training duration and closed-position count; no phase was promoted.
 
+## Discord Trading Channel Smoke, 2026-08-02
+
+- Added `scripts/discord_bot_smoke.py` to verify Discord bot authentication, global slash command publication, and message sending without printing token values.
+- Initial DM smoke was replaced with a trading-channel smoke after operator clarification.
+- Deployment `03044479-a0fa-4ee7-b693-340db4b9b147` completed with status `SUCCESS`.
+- Post-deploy SSH verification returned `HERMES_TRADING_MODE=training` and `HERMES_TRADING_ALLOW_REAL_ORDERS=false`.
+- Remote Discord smoke returned:
+  - `authenticated bot_id=1533175457330106510 app_id=1533175457330106510`
+  - `commands=qualification,status`
+  - `channel=sent name=trading id=1531556629646938112 message_id=1533576038376935606`
+- The posted message asks the operator to respond in `#trading` by running `/status` and `/qualification` with a fresh OTP code.
+- Remote Control API smoke tests returned `status=ok mode=training real_orders_allowed=false` and `qualification phase=validation_ready promotable=false promoted=false`.
+- Real orders remain disabled and no phase was promoted.
+
 ## Current real qualification result
 
 Manual Railway command used:
@@ -163,6 +177,8 @@ This is correct behavior. Nothing has been promoted.
 - `eb09a76 feat: add qualification evidence status command`
 - `ae4b238 feat: generate qualification replay evidence`
 - `4304b3b feat: generate final qualification evidence`
+- `7256bfc test: add discord bot smoke check`
+- `1b9db9f test: send discord smoke prompt to trading channel`
 
 ## Verification commands
 
