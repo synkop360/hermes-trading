@@ -40,6 +40,7 @@ class OperationalScriptTests(unittest.TestCase):
     def test_control_api_and_discord_bot_scripts_are_importable(self) -> None:
         for script_name in (
             "control_command.py",
+            "discord_bot_smoke.py",
             "run_control_api.py",
             "run_discord_bot.py",
             "check_control_discord_secrets.py",
@@ -316,3 +317,44 @@ class OperationalScriptTests(unittest.TestCase):
         self.assertIn("fees_and_slippage_charged=pass", status.stdout)
         self.assertIn("duplicate_candle_protected=pass", status.stdout)
         self.assertIn("risk_limits_exercised=pass", status.stdout)
+
+    def test_discord_bot_smoke_checks_commands_and_can_send_dm_without_printing_token(self) -> None:
+        script_path = ROOT / "scripts" / "discord_bot_smoke.py"
+        spec = importlib.util.spec_from_file_location("discord_bot_smoke", script_path)
+        self.assertIsNotNone(spec)
+        self.assertIsNotNone(spec.loader)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        calls: list[tuple[str, str, object | None]] = []
+
+        def request_json(method: str, url: str, *, token: str, payload: object | None = None) -> object:
+            calls.append((method, url, payload))
+            self.assertEqual(token, "discord-token-value")
+            if url.endswith("/users/@me"):
+                return {"id": "bot-123", "username": "Hermes"}
+            if url.endswith("/oauth2/applications/@me"):
+                return {"id": "app-123", "name": "Hermes Trader"}
+            if url.endswith("/applications/app-123/commands"):
+                return [{"name": "status"}, {"name": "qualification"}]
+            if url.endswith("/users/@me/channels"):
+                return {"id": "dm-123"}
+            if url.endswith("/channels/dm-123/messages"):
+                return {"id": "message-123"}
+            raise AssertionError(url)
+
+        lines = module.smoke_discord_bot(
+            {
+                "HERMES_DISCORD_BOT_TOKEN": "discord-token-value",
+                "HERMES_DISCORD_ALLOWED_USER_IDS": "174585364944519168",
+            },
+            request_json=request_json,
+            send_dm=True,
+            message="Hermes smoke",
+        )
+
+        rendered = "\n".join(lines)
+        self.assertIn("authenticated bot_id=bot-123 app_id=app-123", rendered)
+        self.assertIn("commands=qualification,status", rendered)
+        self.assertIn("dm=sent user_id=174585364944519168 message_id=message-123", rendered)
+        self.assertNotIn("discord-token-value", rendered)
+        self.assertEqual(calls[-1], ("POST", "https://discord.com/api/v10/channels/dm-123/messages", {"content": "Hermes smoke"}))
