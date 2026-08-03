@@ -32,6 +32,7 @@ from hermes_trading.funds import (
     resolve_funds_alert_settings,
 )
 from hermes_trading.market_data import MarketDataCoordinator
+from hermes_trading.market_data import timeframe_interval
 from hermes_trading.persistence.artifacts import ArtifactProjector
 from hermes_trading.persistence.repository import StateRepository
 from hermes_trading.positions import PositionEngine, PositionProcessResult
@@ -139,6 +140,13 @@ def parse_assets(env: dict[str, str] | None = None) -> list[str]:
             unique_assets.append(asset)
             seen.add(asset)
     return unique_assets or ["BTC/USDT"]
+
+
+def resolve_trading_timeframe(env: dict[str, str] | None = None) -> str:
+    values = env if env is not None else os.environ
+    timeframe = values.get("HERMES_TRADING_TIMEFRAME", "1h").strip()
+    timeframe_interval(timeframe)
+    return timeframe
 
 
 def _deep_merge(base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any]:
@@ -779,6 +787,7 @@ async def _run_training_loop(
         news_fetch=lambda: _retry("news", news.fetch),
         macro_fetch=lambda: _retry("macro", macro.fetch),
         onchain_fetch=lambda: _retry("onchain", onchain.fetch),
+        timeframe=resolve_trading_timeframe(),
     )
     consecutive_failures = 0
     qualification_schedule = QualificationCycleSchedule(
