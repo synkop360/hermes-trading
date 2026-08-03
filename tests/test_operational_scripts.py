@@ -335,7 +335,7 @@ class OperationalScriptTests(unittest.TestCase):
             if url.endswith("/oauth2/applications/@me"):
                 return {"id": "app-123", "name": "Hermes Trader"}
             if url.endswith("/applications/app-123/commands"):
-                return [{"name": "status"}, {"name": "qualification"}]
+                return [{"name": "status"}, {"name": "qualification"}, {"name": "config"}, {"name": "config_set"}]
             if url.endswith("/users/@me/guilds"):
                 return [{"id": "guild-123", "name": "Hermes Ops"}]
             if url.endswith("/guilds/guild-123/channels"):
@@ -354,12 +354,12 @@ class OperationalScriptTests(unittest.TestCase):
             request_json=request_json,
             send_channel_message=True,
             channel_name="trading",
-            message="Hermes smoke: lance /status puis /qualification",
+            message="Hermes smoke: lance /status, /qualification puis /config",
         )
 
         rendered = "\n".join(lines)
         self.assertIn("authenticated bot_id=bot-123 app_id=app-123", rendered)
-        self.assertIn("commands=qualification,status", rendered)
+        self.assertIn("commands=config,config_set,qualification,status", rendered)
         self.assertIn("channel=sent name=trading id=channel-123 message_id=message-123", rendered)
         self.assertNotIn("discord-token-value", rendered)
         self.assertEqual(
@@ -367,6 +367,6 @@ class OperationalScriptTests(unittest.TestCase):
             (
                 "POST",
                 "https://discord.com/api/v10/channels/channel-123/messages",
-                {"content": "Hermes smoke: lance /status puis /qualification"},
+                {"content": "Hermes smoke: lance /status, /qualification puis /config"},
             ),
         )

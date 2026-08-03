@@ -39,6 +39,12 @@ class ControlClientLike(Protocol):
     def qualification(self, phase: str = "validation_ready") -> dict[str, object]:
         ...
 
+    def config(self) -> dict[str, object]:
+        ...
+
+    def set_config(self, key: str, value: str) -> dict[str, object]:
+        ...
+
 
 class DiscordControlBot:
     def __init__(
@@ -69,6 +75,20 @@ class DiscordControlBot:
             return denial
         return f"Hermes {qualification_message(self._control_client.qualification('validation_ready'))}"
 
+    def config(self, *, user_id: int, otp: str) -> str:
+        denial = self._deny(user_id, otp)
+        if denial is not None:
+            return denial
+        return format_config_message(self._control_client.config())
+
+    def config_set(self, *, user_id: int, otp: str, key: str, value: str) -> str:
+        denial = self._deny(user_id, otp)
+        if denial is not None:
+            return denial
+        result = self._control_client.set_config(key, value)
+        restart = _bool_text(result.get("restart_required"))
+        return f"Hermes config updated {result.get('key')}={result.get('value')} restart_required={restart}"
+
     def _deny(self, user_id: int, otp: str) -> str | None:
         if user_id not in self._config.allowed_user_ids:
             return "unauthorized"
@@ -95,7 +115,7 @@ async def run_discord_bot(config: DiscordBotConfig) -> None:
         print(f"Hermes Discord bot logged in as {client.user}", flush=True)
 
     @tree.command(name="status", description="Read Hermes status")
-    async def status(interaction: discord.Interaction, otp: str) -> None:
+    async def status_command(interaction: discord.Interaction, otp: str) -> None:
         await interaction.response.defer(ephemeral=True)
         message = await asyncio.to_thread(bot.status, user_id=interaction.user.id, otp=otp)
         await interaction.followup.send(
@@ -104,9 +124,33 @@ async def run_discord_bot(config: DiscordBotConfig) -> None:
         )
 
     @tree.command(name="qualification", description="Request a validation qualification report")
-    async def qualification(interaction: discord.Interaction, otp: str) -> None:
+    async def qualification_command(interaction: discord.Interaction, otp: str) -> None:
         await interaction.response.defer(ephemeral=True)
         message = await asyncio.to_thread(bot.qualification, user_id=interaction.user.id, otp=otp)
+        await interaction.followup.send(
+            message,
+            ephemeral=True,
+        )
+
+    @tree.command(name="config", description="List Hermes operator configuration")
+    async def config_command(interaction: discord.Interaction, otp: str) -> None:
+        await interaction.response.defer(ephemeral=True)
+        message = await asyncio.to_thread(bot.config, user_id=interaction.user.id, otp=otp)
+        await interaction.followup.send(
+            message,
+            ephemeral=True,
+        )
+
+    @tree.command(name="config_set", description="Update one Hermes operator setting")
+    async def config_set_command(interaction: discord.Interaction, otp: str, key: str, value: str) -> None:
+        await interaction.response.defer(ephemeral=True)
+        message = await asyncio.to_thread(
+            bot.config_set,
+            user_id=interaction.user.id,
+            otp=otp,
+            key=key,
+            value=value,
+        )
         await interaction.followup.send(
             message,
             ephemeral=True,
@@ -174,6 +218,26 @@ def _allowed_user_ids(raw: str) -> frozenset[int]:
 
 def _allowed_control_hosts(raw: str) -> frozenset[str]:
     return frozenset(part.strip().lower() for part in raw.replace(";", ",").split(",") if part.strip())
+
+
+def format_config_message(payload: Mapping[str, object]) -> str:
+    settings = payload.get("settings")
+    if not isinstance(settings, Mapping):
+        return "Hermes config unavailable"
+    lines = ["Hermes config"]
+    for key in sorted(settings):
+        item = settings[key]
+        if not isinstance(item, Mapping):
+            continue
+        value = item.get("value")
+        source = item.get("source")
+        restart = _bool_text(item.get("restart_required"))
+        lines.append(f"{key}={value} source={source} restart_required={restart}")
+    return "\n".join(lines)
+
+
+def _bool_text(value: object) -> str:
+    return "true" if value is True else "false" if value is False else str(value)
 
 
 def _base32_padded(value: str) -> str:

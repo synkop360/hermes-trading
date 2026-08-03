@@ -10,7 +10,7 @@ import httpx
 
 
 DISCORD_API_BASE = "https://discord.com/api/v10"
-REQUIRED_COMMANDS = frozenset({"status", "qualification"})
+REQUIRED_COMMANDS = frozenset({"status", "qualification", "config", "config_set"})
 
 
 def main() -> None:
@@ -24,7 +24,7 @@ def main() -> None:
         "--message",
         default=(
             "Hermes Discord smoke test: merci de repondre dans ce salon en lancant "
-            "/status puis /qualification avec un code OTP frais."
+            "/status, /qualification et /config avec un code OTP frais."
         ),
     )
     args = parser.parse_args()
@@ -52,7 +52,7 @@ def smoke_discord_bot(
     user_id: str | None = None,
     message: str = (
         "Hermes Discord smoke test: merci de repondre dans ce salon en lancant "
-        "/status puis /qualification avec un code OTP frais."
+        "/status, /qualification et /config avec un code OTP frais."
     ),
 ) -> list[str]:
     token = _required(env, "HERMES_DISCORD_BOT_TOKEN")

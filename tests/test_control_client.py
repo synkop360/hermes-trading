@@ -34,6 +34,34 @@ class ControlClientTests(unittest.TestCase):
         self.assertEqual(captured["url"], "http://control-api.railway.internal:8765/status")
         self.assertIn("X-Hermes-Signature", captured["headers"])
 
+    def test_config_commands_use_signed_control_requests(self) -> None:
+        calls = []
+
+        def request_json(method, url, headers, body):
+            calls.append({"method": method, "url": url, "headers": headers, "body": body})
+            if method == "GET":
+                return {"settings": {"HERMES_TRADING_TIMEFRAME": {"value": "1h"}}}
+            return {"key": "HERMES_TRADING_TIMEFRAME", "value": "15m", "restart_required": True}
+
+        client = ControlClient(
+            "http://127.0.0.1:8765",
+            "secret",
+            request_json=request_json,
+            now=lambda: NOW,
+            nonce=lambda: f"nonce-{len(calls)}",
+        )
+
+        listed = client.config()
+        updated = client.set_config("HERMES_TRADING_TIMEFRAME", "15m")
+
+        self.assertEqual(listed["settings"]["HERMES_TRADING_TIMEFRAME"]["value"], "1h")
+        self.assertEqual(updated["value"], "15m")
+        self.assertEqual(calls[0]["method"], "GET")
+        self.assertEqual(calls[0]["url"], "http://127.0.0.1:8765/config")
+        self.assertEqual(calls[1]["method"], "POST")
+        self.assertEqual(calls[1]["body"], '{"key":"HERMES_TRADING_TIMEFRAME","value":"15m"}')
+        self.assertIn("X-Hermes-Signature", calls[1]["headers"])
+
 
 if __name__ == "__main__":
     unittest.main()

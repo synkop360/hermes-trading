@@ -56,6 +56,7 @@ from hermes_trading.notifications import (
     send_notification,
     WorkerFeatureUpdateLedger,
 )
+from hermes_trading.operator_config import merged_operator_env
 from hermes_trading.qualification import QualificationPhase, QualificationService
 from hermes_trading.qualification_runner import QualificationCycleSchedule, QualificationRunner
 
@@ -778,7 +779,9 @@ async def _run_training_loop(
     assets: list[str], state_dir: Path, interval_seconds: int, trading: TradingConfig,
     notification_settings: NotificationSettings, funds_alert_settings: Any,
     pnl_summary: PnlSummaryCounter,
+    env: Mapping[str, str] | None = None,
 ) -> None:
+    values = env if env is not None else os.environ
     state = StateRepository.open(state_dir / "trading.db")
     state.migrate()
     projector = ArtifactProjector(state_dir)
@@ -787,7 +790,7 @@ async def _run_training_loop(
         news_fetch=lambda: _retry("news", news.fetch),
         macro_fetch=lambda: _retry("macro", macro.fetch),
         onchain_fetch=lambda: _retry("onchain", onchain.fetch),
-        timeframe=resolve_trading_timeframe(),
+        timeframe=resolve_trading_timeframe(dict(values)),
     )
     consecutive_failures = 0
     qualification_schedule = QualificationCycleSchedule(
@@ -965,18 +968,19 @@ async def _run_validation_only_loop(
 
 
 async def run_loop(asset: str | list[str], state_dir: Path, interval_seconds: int = 60) -> None:
-    trading = resolve_trading_config()
-    execution_settings = resolve_execution_settings()
-    notification_settings = resolve_notification_settings()
-    funds_alert_settings = resolve_funds_alert_settings()
+    operator_env = merged_operator_env(state_dir, os.environ)
+    trading = resolve_trading_config(operator_env)
+    execution_settings = resolve_execution_settings(operator_env)
+    notification_settings = resolve_notification_settings(operator_env)
+    funds_alert_settings = resolve_funds_alert_settings(operator_env)
     pnl_summary = PnlSummaryCounter(notification_settings)
 
-    assets = [asset] if isinstance(asset, str) else asset
+    assets = parse_assets(operator_env) if operator_env.get("HERMES_TRADING_ASSETS") else [asset] if isinstance(asset, str) else asset
     print(f"Booting hermes-trading worker for {', '.join(assets)} in {trading.mode} mode", flush=True)
     if trading.mode == "training":
         await _run_training_loop(
             assets, state_dir, interval_seconds, trading, notification_settings,
-            funds_alert_settings, pnl_summary,
+            funds_alert_settings, pnl_summary, operator_env,
         )
         return
     if not execution_settings.validate_only or execution_settings.allow_real_orders:

@@ -43,6 +43,13 @@ class ControlClient:
         body = json.dumps({"phase": phase}, separators=(",", ":"), sort_keys=True)
         return self._signed_request("POST", "/qualification", body)
 
+    def config(self) -> dict[str, object]:
+        return self._signed_request("GET", "/config", "")
+
+    def set_config(self, key: str, value: str) -> dict[str, object]:
+        body = json.dumps({"key": key, "value": value}, separators=(",", ":"), sort_keys=True)
+        return self._signed_request("POST", "/config", body)
+
     def _signed_request(self, method: str, path: str, body: str) -> dict[str, object]:
         current = self._now().astimezone(UTC)
         nonce = self._nonce()

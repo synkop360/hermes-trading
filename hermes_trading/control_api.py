@@ -10,6 +10,7 @@ from pathlib import Path
 
 from hermes_trading.control import ControlService
 from hermes_trading.control_auth import SQLiteNonceReplayStore, verify_command
+from hermes_trading.operator_config import OperatorConfigError, list_operator_config, set_operator_config
 from hermes_trading.persistence.repository import StateRepository
 from hermes_trading.qualification import QualificationPhase
 
@@ -46,6 +47,10 @@ class LocalControlApi:
             return _json_response(401, {"error": "unauthorized"})
         if method == "GET" and path == "/status":
             return _json_response(200, self._status_payload())
+        if method == "GET" and path == "/config":
+            return _json_response(200, list_operator_config(self._state_dir, os.environ))
+        if method == "POST" and path == "/config":
+            return self._config_response(body)
         if method == "POST" and path == "/qualification":
             return self._qualification_response(body)
         return _json_response(404, {"error": "not_found"})
@@ -85,6 +90,18 @@ class LocalControlApi:
         except (KeyError, TypeError, ValueError, json.JSONDecodeError):
             return _json_response(400, {"error": "invalid_qualification_request"})
         result = ControlService(self._repository, self._state_dir).request_qualification(phase)
+        return _json_response(200, result)
+
+    def _config_response(self, body: str) -> ControlResponse:
+        try:
+            payload = json.loads(body)
+            key = str(payload["key"])
+            value = str(payload["value"])
+            result = set_operator_config(self._state_dir, key, value, os.environ)
+        except (KeyError, TypeError, json.JSONDecodeError):
+            return _json_response(400, {"error": "invalid_config_request"})
+        except OperatorConfigError as error:
+            return _json_response(400, {"error": "invalid_config_request", "detail": str(error)})
         return _json_response(200, result)
 
 

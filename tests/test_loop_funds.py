@@ -43,6 +43,36 @@ class LoopFundsAlertTests(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(initialized[0]["timeframe"], "15m")
 
+    async def test_run_loop_uses_persisted_operator_market_timeframe(self):
+        initialized = []
+
+        def fake_init(self, **kwargs):
+            initialized.append(kwargs)
+
+        async def blocked_market_collection(_, assets):
+            await asyncio.Event().wait()
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            state = Path(temp_dir)
+            ensure_state_files(state)
+            (state / "operator_config.json").write_text(
+                '{"HERMES_TRADING_TIMEFRAME":"15m"}\n',
+                encoding="utf-8",
+            )
+            with patch.dict(os.environ, {"HERMES_TRADING_MODE": "training"}, clear=False):
+                with patch("hermes_trading.loop.MarketDataCoordinator.__init__", fake_init):
+                    with patch("hermes_trading.loop.MarketDataCoordinator.collect", blocked_market_collection):
+                        task = asyncio.create_task(run_loop("BTC/USDT", state, interval_seconds=60))
+                        for _ in range(20):
+                            if initialized:
+                                break
+                            await asyncio.sleep(0.01)
+                        task.cancel()
+                        with self.assertRaises(asyncio.CancelledError):
+                            await task
+
+        self.assertEqual(initialized[0]["timeframe"], "15m")
+
     async def test_run_loop_sends_low_funds_alert_when_enabled(self):
         messages = []
 

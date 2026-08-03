@@ -35,6 +35,22 @@ class RecordingControlClient:
             "run_id": "qualification-run",
         }
 
+    def config(self) -> dict[str, object]:
+        self.calls.append(("config", None))
+        return {
+            "settings": {
+                "HERMES_TRADING_TIMEFRAME": {
+                    "value": "15m",
+                    "source": "operator",
+                    "restart_required": True,
+                }
+            }
+        }
+
+    def set_config(self, key: str, value: str) -> dict[str, object]:
+        self.calls.append(("set_config", f"{key}={value}"))
+        return {"key": key, "value": value, "restart_required": True}
+
 
 class FakeDiscordClient:
     def __init__(self, *, intents: object) -> None:
@@ -86,13 +102,19 @@ class FakeInteraction:
 
 class FakeDiscordControlBot:
     def __init__(self, config) -> None:
-        self.config = config
+        self.bot_config = config
 
     def status(self, *, user_id: int, otp: str) -> str:
         return f"status for {user_id} with {otp}"
 
     def qualification(self, *, user_id: int, otp: str) -> str:
         return f"qualification for {user_id} with {otp}"
+
+    def config(self, *, user_id: int, otp: str) -> str:
+        return f"config for {user_id} with {otp}"
+
+    def config_set(self, *, user_id: int, otp: str, key: str, value: str) -> str:
+        return f"config set {key}={value} for {user_id} with {otp}"
 
 
 class DiscordBotConfigTests(unittest.TestCase):
@@ -200,6 +222,36 @@ class DiscordControlBotTests(unittest.TestCase):
         self.assertIn("run_id=qualification-run", message)
         self.assertEqual(control_client.calls, [("qualification", "validation_ready")])
 
+    def test_config_commands_use_control_client_after_authorization(self) -> None:
+        control_client = RecordingControlClient()
+        bot = DiscordControlBot(
+            resolve_discord_bot_config(
+                {
+                    "HERMES_DISCORD_BOT_TOKEN": "bot-token",
+                    "HERMES_DISCORD_ALLOWED_USER_IDS": "123",
+                    "HERMES_CONTROL_HMAC_SECRET": "control-secret",
+                    "HERMES_DISCORD_TOTP_SECRET": TOTP_SECRET,
+                }
+            ),
+            control_client=control_client,
+            now=lambda: NOW,
+        )
+
+        listed = bot.config(user_id=123, otp=totp_code(TOTP_SECRET, NOW))
+        updated = bot.config_set(
+            user_id=123,
+            otp=totp_code(TOTP_SECRET, NOW),
+            key="HERMES_TRADING_TIMEFRAME",
+            value="15m",
+        )
+
+        self.assertIn("HERMES_TRADING_TIMEFRAME=15m", listed)
+        self.assertIn("restart_required=true", updated)
+        self.assertEqual(
+            control_client.calls,
+            [("config", None), ("set_config", "HERMES_TRADING_TIMEFRAME=15m")],
+        )
+
     def test_discord_handlers_defer_before_offloading_blocking_bot_calls(self) -> None:
         config = resolve_discord_bot_config(
             {
@@ -236,6 +288,8 @@ class DiscordControlBotTests(unittest.TestCase):
 
             asyncio.run(commands["status"](FakeInteraction(events), "111111"))
             asyncio.run(commands["qualification"](FakeInteraction(events), "222222"))
+            asyncio.run(commands["config"](FakeInteraction(events), "333333"))
+            asyncio.run(commands["config_set"](FakeInteraction(events), "444444", "HERMES_TRADING_TIMEFRAME", "15m"))
 
         self.assertEqual(events[0], ("defer", True))
         self.assertEqual(events[1][0:2], ("to_thread", "status"))
@@ -243,3 +297,12 @@ class DiscordControlBotTests(unittest.TestCase):
         self.assertEqual(events[3], ("defer", True))
         self.assertEqual(events[4][0:2], ("to_thread", "qualification"))
         self.assertEqual(events[5], ("followup", "qualification for 123 with 222222", True))
+        self.assertEqual(events[6], ("defer", True))
+        self.assertEqual(events[7][0:2], ("to_thread", "config"))
+        self.assertEqual(events[8], ("followup", "config for 123 with 333333", True))
+        self.assertEqual(events[9], ("defer", True))
+        self.assertEqual(events[10][0:2], ("to_thread", "config_set"))
+        self.assertEqual(
+            events[11],
+            ("followup", "config set HERMES_TRADING_TIMEFRAME=15m for 123 with 444444", True),
+        )

@@ -72,6 +72,48 @@ class LocalControlApiTests(unittest.TestCase):
         self.assertFalse(payload["promoted"])
         self.assertFalse(payload["promotable"])
 
+    def test_config_lists_and_updates_only_allowlisted_operator_settings(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            state_dir = Path(directory)
+            repository = StateRepository.open(state_dir / "trading.db")
+            repository.migrate()
+            api = LocalControlApi(repository, state_dir, secret="secret", now=lambda: NOW)
+
+            list_response = api.handle(
+                "GET",
+                "/config",
+                self.signed_headers("secret", "nonce-config-list", NOW, ""),
+                "",
+            )
+            body = '{"key":"HERMES_TRADING_TIMEFRAME","value":"15m"}'
+            set_response = api.handle(
+                "POST",
+                "/config",
+                self.signed_headers("secret", "nonce-config-set", NOW + timedelta(seconds=1), body),
+                body,
+            )
+            dangerous_body = '{"key":"HERMES_TRADING_ALLOW_REAL_ORDERS","value":"true"}'
+            dangerous_response = api.handle(
+                "POST",
+                "/config",
+                self.signed_headers("secret", "nonce-config-danger", NOW + timedelta(seconds=2), dangerous_body),
+                dangerous_body,
+            )
+            persisted = json.loads((state_dir / "operator_config.json").read_text(encoding="utf-8"))
+            repository.close()
+
+        self.assertEqual(list_response.status, 200)
+        listed = json.loads(list_response.body)
+        self.assertIn("HERMES_TRADING_TIMEFRAME", listed["settings"])
+        self.assertNotIn("HERMES_DISCORD_BOT_TOKEN", listed["settings"])
+        self.assertEqual(set_response.status, 200)
+        updated = json.loads(set_response.body)
+        self.assertEqual(updated["key"], "HERMES_TRADING_TIMEFRAME")
+        self.assertEqual(updated["value"], "15m")
+        self.assertTrue(updated["restart_required"])
+        self.assertEqual(persisted["HERMES_TRADING_TIMEFRAME"], "15m")
+        self.assertEqual(dangerous_response.status, 400)
+
     def test_http_handler_serves_signed_status_on_loopback_server(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             state_dir = Path(directory)
