@@ -970,12 +970,20 @@ def _apply_strategy_proposal(
         target = updated["symbols"][asset]
 
     _validate_strategy_change(strategy, variable, asset, proposal["value"])
+    value = _normalized_strategy_value(variable, proposal["value"])
     if variable == "entry.threshold":
-        target.setdefault("entry", {})["threshold"] = proposal["value"]
+        target.setdefault("entry", {})["threshold"] = value
     else:
-        target[variable] = proposal["value"]
+        target[variable] = value
 
     return updated, variable, asset
+
+
+def _normalized_strategy_value(variable: str, value: Any) -> Any:
+    if variable != "entry.threshold":
+        return value
+    numeric = float(value)
+    return int(numeric) if numeric.is_integer() else value
 
 
 def _validate_strategy_change(strategy: dict[str, Any], variable: str, asset: str | None, value: Any) -> None:

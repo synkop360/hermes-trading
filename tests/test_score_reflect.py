@@ -414,6 +414,10 @@ class ReflectionTests(unittest.TestCase):
                 )
 
             self.assertEqual(updated["symbols"]["BTC/USDT"]["entry"]["threshold"], 27)
+            self.assertIsInstance(
+                updated["symbols"]["BTC/USDT"]["entry"]["threshold"],
+                int,
+            )
             self.assertEqual(updated["version"], "84")
 
 
