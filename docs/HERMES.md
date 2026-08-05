@@ -57,8 +57,12 @@ Selection de modele pour `hermes_trading.reflect --hermes`:
 
 - `HERMES_REFLECTION_MODELS`: liste prioritaire, par exemple `nous:z-ai/glm-5.2,openai:gpt-5.6-luna`.
 - `HERMES_REFLECTION_MODEL` et `HERMES_REFLECTION_PROVIDER`: candidat unique si la liste n'est pas fournie.
+- `HERMES_LOCAL_MODEL`: active un fallback local OpenAI-compatible, par exemple `ai/smollm2`.
+- `HERMES_LOCAL_MODEL_PORT`: port du modele local, `12434` par defaut pour Docker Model Runner.
 - `OPENAI_API_KEY` ou `HERMES_OPENAI_API_KEY`: active le fallback direct vers l'API OpenAI.
 - `HERMES_OPENAI_FALLBACK_MODEL`: modele OpenAI de secours, `gpt-5.6-luna` par defaut.
+
+Le fallback local utilise `http://127.0.0.1:<port>/engines/v1/chat/completions` et ne demande pas de cle API. Pour Docker Model Runner, il suffit donc de definir `HERMES_LOCAL_MODEL`; le port peut rester implicite.
 
 Si tous les modeles LLM echouent, le module bascule sur la reflexion fallback deterministe locale et ajoute l'echec de selection dans `hypotheses.jsonl`.
 

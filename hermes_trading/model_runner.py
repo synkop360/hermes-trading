@@ -23,8 +23,18 @@ class ModelRunResult:
 class ReflectionModelRunner:
     """Run Hermes automatic selection first; OpenAI is an unremembered fallback."""
 
-    def __init__(self, router: ProviderRouter, *, openai_run: Callable[[str], str] | None = None, command_run: Callable[..., subprocess.CompletedProcess[str]] | None = None, timeout_seconds: int | None = None, cost_ledger: CostLedger | None = None) -> None:
+    def __init__(
+        self,
+        router: ProviderRouter,
+        *,
+        local_run: Callable[[str], str] | None = None,
+        openai_run: Callable[[str], str] | None = None,
+        command_run: Callable[..., subprocess.CompletedProcess[str]] | None = None,
+        timeout_seconds: int | None = None,
+        cost_ledger: CostLedger | None = None,
+    ) -> None:
         self.router = router
+        self.local_run = local_run
         self.openai_run = openai_run
         self.command_run = command_run
         self.timeout_seconds = timeout_seconds or int(os.environ.get("HERMES_REFLECTION_TIMEOUT_SECONDS", "60"))
@@ -54,6 +64,17 @@ class ReflectionModelRunner:
                     error_class=_error_class(error),
                     retry_after_seconds=_retry_after_seconds(error),
                     now=current,
+                )
+
+        if self.local_run is not None:
+            if _provider_cooling_down("local_model", "fallback", list(self.router.store.provider_attempts()), current):
+                raise RuntimeError(_combined_error(errors + [("local_model", "fallback", RuntimeError("local model fallback cooling down"))]))
+            try:
+                return ModelRunResult(_json_output(self.local_run(prompt)), "local_model", None)
+            except Exception as error:
+                errors.append(("local_model", "fallback", error))
+                self.router.store.record_provider_attempt(
+                    ProviderAttempt("local_model", "fallback", _error_class(error), current, _retry_after_seconds(error))
                 )
 
         if self.openai_run is not None:

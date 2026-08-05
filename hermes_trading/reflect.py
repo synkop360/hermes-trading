@@ -593,11 +593,16 @@ def _generate_asset_proposal(
         cache_path = Path(env.get("HERMES_HOME", str(Path.home() / ".hermes"))) / "provider_models_cache.json"
         fallback_model = env.get("HERMES_OPENAI_FALLBACK_MODEL", DEFAULT_OPENAI_REFLECTION_MODEL)
         ledger = CostLedger(state_dir)
+        local_model = env.get("HERMES_LOCAL_MODEL", "").strip()
+        local_run = (
+            lambda request: _run_local_model_prompt(request, local_model, env)
+        ) if local_model else None
         openai_run = (
             lambda request: _run_openai_prompt(request, fallback_model, env, cost_ledger=ledger)
         ) if _has_openai_api_key(env) else None
         result = ReflectionModelRunner(
             ProviderRouter(repository, HermesCatalog.load(cache_path)),
+            local_run=local_run,
             openai_run=openai_run,
             cost_ledger=ledger,
         ).run(prompt)
@@ -776,6 +781,42 @@ def _extract_openai_text(payload: dict[str, Any]) -> str:
     if not chunks:
         raise ValueError("OpenAI response did not contain text output")
     return "\n".join(chunks).strip()
+
+
+def _extract_chat_completion_text(payload: dict[str, Any]) -> str:
+    choices = payload.get("choices")
+    if isinstance(choices, list):
+        for choice in choices:
+            if not isinstance(choice, dict):
+                continue
+            message = choice.get("message")
+            if isinstance(message, dict) and message.get("content"):
+                return str(message["content"]).strip()
+            if choice.get("text"):
+                return str(choice["text"]).strip()
+    raise ValueError("local model response did not contain text output")
+
+
+def _run_local_model_prompt(
+    prompt: str,
+    model: str,
+    env: dict[str, str],
+) -> str:
+    port = env.get("HERMES_LOCAL_MODEL_PORT", "12434").strip() or "12434"
+    response = httpx.post(
+        f"http://127.0.0.1:{port}/engines/v1/chat/completions",
+        headers={
+            "Content-Type": "application/json",
+        },
+        json={
+            "model": model,
+            "messages": [{"role": "user", "content": prompt}],
+            "response_format": {"type": "json_object"},
+        },
+        timeout=60,
+    )
+    response.raise_for_status()
+    return _extract_chat_completion_text(response.json())
 
 
 def _run_openai_prompt(

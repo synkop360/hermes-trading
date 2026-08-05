@@ -201,6 +201,49 @@ class ReflectionTests(unittest.TestCase):
             self.assertIn('"category":"openai"', (state / "cost_events.jsonl").read_text())
             self.assertIn('"quality":"missing"', (state / "cost_events.jsonl").read_text())
 
+    def test_local_reflection_model_uses_default_docker_model_port_without_openai_key(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            state = Path(temp_dir)
+            self._write_minimal_reflection_state(state)
+            self._write_no_trade_decisions(state, "BTC/USDT")
+
+            class FakeLocalResponse:
+                def raise_for_status(self):
+                    return None
+
+                def json(self):
+                    return {
+                        "choices": [
+                            {
+                                "message": {
+                                    "content": '{"variable":"entry.threshold","value":28,"reason":"local model"}',
+                                },
+                            },
+                        ],
+                    }
+
+            def fake_run(command, **kwargs):
+                raise RuntimeError("default unavailable")
+
+            with (
+                patch("hermes_trading.model_runner.subprocess.run", side_effect=fake_run),
+                patch("hermes_trading.reflect.httpx.post", return_value=FakeLocalResponse()) as post,
+            ):
+                updated = run_hermes_reflection(
+                    state,
+                    env={
+                        "HERMES_LOCAL_MODEL": "ai/test-local",
+                        "HERMES_REFLECT_MIN_CLOSED_TRADES": "0",
+                    },
+                )
+
+            self.assertEqual(updated["entry"]["threshold"], 30)
+            self.assertIn("symbols", updated)
+            self.assertEqual(updated["symbols"]["BTC/USDT"]["entry"]["threshold"], 32)
+            self.assertEqual(post.call_args.args[0], "http://127.0.0.1:12434/engines/v1/chat/completions")
+            self.assertEqual(post.call_args.kwargs["json"]["model"], "ai/test-local")
+            self.assertNotIn("Authorization", post.call_args.kwargs["headers"])
+
     def test_hermes_reflection_can_update_one_symbol_override(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             state = Path(temp_dir)
