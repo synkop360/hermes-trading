@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
+import json
 from pathlib import Path
 import tempfile
 import unittest
@@ -264,6 +265,33 @@ class LiveCycleTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(result.new_orders, ())
         self.assertEqual(result.status, "blocked_risk")
         self.assertIn("unknown_balance", result.heartbeat["reason"])
+
+    async def test_repeated_reflection_model_failures_block_new_live_entries(self) -> None:
+        events: list[str] = []
+        gateway = ValidationGateway(events)
+        failures = [
+            {
+                "timestamp": (NOW - timedelta(minutes=30 - index)).isoformat(),
+                "mode": "hermes_multi_asset_no_change",
+                "results": [{"asset": "BTC/USDT", "status": "model_failed"}],
+            }
+            for index in range(3)
+        ]
+        (self.state_dir / "hypotheses.jsonl").write_text(
+            "\n".join(json.dumps(row) for row in failures) + "\n",
+            encoding="utf-8",
+        )
+
+        result = await run_live_cycle(
+            ["BTC/USDT"], self.repository, self.projector, FakeMarketData(events),
+            entry_strategy(), gateway, validate_only=True, now=lambda: NOW,
+        )
+
+        self.assertEqual(result.status, "blocked_reflection_model")
+        self.assertEqual(result.new_orders, ())
+        self.assertEqual(gateway.validation_calls, 0)
+        self.assertNotIn("load_rules", events)
+        self.assertIn("reflection_model_blocked", result.heartbeat["reason"])
 
     async def test_funds_alert_uses_reconciled_balance_and_transport_failure_is_nonfatal(self) -> None:
         events: list[str] = []

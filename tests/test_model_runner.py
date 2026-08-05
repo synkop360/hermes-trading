@@ -1,6 +1,7 @@
 import subprocess
 import tempfile
 import unittest
+from datetime import UTC, datetime
 from decimal import Decimal
 from pathlib import Path
 from unittest.mock import patch
@@ -39,6 +40,58 @@ class ReflectionModelRunnerTests(unittest.TestCase):
         self.assertEqual(calls[1][-4:], ["--provider", "nous", "-m", "a:free"])
         self.assertEqual(calls[2][-4:], ["--provider", "openrouter", "-m", "b:free"])
         self.assertEqual(result.provider, "openai_api")
+
+    def test_hermes_auto_failure_is_recorded_before_fallback(self):
+        store = Store()
+
+        def run(command, **kwargs):
+            raise RuntimeError("HTTP 404: default model not found")
+
+        result = ReflectionModelRunner(
+            ProviderRouter(store, HermesCatalog(())),
+            command_run=run,
+            openai_run=lambda prompt: '{"variable":"entry.threshold"}',
+        ).run("prompt")
+
+        self.assertEqual(result.provider, "openai_api")
+        self.assertEqual(store.attempts[0].provider, "hermes_auto")
+        self.assertEqual(store.attempts[0].model, "auto")
+        self.assertEqual(store.attempts[0].status, "invalid_model")
+
+    def test_recent_openai_rate_limit_skips_openai_fallback(self):
+        store = Store()
+        store.record_provider_attempt(
+            ProviderAttempt("openai_api", "fallback", "rate_limit", datetime.now(UTC), retry_after_seconds=300)
+        )
+
+        def run(command, **kwargs):
+            raise RuntimeError("default unavailable")
+
+        def openai_run(prompt):
+            raise AssertionError("OpenAI should be cooling down")
+
+        with self.assertRaisesRegex(RuntimeError, "openai_api fallback cooling down"):
+            ReflectionModelRunner(
+                ProviderRouter(store, HermesCatalog(())),
+                command_run=run,
+                openai_run=openai_run,
+            ).run("prompt")
+
+    def test_openai_failure_is_recorded_and_includes_hermes_errors(self):
+        store = Store()
+
+        def run(command, **kwargs):
+            raise RuntimeError("HTTP 404: default model not found")
+
+        with self.assertRaisesRegex(RuntimeError, "hermes_auto.*openai_api"):
+            ReflectionModelRunner(
+                ProviderRouter(store, HermesCatalog(())),
+                command_run=run,
+                openai_run=lambda prompt: (_ for _ in ()).throw(RuntimeError("HTTP 429: too many requests")),
+            ).run("prompt")
+
+        self.assertEqual(store.attempts[-1].provider, "openai_api")
+        self.assertEqual(store.attempts[-1].status, "rate_limit")
 
     def test_default_command_runner_is_patchable_at_runtime(self):
         def run(command, **kwargs):

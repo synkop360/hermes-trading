@@ -59,6 +59,7 @@ from hermes_trading.notifications import (
 from hermes_trading.operator_config import merged_operator_env
 from hermes_trading.qualification import QualificationPhase, QualificationService
 from hermes_trading.qualification_runner import QualificationCycleSchedule, QualificationRunner
+from hermes_trading.reflection_guard import reflection_model_entry_block
 
 
 class TradingModeError(RuntimeError):
@@ -384,6 +385,24 @@ async def run_live_cycle(
             assert position is not None
             execution_results.append(await execution.submit_exit(decision, position, gateway))
             break
+
+        reflection_block = reflection_model_entry_block(projector.state_dir)
+        if reflection_block.blocked:
+            state.open_incident(
+                "live-cycle:reflection-model",
+                reflection_block.reason,
+                severity="critical",
+                opened_at=current_time,
+            )
+            return _live_cycle_result(
+                "blocked_reflection_model",
+                reflection_block.reason,
+                state,
+                existing_order_ids,
+                tuple(risk_decisions),
+                report,
+                warnings=(funds_warning,) if funds_warning else (),
+            )
 
         rules = await gateway.load_rules(asset)
         exchange_minimum = rules.min_cost

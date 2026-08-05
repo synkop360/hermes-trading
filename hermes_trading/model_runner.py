@@ -5,12 +5,12 @@ import os
 import subprocess
 import tempfile
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Callable
 
 from hermes_trading.costs import CostLedger, hermes_usage_event
-from hermes_trading.providers import ModelCandidate, ProviderRouter
+from hermes_trading.providers import ModelCandidate, ProviderAttempt, ProviderRouter
 
 
 @dataclass(frozen=True)
@@ -32,11 +32,14 @@ class ReflectionModelRunner:
 
     def run(self, prompt: str, *, now: datetime | None = None) -> ModelRunResult:
         current = (now or datetime.now(UTC)).astimezone(UTC)
-        errors: list[Exception] = []
+        errors: list[tuple[str, str | None, Exception]] = []
         try:
             return ModelRunResult(_json_output(self._hermes(prompt)), "hermes_auto", None)
         except Exception as error:
-            errors.append(error)
+            errors.append(("hermes_auto", "auto", error))
+            self.router.store.record_provider_attempt(
+                ProviderAttempt("hermes_auto", "auto", _error_class(error), current, _retry_after_seconds(error))
+            )
 
         for candidate in self.router.candidates(now=current):
             try:
@@ -45,12 +48,25 @@ class ReflectionModelRunner:
                 self.router.record_success(candidate, now=current, latency_ms=int((datetime.now(UTC) - started).total_seconds() * 1000))
                 return ModelRunResult(output, candidate.provider, candidate.model)
             except Exception as error:
-                errors.append(error)
-                self.router.record_failure(candidate, error_class=_error_class(error), now=current)
+                errors.append((candidate.provider, candidate.model, error))
+                self.router.record_failure(
+                    candidate,
+                    error_class=_error_class(error),
+                    retry_after_seconds=_retry_after_seconds(error),
+                    now=current,
+                )
 
         if self.openai_run is not None:
-            return ModelRunResult(_json_output(self.openai_run(prompt)), "openai_api", None)
-        raise RuntimeError("all Hermes reflection attempts failed: " + "; ".join(str(error) for error in errors))
+            if _provider_cooling_down("openai_api", "fallback", list(self.router.store.provider_attempts()), current):
+                raise RuntimeError(_combined_error(errors + [("openai_api", "fallback", RuntimeError("openai_api fallback cooling down"))]))
+            try:
+                return ModelRunResult(_json_output(self.openai_run(prompt)), "openai_api", None)
+            except Exception as error:
+                errors.append(("openai_api", "fallback", error))
+                self.router.store.record_provider_attempt(
+                    ProviderAttempt("openai_api", "fallback", _error_class(error), current, _retry_after_seconds(error))
+                )
+        raise RuntimeError(_combined_error(errors))
 
     def _hermes(self, prompt: str, candidate: ModelCandidate | None = None) -> str:
         command = ["hermes", "-z", prompt]
@@ -108,6 +124,32 @@ def _error_class(error: Exception) -> str:
     if "model" in text and ("404" in text or "not found" in text):
         return "invalid_model"
     return "unavailable"
+
+
+def _retry_after_seconds(error: Exception) -> int:
+    return int(os.environ.get("HERMES_OPENAI_RATE_LIMIT_COOLDOWN_SECONDS", "3600")) if _error_class(error) == "rate_limit" else 300
+
+
+def _provider_cooling_down(provider: str, model: str, attempts: list[ProviderAttempt], now: datetime) -> bool:
+    latest = next(
+        (
+            attempt
+            for attempt in reversed(attempts)
+            if attempt.provider == provider and attempt.model == model
+        ),
+        None,
+    )
+    if latest is None or latest.status == "success" or latest.retry_after_seconds <= 0:
+        return False
+    return latest.attempted_at + timedelta(seconds=latest.retry_after_seconds) > now
+
+
+def _combined_error(errors: list[tuple[str, str | None, Exception]]) -> str:
+    details = []
+    for provider, model, error in errors:
+        label = provider if model is None else f"{provider}:{model}"
+        details.append(f"{label}={error}")
+    return "all Hermes reflection attempts failed: " + "; ".join(details)
 
 
 __all__ = ["ModelRunResult", "ReflectionModelRunner"]
