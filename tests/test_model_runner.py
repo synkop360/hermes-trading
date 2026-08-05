@@ -93,6 +93,19 @@ class ReflectionModelRunnerTests(unittest.TestCase):
         self.assertEqual(store.attempts[-1].provider, "openai_api")
         self.assertEqual(store.attempts[-1].status, "rate_limit")
 
+    def test_local_model_accepts_pretty_printed_json_object(self):
+        def run(command, **kwargs):
+            raise RuntimeError("default unavailable")
+
+        result = ReflectionModelRunner(
+            ProviderRouter(Store(), HermesCatalog(())),
+            command_run=run,
+            local_run=lambda prompt: '{\n  "variable": "entry.threshold",\n  "value": 32,\n  "reason": "pretty json"\n}',
+        ).run("prompt")
+
+        self.assertEqual(result.provider, "local_model")
+        self.assertEqual(result.output, '{"variable":"entry.threshold","value":32,"reason":"pretty json"}')
+
     def test_default_command_runner_is_patchable_at_runtime(self):
         def run(command, **kwargs):
             return subprocess.CompletedProcess(command, 0, '{"variable":"entry.threshold"}\n', '')

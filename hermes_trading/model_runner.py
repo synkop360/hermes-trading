@@ -133,6 +133,16 @@ def _json_output(output: str) -> str:
             continue
         if isinstance(value, dict):
             return json.dumps(value, separators=(",", ":"))
+    decoder = json.JSONDecoder()
+    for index, char in enumerate(output):
+        if char != "{":
+            continue
+        try:
+            value, _ = decoder.raw_decode(output[index:])
+        except json.JSONDecodeError:
+            continue
+        if isinstance(value, dict):
+            return json.dumps(value, separators=(",", ":"))
     raise ValueError("model output did not contain a JSON object")
 
 

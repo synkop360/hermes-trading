@@ -28,6 +28,9 @@ SUPPORTED_STRATEGY_VARIABLES = {
     "stop_loss_pct",
     "position_size_r",
 }
+STRATEGY_VARIABLE_ALIASES = {
+    "entry_threshold": "entry.threshold",
+}
 
 
 @dataclass(frozen=True)
@@ -803,6 +806,7 @@ def _run_local_model_prompt(
     env: dict[str, str],
 ) -> str:
     port = env.get("HERMES_LOCAL_MODEL_PORT", "12434").strip() or "12434"
+    timeout = int(env.get("HERMES_REFLECTION_TIMEOUT_SECONDS", "60"))
     response = httpx.post(
         f"http://127.0.0.1:{port}/engines/v1/chat/completions",
         headers={
@@ -813,7 +817,7 @@ def _run_local_model_prompt(
             "messages": [{"role": "user", "content": prompt}],
             "response_format": {"type": "json_object"},
         },
-        timeout=60,
+        timeout=timeout,
     )
     response.raise_for_status()
     return _extract_chat_completion_text(response.json())
@@ -968,6 +972,8 @@ def _normalize_strategy_proposal(
 
         variable = normalized
         asset = parsed_asset
+
+    variable = STRATEGY_VARIABLE_ALIASES.get(variable, variable)
 
     if variable not in SUPPORTED_STRATEGY_VARIABLES:
         raise ValueError(

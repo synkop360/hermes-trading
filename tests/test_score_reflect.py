@@ -233,6 +233,7 @@ class ReflectionTests(unittest.TestCase):
                     state,
                     env={
                         "HERMES_LOCAL_MODEL": "ai/test-local",
+                        "HERMES_REFLECTION_TIMEOUT_SECONDS": "120",
                         "HERMES_REFLECT_MIN_CLOSED_TRADES": "0",
                     },
                 )
@@ -242,7 +243,48 @@ class ReflectionTests(unittest.TestCase):
             self.assertEqual(updated["symbols"]["BTC/USDT"]["entry"]["threshold"], 32)
             self.assertEqual(post.call_args.args[0], "http://127.0.0.1:12434/engines/v1/chat/completions")
             self.assertEqual(post.call_args.kwargs["json"]["model"], "ai/test-local")
+            self.assertEqual(post.call_args.kwargs["timeout"], 120)
             self.assertNotIn("Authorization", post.call_args.kwargs["headers"])
+            last_hypothesis = json.loads((state / "hypotheses.jsonl").read_text(encoding="utf-8").splitlines()[-1])
+            self.assertEqual(last_hypothesis["results"][0]["provider"], "local_model")
+
+    def test_local_reflection_model_accepts_entry_threshold_alias(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            state = Path(temp_dir)
+            self._write_minimal_reflection_state(state)
+            self._write_no_trade_decisions(state, "BTC/USDT", entry_value=30.0)
+
+            class FakeLocalResponse:
+                def raise_for_status(self):
+                    return None
+
+                def json(self):
+                    return {
+                        "choices": [
+                            {
+                                "message": {
+                                    "content": '{"variable":"entry_threshold","value":28,"reason":"local alias"}',
+                                },
+                            },
+                        ],
+                    }
+
+            def fake_run(command, **kwargs):
+                raise RuntimeError("default unavailable")
+
+            with (
+                patch("hermes_trading.model_runner.subprocess.run", side_effect=fake_run),
+                patch("hermes_trading.reflect.httpx.post", return_value=FakeLocalResponse()),
+            ):
+                updated = run_hermes_reflection(
+                    state,
+                    env={
+                        "HERMES_LOCAL_MODEL": "ai/test-local",
+                        "HERMES_REFLECT_MIN_CLOSED_TRADES": "0",
+                    },
+                )
+
+            self.assertEqual(updated["symbols"]["BTC/USDT"]["entry"]["threshold"], 28)
 
     def test_hermes_reflection_can_update_one_symbol_override(self):
         with tempfile.TemporaryDirectory() as temp_dir:
