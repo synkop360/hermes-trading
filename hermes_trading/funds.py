@@ -8,7 +8,7 @@ from decimal import Decimal
 from pathlib import Path
 from typing import Any, Literal, Mapping
 
-import ccxt.async_support as ccxt
+from hermes_trading.adapters.execution import _default_exchange
 
 
 class FundsAlertConfigError(RuntimeError):
@@ -277,18 +277,6 @@ def build_funds_alert_message(
         return format_funds_alert(snapshot, snapshot.severity, settings.mention)
 
     return None
-
-
-def _default_exchange():
-    exchange_id = os.getenv("EXCHANGE_ID", "kraken")
-    exchange_cls = getattr(ccxt, exchange_id)
-    return exchange_cls(
-        {
-            "apiKey": os.getenv("EXCHANGE_API_KEY") or None,
-            "secret": os.getenv("EXCHANGE_API_SECRET") or None,
-            "enableRateLimit": True,
-        }
-    )
 
 
 def extract_available_funds(balance: dict[str, Any], quote: str) -> float:

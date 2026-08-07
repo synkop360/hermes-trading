@@ -4,9 +4,8 @@ import argparse
 import json
 import math
 import os
-import subprocess
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -21,13 +20,18 @@ from hermes_trading.providers import HermesCatalog, ProviderRouter
 from hermes_trading.strategy_registry import StrategyRegistry
 
 
-KNOWN_HERMES_PROVIDERS = {"openai", "openrouter", "nous"}
 DEFAULT_OPENAI_REFLECTION_MODEL = "gpt-5.6-luna"
 SUPPORTED_STRATEGY_VARIABLES = {
     "entry.threshold",
     "stop_loss_pct",
     "position_size_r",
+    "exit.stop_atr",
+    "exit.take_profit_atr",
+    "exit.max_bars",
 }
+# Variables that must be rounded to whole numbers once the numeric proposal is
+# validated (RSI thresholds and bar counts have no fractional meaning here).
+_INTEGER_STRATEGY_VARIABLES = {"entry.threshold", "exit.max_bars"}
 STRATEGY_VARIABLE_ALIASES = {
     "entry_threshold": "entry.threshold",
 }
@@ -527,62 +531,6 @@ def _build_asset_reflection_prompt(
         f"{json.dumps(decisions[-100:])}\n"
     )
 
-def _legacy_generate_asset_proposal(
-    asset: str,
-    prompt: str,
-    env: dict[str, str],
-) -> tuple[dict[str, Any] | None, dict[str, Any]]:
-    errors = []
-
-    for provider, model in select_reflection_models(env):
-        try:
-            if provider == "openai":
-                output = _run_openai_prompt(
-                    prompt,
-                    model,
-                    env,
-                )
-                selected_provider = "openai_api"
-            else:
-                output = _run_hermes_prompt(
-                    prompt,
-                    provider,
-                    model,
-                )
-                selected_provider = provider
-
-            proposal = json.loads(output.splitlines()[-1])
-
-            if not isinstance(proposal, dict):
-                raise ValueError(
-                    "Hermes proposal must be a JSON object"
-                )
-
-            # La portée est imposée par le programme.
-            proposal["asset"] = asset
-
-            return proposal, {
-                "provider": selected_provider,
-                "model": model,
-                "errors": errors,
-            }
-
-        except Exception as exc:
-            errors.append(
-                {
-                    "provider": provider,
-                    "model": model,
-                    "error": str(exc),
-                }
-            )
-
-    return None, {
-        "provider": None,
-        "model": None,
-        "errors": errors,
-    }
-
-
 def _generate_asset_proposal(
     asset: str,
     prompt: str,
@@ -628,13 +576,6 @@ def _write_yaml(path: Path, data: dict[str, Any]) -> None:
     path.write_text(yaml.safe_dump(data, sort_keys=False))
 
 
-def _load_trades(path: Path, limit: int | None = None) -> list[dict[str, Any]]:
-    if not path.exists():
-        return []
-    rows = [json.loads(line) for line in path.read_text().splitlines() if line.strip()]
-    return rows[-limit:] if limit else rows
-
-
 def _load_jsonl(path: Path, limit: int | None = None) -> list[dict[str, Any]]:
     if not path.exists():
         return []
@@ -662,50 +603,6 @@ def _has_openai_api_key(env: dict[str, str]) -> bool:
     return bool(env.get("OPENAI_API_KEY") or env.get("HERMES_OPENAI_API_KEY"))
 
 
-def _parse_model_spec(spec: str, default_provider: str | None = None) -> tuple[str | None, str]:
-    provider = default_provider
-    model = spec.strip()
-    if ":" in model:
-        possible_provider, possible_model = model.split(":", 1)
-        if possible_provider in KNOWN_HERMES_PROVIDERS and possible_model:
-            provider = possible_provider
-            model = possible_model
-    return provider, model
-
-
-def _dedupe_models(models: list[tuple[str | None, str]]) -> list[tuple[str | None, str]]:
-    seen = set()
-    unique = []
-    for provider, model in models:
-        key = (provider or "", model)
-        if not model or key in seen:
-            continue
-        seen.add(key)
-        unique.append((provider, model))
-    return unique
-
-
-def select_reflection_models(env: dict[str, str] | None = None) -> list[tuple[str | None, str]]:
-    env = dict(os.environ if env is None else env)
-    candidates: list[tuple[str | None, str]] = []
-
-    configured_list = env.get("HERMES_REFLECTION_MODELS", "")
-    for raw_model in configured_list.split(","):
-        if raw_model.strip():
-            candidates.append(_parse_model_spec(raw_model))
-
-    configured_model = env.get("HERMES_REFLECTION_MODEL")
-    configured_provider = env.get("HERMES_REFLECTION_PROVIDER")
-    if configured_model:
-        candidates.append(_parse_model_spec(configured_model, configured_provider))
-
-    if _has_openai_api_key(env):
-        fallback_model = env.get("HERMES_OPENAI_FALLBACK_MODEL", DEFAULT_OPENAI_REFLECTION_MODEL)
-        candidates.append(("openai", fallback_model))
-
-    return _dedupe_models(candidates)
-
-
 def _realized_return(trades: list[dict[str, Any]]) -> float:
     return sum(float(trade.get("realized_pnl_pct", 0.0)) for trade in trades)
 
@@ -725,7 +622,7 @@ def run_fallback_reflection(state_dir: Path) -> dict[str, Any]:
     strategy_path = state_dir / "strategy.yaml"
     goal = _load_yaml(state_dir / "goal.yaml")
     strategy = _load_yaml(strategy_path)
-    trades = _load_trades(state_dir / "trades.jsonl")
+    trades = _load_jsonl(state_dir / "trades.jsonl")
 
     updated = yaml.safe_load(yaml.safe_dump(strategy))
     realized_return = _realized_return(trades)
@@ -741,9 +638,23 @@ def run_fallback_reflection(state_dir: Path) -> dict[str, Any]:
     else:
         variable = "entry.threshold"
         before = int(updated.setdefault("entry", {}).get("threshold", 30))
-        after = before + 2 if realized_return < float(goal.get("target_return_30d", 0.05)) else max(2, before - 2)
+        target = float(goal.get("target_return_30d", 0.05))
+        if realized_return < target and current_score < 0:
+            # Underperforming AND losing money: entries are too frequent or too
+            # low-quality relative to trading costs. Loosening the entry filter
+            # here would only generate more losing trades, so tighten instead.
+            after = max(2, before - 2)
+            reason = (
+                "realized return missed the target and the score is negative, "
+                "so the fallback tightened entry to trade more selectively."
+            )
+        elif realized_return < target:
+            after = before + 2
+            reason = "realized return missed the target, so the fallback loosened entry."
+        else:
+            after = max(2, before - 2)
+            reason = "realized return met the target, so the fallback tightened entry."
         updated["entry"]["threshold"] = after
-        reason = "realized return missed the target, so the fallback loosened entry." if after > before else "realized return met the target, so the fallback tightened entry."
 
     _archive_current(state_dir, strategy)
     updated["version"] = _next_version(str(strategy.get("version", "01")))
@@ -761,15 +672,6 @@ def run_fallback_reflection(state_dir: Path) -> dict[str, Any]:
         },
     )
     return updated
-
-
-def _run_hermes_prompt(prompt: str, provider: str | None, model: str) -> str:
-    command = ["hermes"]
-    if provider:
-        command.extend(["--provider", provider])
-    command.extend(["-m", model])
-    result = subprocess.run(command, input=prompt, text=True, capture_output=True, check=True)
-    return result.stdout.strip()
 
 
 def _extract_openai_text(payload: dict[str, Any]) -> str:
@@ -873,68 +775,6 @@ def _openai_pricing(env: dict[str, str]) -> dict[str, str] | None:
     }
 
 
-def _legacy_normalize_strategy_proposal(
-    strategy: dict[str, Any],
-    proposal: dict[str, Any],
-) -> tuple[str, str | None]:
-    variable = str(proposal["variable"]).strip()
-    asset = proposal.get("asset")
-
-    if asset is not None:
-        asset = str(asset).strip() or None
-
-    # Tolère le format généré actuellement par Hermes :
-    # symbols.BTC/USDT.entry.threshold
-    if variable.startswith("symbols."):
-        scoped_path = variable.removeprefix("symbols.")
-
-        matches = [
-            supported
-            for supported in SUPPORTED_STRATEGY_VARIABLES
-            if scoped_path.endswith(f".{supported}")
-        ]
-
-        if len(matches) != 1:
-            raise ValueError(
-                f"Unable to resolve symbol-scoped Hermes variable: {variable}"
-            )
-
-        normalized_variable = matches[0]
-        parsed_asset = scoped_path[: -(len(normalized_variable) + 1)]
-
-        if not parsed_asset:
-            raise ValueError(
-                f"Missing asset in symbol-scoped variable: {variable}"
-            )
-
-        if asset is not None and asset != parsed_asset:
-            raise ValueError(
-                f"Hermes proposal asset mismatch: "
-                f"{asset!r} != {parsed_asset!r}"
-            )
-
-        variable = normalized_variable
-        asset = parsed_asset
-
-    if variable not in SUPPORTED_STRATEGY_VARIABLES:
-        raise ValueError(
-            f"Hermes proposed unsupported variable: {variable}"
-        )
-
-    if asset:
-        configured_assets = strategy.get("symbols", {})
-
-        if not isinstance(configured_assets, dict):
-            raise ValueError("strategy.symbols must be a mapping")
-
-        if asset not in configured_assets:
-            raise ValueError(
-                f"Hermes proposed unknown strategy asset: {asset}"
-            )
-
-    return variable, asset
-
-
 def _normalize_strategy_proposal(
     strategy: dict[str, Any],
     proposal: dict[str, Any],
@@ -996,6 +836,32 @@ def _normalize_strategy_proposal(
     return variable, asset
 
 
+def _variable_path(variable: str) -> tuple[str, ...]:
+    """Split a supported variable name into its nested-mapping path.
+
+    ``"stop_loss_pct"`` is a root-level key (``("stop_loss_pct",)``);
+    ``"entry.threshold"`` and the ``exit.*`` variables live one level deep
+    (``("entry", "threshold")``, ``("exit", "stop_atr")``, ...).
+    """
+    return tuple(variable.split("."))
+
+
+def _get_nested(mapping: dict[str, Any], path: tuple[str, ...]) -> Any:
+    current: Any = mapping
+    for key in path:
+        if not isinstance(current, dict):
+            return None
+        current = current.get(key)
+    return current
+
+
+def _set_nested(mapping: dict[str, Any], path: tuple[str, ...], value: Any) -> None:
+    current = mapping
+    for key in path[:-1]:
+        current = current.setdefault(key, {})
+    current[path[-1]] = value
+
+
 def _apply_strategy_proposal(
     strategy: dict[str, Any],
     proposal: dict[str, Any],
@@ -1018,29 +884,40 @@ def _apply_strategy_proposal(
 
     _validate_strategy_change(strategy, variable, asset, proposal["value"])
     value = _normalized_strategy_value(variable, proposal["value"])
-    if variable == "entry.threshold":
-        target.setdefault("entry", {})["threshold"] = value
-    else:
-        target[variable] = value
+    _set_nested(target, _variable_path(variable), value)
 
     return updated, variable, asset
 
 
 def _normalized_strategy_value(variable: str, value: Any) -> Any:
-    if variable != "entry.threshold":
+    if variable not in _INTEGER_STRATEGY_VARIABLES:
         return value
     numeric = float(value)
     return int(numeric) if numeric.is_integer() else value
 
 
 def _validate_strategy_change(strategy: dict[str, Any], variable: str, asset: str | None, value: Any) -> None:
-    bounds = {"entry.threshold": (15.0, 35.0), "stop_loss_pct": (0.3, 3.0), "position_size_r": (0.1, 1.0)}
-    max_step = {"entry.threshold": 2.0, "stop_loss_pct": 0.2, "position_size_r": 0.1}
+    bounds = {
+        "entry.threshold": (15.0, 35.0),
+        "stop_loss_pct": (0.3, 3.0),
+        "position_size_r": (0.1, 1.0),
+        "exit.stop_atr": (0.5, 4.0),
+        "exit.take_profit_atr": (1.0, 8.0),
+        "exit.max_bars": (1.0, 24.0),
+    }
+    max_step = {
+        "entry.threshold": 2.0,
+        "stop_loss_pct": 0.2,
+        "position_size_r": 0.1,
+        "exit.stop_atr": 0.5,
+        "exit.take_profit_atr": 1.0,
+        "exit.max_bars": 4.0,
+    }
     candidate = float(value)
     low, high = bounds[variable]
     if not low <= candidate <= high:
         raise ValueError(f"{variable} must stay between {low} and {high}")
-    current = _resolve_asset_strategy(strategy, asset or "").get("entry", {}).get("threshold") if variable == "entry.threshold" else _resolve_asset_strategy(strategy, asset or "").get(variable)
+    current = _get_nested(_resolve_asset_strategy(strategy, asset or ""), _variable_path(variable))
     if current is not None and abs(candidate - float(current)) > max_step[variable]:
         raise ValueError(f"{variable} change exceeds the maximum step {max_step[variable]}")
 def run_hermes_reflection(
@@ -1055,7 +932,7 @@ def run_hermes_reflection(
     strategy = _load_yaml(strategy_path)
     goal = _load_yaml(state_dir / "goal.yaml")
 
-    all_trades = _load_trades(
+    all_trades = _load_jsonl(
         state_dir / "trades.jsonl"
     )
     all_decisions = _load_jsonl(

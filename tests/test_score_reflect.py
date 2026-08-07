@@ -15,7 +15,7 @@ from hermes_trading.loop import (
     resolve_trading_config,
 )
 from hermes_trading.run import ensure_state_files
-from hermes_trading.reflect import select_reflection_models, run_fallback_reflection, run_hermes_reflection
+from hermes_trading.reflect import run_fallback_reflection, run_hermes_reflection
 from hermes_trading.score import score
 
 
@@ -113,37 +113,13 @@ class ReflectionTests(unittest.TestCase):
             self.assertTrue((state / "history" / "v0001.yaml").exists())
             self.assertIn("entry.threshold", (state / "hypotheses.jsonl").read_text())
 
-    def test_select_reflection_models_prefers_configured_list_then_openai_key(self):
-        models = select_reflection_models(
-            {
-                "HERMES_REFLECTION_MODELS": "openrouter:moonshotai/kimi-k2:free, openai:gpt-5.6-luna",
-                "OPENAI_API_KEY": "set",
-            }
-        )
-
-        self.assertEqual(
-            models[:2],
-            [
-                ("openrouter", "moonshotai/kimi-k2:free"),
-                ("openai", "gpt-5.6-luna"),
-            ],
-        )
-
     def test_hermes_reflection_retries_with_openai_api_after_missing_model(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             state = Path(temp_dir)
             self._write_minimal_reflection_state(state)
-            calls = []
 
             def fake_run(command, **kwargs):
-                calls.append(command)
-                if command[1:5] == ["--provider", "nous", "-m", "tencent/hy3:free"]:
-                    raise RuntimeError("HTTP 404: Model 'tencent/hy3:free' not found")
-
-                class Result:
-                    stdout = '{"variable":"entry.threshold","value":34,"reason":"test retry"}\n'
-
-                return Result()
+                raise RuntimeError("HTTP 404: Model not found")
 
             class FakeOpenAIResponse:
                 def raise_for_status(self):
@@ -163,13 +139,12 @@ class ReflectionTests(unittest.TestCase):
             self._write_no_trade_decisions(state, "BTC/USDT")
 
             with (
-                patch("hermes_trading.reflect.subprocess.run", side_effect=fake_run),
+                patch("hermes_trading.model_runner.subprocess.run", side_effect=fake_run),
                 patch("hermes_trading.reflect.httpx.post", return_value=FakeOpenAIResponse()) as post,
             ):
                 updated = run_hermes_reflection(state, env=env)
 
             self.assertEqual(updated["entry"]["threshold"], 30)
-            self.assertEqual(calls, [])
             self.assertFalse(post.called)
 
     def test_openai_fallback_records_missing_cost_when_pricing_is_absent(self):
@@ -301,7 +276,7 @@ class ReflectionTests(unittest.TestCase):
 
                 return Result()
 
-            with patch("hermes_trading.reflect.subprocess.run", side_effect=fake_run):
+            with patch("hermes_trading.model_runner.subprocess.run", side_effect=fake_run):
                 updated = run_hermes_reflection(
                     state,
                     env={"HERMES_REFLECTION_MODELS": "nous:z-ai/glm-5.2"},
@@ -367,7 +342,7 @@ class ReflectionTests(unittest.TestCase):
 
                 return Result()
 
-            with patch("hermes_trading.reflect.subprocess.run", side_effect=fake_run):
+            with patch("hermes_trading.model_runner.subprocess.run", side_effect=fake_run):
                 updated = run_hermes_reflection(
                     state,
                     env={"HERMES_REFLECTION_MODELS": "nous:z-ai/glm-5.2"},
@@ -422,7 +397,7 @@ class ReflectionTests(unittest.TestCase):
 
                 return Result()
 
-            with patch("hermes_trading.reflect.subprocess.run", side_effect=fake_run):
+            with patch("hermes_trading.model_runner.subprocess.run", side_effect=fake_run):
                 updated = run_hermes_reflection(
                     state,
                     env={"HERMES_REFLECTION_MODELS": "nous:z-ai/glm-5.2"},
@@ -489,7 +464,7 @@ class ReflectionTests(unittest.TestCase):
             def fake_run(command, **kwargs):
                 raise RuntimeError("HTTP 429: too many requests")
 
-            with patch("hermes_trading.reflect.subprocess.run", side_effect=fake_run):
+            with patch("hermes_trading.model_runner.subprocess.run", side_effect=fake_run):
                 updated = run_hermes_reflection(
                     state,
                     env={

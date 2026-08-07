@@ -15,7 +15,8 @@ Etat courant du deploiement:
 
 ```text
 hermes_trading/
-  run.py              # point d'entree du worker
+  run.py              # point d'entree du worker seul (demarrage local simple)
+  colocated.py        # point d'entree production (run.py + API de controle et bot Discord optionnels, utilise par le Dockerfile)
   loop.py             # boucle multi-actifs et decisions de trading
   reflect.py          # reflexion Hermes ou fallback local
   score.py            # scoring des performances
@@ -61,6 +62,8 @@ uv run python -m hermes_trading.run
 ```powershell
 uv run python -m hermes_trading.run --assets "BTC/USDT,ETH/USDT,XRP/USDT,SHIB/USDT"
 ```
+
+`hermes_trading.run` lance uniquement la boucle de trading, sans API de controle ni bot Discord: pratique pour un test local rapide. Le `Dockerfile` de production lance `hermes_trading.colocated`, qui reutilise `run.ensure_state_files` et `loop.run_loop`, puis demarre en plus l'API de controle locale (si `HERMES_CONTROL_HMAC_SECRET` est defini) et le bot Discord (si les variables `HERMES_DISCORD_*` sont definies). Pour reproduire fidelement le comportement Railway en local, lancer `hermes_trading.colocated` plutot que `hermes_trading.run`.
 
 ## Verification rapide
 

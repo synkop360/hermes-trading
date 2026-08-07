@@ -76,7 +76,7 @@ class PositionEngine:
 
         settings = SimulationSettings.from_strategy(strategy)
         existing = self.state.open_position(snapshot.asset)
-        if existing is None and not _expected_payoff_covers_costs(strategy, settings):
+        if existing is None and not _expected_payoff_covers_costs(strategy, settings, snapshot):
             signal = StrategySignal("no_trade", snapshot.asset, "expected_payoff_below_costs", candle.close, identity.candle_id)
         elif existing is not None and identity.close_timestamp.isoformat() <= existing.opened_at:
             signal = StrategySignal("no_trade", snapshot.asset, "out_of_order_candle", candle.close, identity.candle_id)
@@ -228,14 +228,36 @@ def _positive_finite(value: Decimal, name: str) -> None:
         raise ValueError(f"{name} must be positive and finite")
 
 
-def _expected_payoff_covers_costs(strategy: dict[str, Any], settings: SimulationSettings) -> bool:
+def _expected_payoff_covers_costs(
+    strategy: dict[str, Any], settings: SimulationSettings, snapshot: MarketSnapshot
+) -> bool:
+    """Block new entries whose configured exit target cannot clear round-trip costs.
+
+    Covers both percentage take-profits (``take_profit_pct``) and ATR-based ones
+    (``take_profit_atr``, converted to a price percentage using the candle close).
+    A strategy with neither key configured is not blocked here; other guards are
+    responsible for that case.
+    """
     exit_rule = strategy.get("exit")
-    if not isinstance(exit_rule, dict) or "take_profit_pct" not in exit_rule:
+    if not isinstance(exit_rule, dict):
         return True
-    take_profit = _decimal_setting(exit_rule["take_profit_pct"], "take_profit_pct") / Decimal("100")
     round_trip_cost = Decimal("2") * (settings.taker_fee_rate + settings.slippage_rate)
     edge = settings.minimum_expected_edge_pct / Decimal("100")
-    return take_profit >= round_trip_cost + edge
+    required = round_trip_cost + edge
+    if "take_profit_pct" in exit_rule:
+        take_profit = _decimal_setting(exit_rule["take_profit_pct"], "take_profit_pct") / Decimal("100")
+        return take_profit >= required
+    if "take_profit_atr" in exit_rule:
+        candle = snapshot.candle
+        if candle is None or candle.close <= 0:
+            return False
+        atr = _atr(snapshot)
+        if atr is None:
+            return False
+        take_profit_atr = _decimal_setting(exit_rule["take_profit_atr"], "take_profit_atr")
+        take_profit_pct = (atr * take_profit_atr) / candle.close
+        return take_profit_pct >= required
+    return True
 
 
 __all__ = ["PositionEngine", "PositionProcessResult", "SimulationSettings"]

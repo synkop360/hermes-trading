@@ -27,5 +27,4 @@ backups/
 
 # Agent coordination and local artifacts
 .superpowers/
-.test-tmp/
-cut]
+.test-tmp*/

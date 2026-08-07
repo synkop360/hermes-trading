@@ -2,12 +2,16 @@ from __future__ import annotations
 
 from dataclasses import asdict, dataclass
 from datetime import UTC, datetime, timedelta
-from decimal import Decimal, InvalidOperation
+from decimal import Decimal
 import os
 from typing import Callable, Mapping, Protocol
 from uuid import uuid4
 
-from hermes_trading.config import ExecutionQualityLimits, resolve_execution_quality_limits
+from hermes_trading.config import (
+    ExecutionQualityLimits,
+    _decimal_env,
+    resolve_execution_quality_limits,
+)
 from hermes_trading.domain import json_value
 from hermes_trading.persistence.repository import StateRepository
 
@@ -298,28 +302,13 @@ class RiskEngine:
 def resolve_risk_limits(env: Mapping[str, str] | None = None) -> RiskLimits:
     values = os.environ if env is None else env
     return RiskLimits(
-        risk_per_trade_pct=_env_decimal(values, "HERMES_TRADING_RISK_PER_TRADE_PCT", Decimal("0.0025")),
-        max_symbol_exposure_pct=_env_decimal(values, "HERMES_TRADING_MAX_SYMBOL_EXPOSURE_PCT", Decimal("0.05")),
-        max_total_exposure_pct=_env_decimal(values, "HERMES_TRADING_MAX_TOTAL_EXPOSURE_PCT", Decimal("0.10")),
-        max_daily_loss_pct=_env_decimal(values, "HERMES_TRADING_MAX_DAILY_LOSS_PCT", Decimal("0.005")),
-        max_drawdown_pct=_env_decimal(values, "HERMES_TRADING_MAX_DRAWDOWN_PCT", Decimal("0.03")),
-        max_order_quote=_env_decimal(values, "HERMES_TRADING_MAX_ORDER_USDT", Decimal("5")),
+        risk_per_trade_pct=_decimal_env(values, "HERMES_TRADING_RISK_PER_TRADE_PCT", Decimal("0.0025")),
+        max_symbol_exposure_pct=_decimal_env(values, "HERMES_TRADING_MAX_SYMBOL_EXPOSURE_PCT", Decimal("0.05")),
+        max_total_exposure_pct=_decimal_env(values, "HERMES_TRADING_MAX_TOTAL_EXPOSURE_PCT", Decimal("0.10")),
+        max_daily_loss_pct=_decimal_env(values, "HERMES_TRADING_MAX_DAILY_LOSS_PCT", Decimal("0.005")),
+        max_drawdown_pct=_decimal_env(values, "HERMES_TRADING_MAX_DRAWDOWN_PCT", Decimal("0.03")),
+        max_order_quote=_decimal_env(values, "HERMES_TRADING_MAX_ORDER_USDT", Decimal("5")),
     )
-
-
-def _env_decimal(values: Mapping[str, str], name: str, default: Decimal) -> Decimal:
-    raw = values.get(name)
-    if raw is None:
-        return default
-    if isinstance(raw, float):
-        raise ValueError(f"{name} must not be a binary float")
-    try:
-        value = Decimal(str(raw).strip())
-    except (InvalidOperation, ValueError) as error:
-        raise ValueError(f"{name} must be a finite Decimal") from error
-    if not value.is_finite():
-        raise ValueError(f"{name} must be a finite Decimal")
-    return value
 
 
 def _positive_fraction(value: Decimal, name: str, *, allow_one: bool) -> None:

@@ -4,12 +4,13 @@ import asyncio
 from collections.abc import Awaitable, Callable, Mapping, Sequence
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
-from decimal import Decimal, InvalidOperation
+from decimal import Decimal
 import logging
 import re
 from typing import Any
 
 from hermes_trading.adapters import macro, news, onchain, price
+from hermes_trading.adapters.price import _cancel_and_await, _finite_decimal as _decimal
 from hermes_trading.persistence import StateRepository
 
 
@@ -409,18 +410,6 @@ def _normalized_price(payload: Mapping[str, Any]) -> dict[str, Any]:
     return values
 
 
-def _decimal(value: object) -> Decimal:
-    if isinstance(value, bool) or value is None:
-        raise ValueError("numeric value is missing or boolean")
-    try:
-        decimal_value = Decimal(str(value))
-    except (InvalidOperation, ValueError) as error:
-        raise ValueError("numeric value is invalid") from error
-    if not decimal_value.is_finite():
-        raise ValueError("numeric value must be finite")
-    return decimal_value
-
-
 def _timestamp(value: object) -> datetime:
     if isinstance(value, str):
         return _utc_datetime(datetime.fromisoformat(value.replace("Z", "+00:00")))
@@ -460,14 +449,6 @@ def _valid_shared_payload(source: str, payload: object) -> bool:
         and type(payload.get("schema_version")) is int
         and payload["schema_version"] == _SHARED_SCHEMA_VERSIONS[source]
     )
-
-
-async def _cancel_and_await(tasks: Sequence[asyncio.Task[Any]]) -> None:
-    for task in tasks:
-        if not task.done():
-            task.cancel()
-    if tasks:
-        await asyncio.gather(*tasks, return_exceptions=True)
 
 
 __all__ = [

@@ -185,13 +185,6 @@ async def _retry(name: str, operation: Callable[[], Awaitable[dict[str, Any]]]) 
     raise RuntimeError(f"{name} adapter failed after 3 attempts: {last_error}")
 
 
-async def _append_jsonl(path: Path, payload: dict[str, Any]) -> None:
-    async with aiofiles.open(path, "a", encoding="utf-8") as handle:
-        await handle.write(
-            json.dumps(payload, separators=(",", ":"), default=json_value) + "\n"
-        )
-
-
 async def _write_json(path: Path, payload: dict[str, Any]) -> None:
     async with aiofiles.open(path, "w", encoding="utf-8") as handle:
         await handle.write(json.dumps(payload, indent=2, default=json_value))

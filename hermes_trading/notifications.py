@@ -11,6 +11,7 @@ from typing import Any, Awaitable, Callable
 
 import httpx
 
+from hermes_trading.funds import _ensure_utc
 from hermes_trading.profitability import ProfitabilityReport, render_profitability_markdown
 from hermes_trading.qualification_runner import QualificationReport
 
@@ -403,12 +404,6 @@ def build_summary_notifications(
     if settings.enabled:
         messages.extend(build_due_periodic_summaries(state_dir, settings, now))
     return messages
-
-
-def _ensure_utc(value: datetime) -> datetime:
-    if value.tzinfo is None:
-        return value.replace(tzinfo=timezone.utc)
-    return value.astimezone(timezone.utc)
 
 
 def _previous_completed_period(frequency: str, now: datetime) -> tuple[datetime, datetime]:
