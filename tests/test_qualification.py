@@ -1,6 +1,7 @@
 import unittest
 import tempfile
 from datetime import UTC, datetime, timedelta
+from decimal import Decimal
 from pathlib import Path
 
 from hermes_trading.qualification import (
@@ -26,6 +27,8 @@ def evidence(**overrides):
         "fees_and_slippage_charged": True,
         "duplicate_candle_protected": True,
         "risk_limits_exercised": True,
+        "starting_wallet_balance": Decimal("50"),
+        "total_realized_pnl": Decimal("10"),
     }
     values.update(overrides)
     return QualificationEvidence(**values)
@@ -76,6 +79,26 @@ class QualificationServiceTests(unittest.TestCase):
         self.assertFalse(result.valid)
         self.assertFalse(result.promotable)
 
+    def test_negative_overall_pnl_fails_qualification(self):
+        result = self.service.evaluate(
+            QualificationPhase.VALIDATION_READY,
+            evidence(total_realized_pnl=Decimal("-5")),
+            now=NOW,
+        )
+
+        self.assertFalse(result.valid)
+        self.assertFalse(result.promotable)
+        gate = result.gate("overall_pnl")
+        self.assertEqual(gate.status.value, "fail")
+
+    def test_default_wallet_starts_at_fifty_dollars(self):
+        self.assertEqual(QualificationEvidence.__dataclass_fields__["starting_wallet_balance"].default, Decimal("50"))
+
+    def test_wallet_balance_combines_starting_balance_and_pnl(self):
+        wallet = evidence(starting_wallet_balance=Decimal("50"), total_realized_pnl=Decimal("-12"))
+
+        self.assertEqual(wallet.wallet_balance, Decimal("38"))
+
     def test_unknown_cost_blocks_live_but_not_training(self):
         training = self.service.evaluate(
             QualificationPhase.TRAINING, evidence(costs_complete=False), now=NOW
@@ -99,7 +122,7 @@ class QualificationServiceTests(unittest.TestCase):
             repository.close()
 
         self.assertEqual([row["qualification_run_id"] for row in rows], ["qualification-1", "qualification-2"])
-        self.assertEqual(rows[0]["gate_count"], 7)
+        self.assertEqual(rows[0]["gate_count"], 8)
 
 
 if __name__ == "__main__":

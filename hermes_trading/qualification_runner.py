@@ -2,15 +2,23 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import UTC, datetime
+from decimal import Decimal, InvalidOperation
 import hashlib
 import json
 import os
 from pathlib import Path
+from typing import Mapping
 from uuid import uuid4
 
 from hermes_trading.persistence.artifacts import ArtifactProjector
 from hermes_trading.persistence.repository import StateRepository
-from hermes_trading.qualification import QualificationEvidence, QualificationPhase, QualificationService, QualificationSnapshot
+from hermes_trading.qualification import (
+    DEFAULT_STARTING_WALLET_BALANCE,
+    QualificationEvidence,
+    QualificationPhase,
+    QualificationService,
+    QualificationSnapshot,
+)
 from hermes_trading.qualification_evidence import QualificationEvidenceCollector
 
 
@@ -68,9 +76,11 @@ class QualificationRunner:
         typed_evidence = QualificationEvidenceCollector(
             self.projector.state_dir, repository=self.repository
         ).collect()
+        closed_positions = self.repository.closed_positions()
+        total_realized_pnl = sum((position.realized_pnl for position in closed_positions), Decimal("0"))
         evidence = QualificationEvidence(
             training_started_at=started_at,
-            closed_positions=len(self.repository.closed_positions()),
+            closed_positions=len(closed_positions),
             strategy_hash=strategy_hash,
             approved_strategy_hash=strategy_hash,
             costs_complete=not profitability.get("missing_required_costs"),
@@ -78,5 +88,24 @@ class QualificationRunner:
             fees_and_slippage_charged=typed_evidence["fees_and_slippage_charged"],
             duplicate_candle_protected=typed_evidence["duplicate_candle_protected"],
             risk_limits_exercised=typed_evidence["risk_limits_exercised"],
+            starting_wallet_balance=resolve_starting_wallet_balance(),
+            total_realized_pnl=total_realized_pnl,
         )
         return self.run(requested_phase, evidence, now=current)
+
+
+def resolve_starting_wallet_balance(env: Mapping[str, str] | None = None) -> Decimal:
+    values = env if env is not None else os.environ
+    raw = values.get("HERMES_QUALIFICATION_STARTING_WALLET_BALANCE")
+    if not raw:
+        return DEFAULT_STARTING_WALLET_BALANCE
+    try:
+        return Decimal(raw)
+    except InvalidOperation:
+        return DEFAULT_STARTING_WALLET_BALANCE
+
+
+def compute_virtual_wallet_balance(repository: StateRepository, env: Mapping[str, str] | None = None) -> Decimal:
+    closed_positions = repository.closed_positions()
+    total_realized_pnl = sum((position.realized_pnl for position in closed_positions), Decimal("0"))
+    return resolve_starting_wallet_balance(env) + total_realized_pnl

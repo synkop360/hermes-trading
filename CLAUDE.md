@@ -105,3 +105,13 @@ Ce projet manipule potentiellement de l'argent réel via Kraken. Avant toute mod
 - `.gitignore` ignore `.test-tmp*/` (tous les répertoires de test temporaires, pas seulement `.test-tmp/`) : ne pas committer de nouveaux répertoires de ce type, et vérifier que le pattern reste `.test-tmp*/` s'il est modifié.
 - L'état local (`state/`) peut être en retard par rapport au volume Railway `/app/state`, qui fait foi pour le service déployé.
 - Aucun Python ≥3.11 ni accès réseau PyPI/GitHub n'est disponible dans certains environnements d'exécution sandboxés : `uv run` peut échouer à télécharger le toolchain. Dans ce cas, une vérification statique (`python3 -m py_compile` sur les fichiers du dépôt) reste possible mais ne remplace pas `uv run python -m unittest discover -s tests`.
+
+## graphify
+
+This project has a knowledge graph at graphify-out/ with god nodes, community structure, and cross-file relationships.
+
+Rules:
+- For codebase questions, first run `graphify query "<question>"` when graphify-out/graph.json exists. Use `graphify path "<A>" "<B>"` for relationships and `graphify explain "<concept>"` for focused concepts. These return a scoped subgraph, usually much smaller than GRAPH_REPORT.md or raw grep output.
+- If graphify-out/wiki/index.md exists, use it for broad navigation instead of raw source browsing.
+- Read graphify-out/GRAPH_REPORT.md only for broad architecture review or when query/path/explain do not surface enough context.
+- After modifying code, run `graphify update .` to keep the graph current (AST-only, no API cost).

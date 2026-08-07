@@ -115,6 +115,9 @@ def calculate_critical_limit(
 
 
 FundsSeverity = Literal["ok", "warning", "critical"]
+FundsSource = Literal["real", "virtual"]
+
+VIRTUAL_WALLET_NOTE = "Note: training mode - this is the virtual wallet balance, not your real Kraken account."
 
 
 @dataclass(frozen=True)
@@ -126,6 +129,7 @@ class FundsSnapshot:
     resolve_limit: float
     order_budget: float
     severity: FundsSeverity
+    source: FundsSource = "real"
 
 
 def build_funds_snapshot(
@@ -133,6 +137,7 @@ def build_funds_snapshot(
     available: float,
     exchange_min_cost: float | None = None,
     order_budget: float | None = None,
+    source: FundsSource = "real",
 ) -> FundsSnapshot:
     budget = _order_budget(order_budget)
     low_limit = calculate_low_limit(settings, budget)
@@ -152,6 +157,7 @@ def build_funds_snapshot(
         resolve_limit=low_limit * settings.resolve_multiple,
         order_budget=budget,
         severity=severity,
+        source=source,
     )
 
 
@@ -161,6 +167,7 @@ def _money(value: float) -> str:
 
 def format_funds_alert(snapshot: FundsSnapshot, alert_type: str, mention: str = "") -> str:
     prefix = [mention] if mention else []
+    note = [VIRTUAL_WALLET_NOTE] if snapshot.source == "virtual" else []
     if alert_type == "critical":
         heading = "[HERMES CRITICAL] FUNDS TOO LOW"
         action = "Action: pause live trading or add funds now"
@@ -172,6 +179,7 @@ def format_funds_alert(snapshot: FundsSnapshot, alert_type: str, mention: str = 
             [
                 *prefix,
                 "[HERMES RESOLVED] FUNDS BACK ABOVE LIMIT",
+                *note,
                 "",
                 f"Quote: {snapshot.quote}",
                 f"Available: {_money(snapshot.available)}",
@@ -184,6 +192,7 @@ def format_funds_alert(snapshot: FundsSnapshot, alert_type: str, mention: str = 
         [
             *prefix,
             heading,
+            *note,
             "",
             f"Quote: {snapshot.quote}",
             f"Available: {_money(snapshot.available)}",
@@ -315,6 +324,24 @@ async def build_due_funds_alert(
         return None
     available = await fetch_available_funds(settings, exchange_factory=exchange_factory)
     snapshot = build_funds_snapshot(settings, available=available)
+    return build_funds_alert_message(state_dir / "funds_alert.json", settings, snapshot, now)
+
+
+def build_funds_alert_from_wallet_balance(
+    state_dir: Path,
+    settings: FundsAlertSettings,
+    balance: Decimal,
+    now: datetime | None = None,
+) -> str | None:
+    """Build a funds alert from the training-mode virtual wallet balance.
+
+    Training mode never touches the real exchange account, so its low-funds
+    alerts must be evaluated against the simulated wallet instead - hitting
+    the real Kraken balance here would warn about money that was never at risk.
+    """
+    if not settings.enabled:
+        return None
+    snapshot = build_funds_snapshot(settings, available=float(balance), source="virtual")
     return build_funds_alert_message(state_dir / "funds_alert.json", settings, snapshot, now)
 
 

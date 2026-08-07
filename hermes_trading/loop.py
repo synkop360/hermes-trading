@@ -27,8 +27,8 @@ from hermes_trading.exchange import ExchangeGateway, KrakenGateway
 from hermes_trading.execution import ExecutionResult, ExecutionService
 from hermes_trading.funds import (
     FundsAlertSettings,
-    build_due_funds_alert,
     build_due_funds_alert_from_balances,
+    build_funds_alert_from_wallet_balance,
     resolve_funds_alert_settings,
 )
 from hermes_trading.market_data import MarketDataCoordinator
@@ -58,7 +58,11 @@ from hermes_trading.notifications import (
 )
 from hermes_trading.operator_config import merged_operator_env
 from hermes_trading.qualification import QualificationPhase, QualificationService
-from hermes_trading.qualification_runner import QualificationCycleSchedule, QualificationRunner
+from hermes_trading.qualification_runner import (
+    QualificationCycleSchedule,
+    QualificationRunner,
+    compute_virtual_wallet_balance,
+)
 from hermes_trading.reflection_guard import reflection_model_entry_block
 
 
@@ -812,7 +816,10 @@ async def _run_training_loop(
         while True:
             started_at = datetime.now(timezone.utc)
             try:
-                funds_alert = await build_due_funds_alert(state_dir, funds_alert_settings, started_at)
+                wallet_balance = compute_virtual_wallet_balance(state, values)
+                funds_alert = build_funds_alert_from_wallet_balance(
+                    state_dir, funds_alert_settings, wallet_balance, started_at
+                )
                 if funds_alert:
                     await _notify_all([funds_alert], notification_settings)
                 strategy = _load_yaml(state_dir / "strategy.yaml")
@@ -861,7 +868,10 @@ async def _run_training_loop(
                     "consecutive_failures": consecutive_failures,
                 })
                 await _notify_all([build_error_notification(exc, consecutive_failures)], notification_settings)
-                funds_alert = await build_due_funds_alert(state_dir, funds_alert_settings, started_at)
+                wallet_balance = compute_virtual_wallet_balance(state, values)
+                funds_alert = build_funds_alert_from_wallet_balance(
+                    state_dir, funds_alert_settings, wallet_balance, started_at
+                )
                 if funds_alert:
                     await _notify_all([funds_alert], notification_settings)
                 if consecutive_failures >= 5:

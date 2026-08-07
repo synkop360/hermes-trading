@@ -2,7 +2,10 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import UTC, datetime
+from decimal import Decimal
 from enum import Enum
+
+DEFAULT_STARTING_WALLET_BALANCE = Decimal("50")
 
 
 class QualificationPhase(str, Enum):
@@ -63,6 +66,12 @@ class QualificationEvidence:
     fees_and_slippage_charged: bool | EvidenceCheck
     duplicate_candle_protected: bool | EvidenceCheck
     risk_limits_exercised: bool | EvidenceCheck
+    starting_wallet_balance: Decimal = DEFAULT_STARTING_WALLET_BALANCE
+    total_realized_pnl: Decimal = Decimal("0")
+
+    @property
+    def wallet_balance(self) -> Decimal:
+        return self.starting_wallet_balance + self.total_realized_pnl
 
 
 @dataclass(frozen=True)
@@ -96,6 +105,7 @@ class QualificationService:
             _gate("training_duration", elapsed_days >= 14, str(elapsed_days), ">= 14 days"),
             _gate("closed_positions", evidence.closed_positions >= 50, str(evidence.closed_positions), ">= 50"),
             _gate("strategy_unchanged", evidence.strategy_hash == evidence.approved_strategy_hash, evidence.strategy_hash, evidence.approved_strategy_hash),
+            _overall_pnl_gate(evidence),
             _evidence_gate("replay_without_lookahead", evidence.replay_without_lookahead),
             _evidence_gate("fees_and_slippage", evidence.fees_and_slippage_charged),
             _evidence_gate("duplicate_candle_protection", evidence.duplicate_candle_protected),
@@ -104,6 +114,17 @@ class QualificationService:
         if requested_phase not in {QualificationPhase.TRAINING, QualificationPhase.VALIDATION_READY}:
             gates.append(_gate("costs_complete", evidence.costs_complete, str(evidence.costs_complete), "true"))
         return QualificationSnapshot(requested_phase, tuple(gates))
+
+
+def _overall_pnl_gate(evidence: QualificationEvidence) -> GateResult:
+    passed = evidence.total_realized_pnl >= 0
+    observed = f"pnl={evidence.total_realized_pnl} wallet={evidence.wallet_balance} (start={evidence.starting_wallet_balance})"
+    reason = (
+        f"virtual wallet at {evidence.wallet_balance} (pnl {evidence.total_realized_pnl:+})"
+        if passed
+        else f"virtual wallet pnl is negative: {evidence.total_realized_pnl} (wallet {evidence.wallet_balance}, started at {evidence.starting_wallet_balance})"
+    )
+    return GateResult("overall_pnl", GateStatus.PASS if passed else GateStatus.FAIL, observed, ">= 0", reason)
 
 
 def _gate(name: str, passed: bool, observed: str, required: str) -> GateResult:

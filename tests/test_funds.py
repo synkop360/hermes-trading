@@ -2,10 +2,13 @@ import json
 import tempfile
 import unittest
 from datetime import datetime
+from decimal import Decimal
 from pathlib import Path
 
 from hermes_trading.funds import (
+    VIRTUAL_WALLET_NOTE,
     FundsAlertConfigError,
+    build_funds_alert_from_wallet_balance,
     build_funds_alert_message,
     build_funds_snapshot,
     calculate_critical_limit,
@@ -121,6 +124,47 @@ class FundsAlertSeverityTests(unittest.TestCase):
 
         self.assertIn("[HERMES CRITICAL] FUNDS TOO LOW", message)
         self.assertIn("Action: pause live trading or add funds now", message)
+
+
+class VirtualWalletFundsAlertTests(unittest.TestCase):
+    def test_virtual_snapshot_defaults_source_to_real(self):
+        settings = resolve_funds_alert_settings({"HERMES_TRADING_MAX_ORDER_USDT": "5"})
+
+        snapshot = build_funds_snapshot(settings, available=14.82, exchange_min_cost=1.0)
+
+        self.assertEqual(snapshot.source, "real")
+
+    def test_virtual_wallet_alert_carries_note_and_no_real_funds(self):
+        settings = resolve_funds_alert_settings({"HERMES_TRADING_MAX_ORDER_USDT": "5"})
+        snapshot = build_funds_snapshot(settings, available=14.82, exchange_min_cost=1.0, source="virtual")
+
+        message = format_funds_alert(snapshot, "warning", mention="@here")
+
+        self.assertIn(VIRTUAL_WALLET_NOTE, message)
+
+    def test_real_wallet_alert_has_no_virtual_note(self):
+        settings = resolve_funds_alert_settings({"HERMES_TRADING_MAX_ORDER_USDT": "5"})
+        snapshot = build_funds_snapshot(settings, available=14.82, exchange_min_cost=1.0)
+
+        message = format_funds_alert(snapshot, "warning", mention="@here")
+
+        self.assertNotIn(VIRTUAL_WALLET_NOTE, message)
+
+    def test_build_funds_alert_from_wallet_balance_never_touches_network(self):
+        settings = resolve_funds_alert_settings(
+            {"HERMES_FUNDS_ALERT_ENABLED": "true", "HERMES_TRADING_MAX_ORDER_USDT": "5"}
+        )
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            message = build_funds_alert_from_wallet_balance(
+                Path(temp_dir),
+                settings,
+                Decimal("3.91"),
+                datetime.fromisoformat("2026-07-29T09:00:00+00:00"),
+            )
+
+        self.assertIn("[HERMES CRITICAL] FUNDS TOO LOW", message)
+        self.assertIn(VIRTUAL_WALLET_NOTE, message)
 
 
 class FundsAlertStateTests(unittest.TestCase):
