@@ -35,8 +35,8 @@ def score(trades: list[dict], goal: dict) -> float:
     if not trades:
         return -0.2
 
-    returns = [_net_return(trade) for trade in trades]
-    equity = [float(trade.get("equity", 100.0)) for trade in trades]
+    returns = [net_return(trade) for trade in trades]
+    equity = _equity_curve(trades, returns)
     realized_return = sum(returns)
     drawdown = _max_drawdown(equity)
     sharpe = _sharpe(returns)
@@ -55,12 +55,57 @@ def score(trades: list[dict], goal: dict) -> float:
     return _clip(round(composite, 4))
 
 
-def _net_return(trade: dict) -> float:
+def net_return(trade: dict) -> float:
+    """Resolve a closed trade's net percent return, across both trades.jsonl schemas."""
     try:
-        if trade.get("realized_pnl") is not None and trade.get("entry_cost") is not None:
-            entry_cost = Decimal(str(trade["entry_cost"]))
-            if entry_cost > 0:
+        if trade.get("realized_pnl") is not None:
+            entry_cost = _resolve_entry_cost(trade)
+            if entry_cost is not None and entry_cost > 0:
                 return float(Decimal(str(trade["realized_pnl"])) / entry_cost)
     except (InvalidOperation, TypeError, ValueError):
         pass
-    return float(trade.get("realized_pnl_pct", 0.0))
+    return float(trade.get("realized_pnl_pct", 0.0) or 0.0)
+
+
+def _resolve_entry_cost(trade: dict) -> Decimal | None:
+    """Resolve the capital committed to a trade, for percent-return scoring.
+
+    Prefers an explicit ``entry_cost`` (legacy trades.jsonl schema, used by
+    trades closed before the 2026-08-01 persistence migration). The current
+    ``Position``-derived schema (``positions.py::_records``) never persists
+    ``entry_cost`` directly -- only ``entry_price`` and ``quantity`` -- so fall
+    back to their product, which is exactly what entry_cost meant.
+    """
+    try:
+        if trade.get("entry_cost") is not None:
+            return Decimal(str(trade["entry_cost"]))
+        if trade.get("entry_price") is not None and trade.get("quantity") is not None:
+            return Decimal(str(trade["entry_price"])) * Decimal(str(trade["quantity"]))
+    except (InvalidOperation, TypeError, ValueError):
+        return None
+    return None
+
+
+def _equity_curve(trades: list[dict], returns: list[float]) -> list[float]:
+    """Resolve a per-trade equity series for drawdown scoring.
+
+    Prefers an explicit ``equity`` field (legacy trades.jsonl schema, and the
+    format existing tests construct directly). The current schema does not
+    persist a running equity snapshot per trade, so trades missing the field
+    fall back to a synthetic curve compounded from each trade's own net
+    return, continuing from the same 100.0 base the legacy schema started at
+    (or from the last known real ``equity`` value, if the trade list mixes
+    both schemas in chronological order).
+    """
+    curve: list[float] = []
+    equity = 100.0
+    for trade, trade_return in zip(trades, returns):
+        if trade.get("equity") is not None:
+            try:
+                equity = float(trade["equity"])
+            except (TypeError, ValueError):
+                equity *= 1.0 + trade_return
+        else:
+            equity *= 1.0 + trade_return
+        curve.append(equity)
+    return curve

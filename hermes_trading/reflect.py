@@ -4,6 +4,7 @@ import argparse
 import json
 import math
 import os
+from collections import Counter
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -13,7 +14,7 @@ import httpx
 import yaml
 
 from hermes_trading.costs import CostLedger, openai_usage_event
-from hermes_trading.score import score
+from hermes_trading.score import net_return, score
 from hermes_trading.model_runner import ReflectionModelRunner
 from hermes_trading.persistence.repository import StateRepository
 from hermes_trading.providers import HermesCatalog, ProviderRouter
@@ -35,6 +36,47 @@ _INTEGER_STRATEGY_VARIABLES = {"entry.threshold", "exit.max_bars"}
 STRATEGY_VARIABLE_ALIASES = {
     "entry_threshold": "entry.threshold",
 }
+STRATEGY_VARIABLE_BOUNDS: dict[str, tuple[float, float]] = {
+    "entry.threshold": (15.0, 35.0),
+    "stop_loss_pct": (0.3, 3.0),
+    "position_size_r": (0.1, 1.0),
+    "exit.stop_atr": (0.5, 4.0),
+    "exit.take_profit_atr": (1.0, 8.0),
+    "exit.max_bars": (1.0, 24.0),
+}
+STRATEGY_VARIABLE_MAX_STEP: dict[str, float] = {
+    "entry.threshold": 2.0,
+    "stop_loss_pct": 0.2,
+    "position_size_r": 0.1,
+    "exit.stop_atr": 0.5,
+    "exit.take_profit_atr": 1.0,
+    "exit.max_bars": 4.0,
+}
+# Modes that never submit real Kraken orders (mirrors loop.py::resolve_trading_config's
+# classification). Duplicated here rather than imported from hermes_trading.loop to
+# keep this module's import surface light -- loop.py pulls in asyncio, ccxt-backed
+# exchange access, etc. that reflect.py has no other reason to import.
+_TRAINING_MODE_VALUES = {"paper", "training", "train", "demo"}
+
+
+def _is_training_mode(env: dict[str, str]) -> bool:
+    mode = str(env.get("HERMES_TRADING_MODE", "paper")).strip().lower()
+    return mode in _TRAINING_MODE_VALUES
+
+
+def _offered_reflection_variables(env: dict[str, str]) -> list[str]:
+    """Variables the Hermes/LLM prompt is allowed to offer.
+
+    ``position_size_r`` only affects RiskEngine.authorize_entry() on the live
+    execution path (risk.py); PositionEngine, used whenever mode != live,
+    sizes every simulated trade at a fixed quote_notional and never reads it
+    (positions.py::_entry). Offering it in training mode wastes a whole
+    one-variable-per-cycle reflection budget on a change with no effect.
+    """
+    variables = set(SUPPORTED_STRATEGY_VARIABLES)
+    if _is_training_mode(env):
+        variables.discard("position_size_r")
+    return sorted(variables)
 
 
 @dataclass(frozen=True)
@@ -253,7 +295,7 @@ def _consecutive_losses(
     losses = 0
 
     for trade in reversed(trades):
-        pnl = float(trade.get("realized_pnl_pct", 0.0) or 0.0)
+        pnl = net_return(trade)
 
         if pnl < 0:
             losses += 1
@@ -261,6 +303,20 @@ def _consecutive_losses(
             break
 
     return losses
+
+
+def _is_no_trade_decision(decision: dict[str, Any]) -> bool:
+    """True when a decision record represents a no-trade cycle.
+
+    Real ``decisions.jsonl`` records (persisted from ``domain.Decision``)
+    carry an ``action`` field (``"no_trade"``, ``"enter"``, ``"exit"``,
+    ``"hold"``). Older callers/tests instead used a ``trade_closed`` boolean
+    with no ``action`` field -- keep that as a fallback so they still work.
+    """
+    action = decision.get("action")
+    if action is not None:
+        return action == "no_trade"
+    return not bool(decision.get("trade_closed"))
 
 
 def _asset_needs_reflection(
@@ -277,13 +333,20 @@ def _asset_needs_reflection(
     no_trade_decisions = [
         decision
         for decision in new_decisions
-        if not bool(decision.get("trade_closed"))
+        if _is_no_trade_decision(decision)
     ]
     recent_entry_values = [
         float(decision["entry_value"])
         for decision in no_trade_decisions
         if decision.get("entry_value") is not None
     ]
+    # Real no-trade decisions always carry a `reason` (e.g.
+    # "expected_payoff_below_costs", "entry_condition_not_met") -- track which
+    # one dominates so the accessibility guard below can route to the
+    # variable that actually gates entries instead of always assuming RSI.
+    no_trade_reason_counts = Counter(
+        str(decision["reason"]) for decision in no_trade_decisions if decision.get("reason")
+    )
 
     consecutive_losses = _consecutive_losses(trades)
     current_score = score(trades, goal) if trades else -0.2
@@ -366,6 +429,9 @@ def _asset_needs_reflection(
         "consecutive_losses": consecutive_losses,
         "score": current_score,
         "hours_since_reflection": hours_since_reflection,
+        "dominant_no_trade_reason": (
+            no_trade_reason_counts.most_common(1)[0][0] if no_trade_reason_counts else None
+        ),
     }
 
     if recent_entry_values:
@@ -394,16 +460,25 @@ def _no_trade_accessibility_proposal(
     metrics: dict[str, Any],
     policy: ReflectionPolicy,
 ) -> dict[str, Any] | None:
-    current_threshold = _entry_threshold(effective_strategy)
-    min_recent_entry_value = metrics.get("min_recent_entry_value")
-
-    if current_threshold is None:
-        return proposal
-
     if int(metrics.get("new_trades", 0)) > 0:
         return proposal
 
     if int(metrics.get("new_no_trade_decisions", 0)) < policy.min_new_decisions:
+        return proposal
+
+    if metrics.get("dominant_no_trade_reason") == "expected_payoff_below_costs":
+        # positions.py::_expected_payoff_covers_costs blocks entries before RSI
+        # is ever evaluated, so entry.threshold cannot reopen these no-trade
+        # droughts -- exit.take_profit_atr is the variable that actually gates
+        # them. See _payoff_gate_accessibility_proposal.
+        payoff_proposal = _payoff_gate_accessibility_proposal(asset, effective_strategy)
+        if payoff_proposal is not None:
+            return payoff_proposal
+
+    current_threshold = _entry_threshold(effective_strategy)
+    min_recent_entry_value = metrics.get("min_recent_entry_value")
+
+    if current_threshold is None:
         return proposal
 
     if min_recent_entry_value is None:
@@ -451,6 +526,46 @@ def _no_trade_accessibility_proposal(
             "is the only supported one-parameter change that can make entries reachable."
         ),
     }
+
+
+def _payoff_gate_accessibility_proposal(
+    asset: str,
+    effective_strategy: dict[str, Any],
+) -> dict[str, Any] | None:
+    """Propose raising exit.take_profit_atr when the ATR payoff gate is what's
+    blocking entries, instead of the entry.threshold guard above.
+
+    A larger take_profit_atr raises the ATR-implied take-profit percentage
+    (``atr * take_profit_atr / close``), which is exactly what
+    positions.py::_expected_payoff_covers_costs compares against round-trip
+    trading costs. Returns None (falls back to the caller's existing
+    proposal/guard) when take_profit_atr isn't configured or is already at
+    its validated maximum.
+    """
+    exit_rule = effective_strategy.get("exit")
+    if not isinstance(exit_rule, dict) or "take_profit_atr" not in exit_rule:
+        return None
+    try:
+        current = float(exit_rule["take_profit_atr"])
+    except (TypeError, ValueError):
+        return None
+    high = STRATEGY_VARIABLE_BOUNDS["exit.take_profit_atr"][1]
+    step = STRATEGY_VARIABLE_MAX_STEP["exit.take_profit_atr"]
+    target = min(high, current + step)
+    if target <= current:
+        return None
+    return {
+        "asset": asset,
+        "variable": "exit.take_profit_atr",
+        "value": target,
+        "reason": (
+            "no-trade accessibility guard: recent no-trade decisions are dominated by "
+            "expected_payoff_below_costs, which blocks entries before RSI is evaluated. "
+            "entry.threshold cannot fix this; raising the ATR take-profit multiplier is "
+            "the only supported one-parameter change that reopens entries."
+        ),
+    }
+
 
 def _deep_merge(
     base: dict[str, Any],
@@ -505,14 +620,15 @@ def _build_asset_reflection_prompt(
     decisions: list[dict[str, Any]],
     trigger_reasons: list[str],
     metrics: dict[str, Any],
+    env: dict[str, str],
 ) -> str:
+    variable_options = ", ".join(f'"{name}"' for name in _offered_reflection_variables(env))
     return (
         "You are reviewing exactly one trading symbol.\n"
         "Propose at most one strategy change for this symbol.\n"
         "Return exactly one JSON object without Markdown or extra text.\n\n"
         "Required keys:\n"
-        '- "variable": exactly one of '
-        '"entry.threshold", "stop_loss_pct", or "position_size_r"\n'
+        f'- "variable": exactly one of {variable_options}\n'
         '- "value": the proposed numeric value\n'
         '- "reason": concise justification based only on the supplied data\n'
         f'- "asset": exactly "{asset}"\n\n'
@@ -604,17 +720,24 @@ def _has_openai_api_key(env: dict[str, str]) -> bool:
 
 
 def _realized_return(trades: list[dict[str, Any]]) -> float:
-    return sum(float(trade.get("realized_pnl_pct", 0.0)) for trade in trades)
+    return sum(net_return(trade) for trade in trades)
 
 
 def _max_drawdown(trades: list[dict[str, Any]]) -> float:
     peak = None
     worst = 0.0
+    running_equity = 100.0
     for trade in trades:
-        equity = float(trade.get("equity", 100.0))
-        peak = equity if peak is None else max(peak, equity)
+        if trade.get("equity") is not None:
+            try:
+                running_equity = float(trade["equity"])
+            except (TypeError, ValueError):
+                running_equity *= 1.0 + net_return(trade)
+        else:
+            running_equity *= 1.0 + net_return(trade)
+        peak = running_equity if peak is None else max(peak, running_equity)
         if peak:
-            worst = max(worst, (peak - equity) / peak)
+            worst = max(worst, (peak - running_equity) / peak)
     return worst
 
 
@@ -897,29 +1020,14 @@ def _normalized_strategy_value(variable: str, value: Any) -> Any:
 
 
 def _validate_strategy_change(strategy: dict[str, Any], variable: str, asset: str | None, value: Any) -> None:
-    bounds = {
-        "entry.threshold": (15.0, 35.0),
-        "stop_loss_pct": (0.3, 3.0),
-        "position_size_r": (0.1, 1.0),
-        "exit.stop_atr": (0.5, 4.0),
-        "exit.take_profit_atr": (1.0, 8.0),
-        "exit.max_bars": (1.0, 24.0),
-    }
-    max_step = {
-        "entry.threshold": 2.0,
-        "stop_loss_pct": 0.2,
-        "position_size_r": 0.1,
-        "exit.stop_atr": 0.5,
-        "exit.take_profit_atr": 1.0,
-        "exit.max_bars": 4.0,
-    }
     candidate = float(value)
-    low, high = bounds[variable]
+    low, high = STRATEGY_VARIABLE_BOUNDS[variable]
     if not low <= candidate <= high:
         raise ValueError(f"{variable} must stay between {low} and {high}")
     current = _get_nested(_resolve_asset_strategy(strategy, asset or ""), _variable_path(variable))
-    if current is not None and abs(candidate - float(current)) > max_step[variable]:
-        raise ValueError(f"{variable} change exceeds the maximum step {max_step[variable]}")
+    max_step = STRATEGY_VARIABLE_MAX_STEP[variable]
+    if current is not None and abs(candidate - float(current)) > max_step:
+        raise ValueError(f"{variable} change exceeds the maximum step {max_step}")
 def run_hermes_reflection(
     state_dir: Path,
     env: dict[str, str] | None = None,
@@ -1028,6 +1136,7 @@ def run_hermes_reflection(
             decisions=asset_decisions,
             trigger_reasons=trigger_reasons,
             metrics=metrics,
+            env=env,
         )
 
         proposal, model_info = _generate_asset_proposal(
@@ -1042,6 +1151,35 @@ def run_hermes_reflection(
             metrics,
             policy,
         )
+
+        if (
+            proposal is not None
+            and _is_training_mode(env)
+            and str(proposal.get("variable", "")).strip().split(".")[-1] == "position_size_r"
+        ):
+            # position_size_r only affects RiskEngine.authorize_entry() on the
+            # live path; PositionEngine (training/simulated mode) ignores it
+            # entirely, so applying this proposal would be a no-op that still
+            # burns this asset's one-variable-per-cycle reflection budget.
+            cycle_results.append(
+                {
+                    "asset": asset,
+                    "status": "proposal_rejected",
+                    "error": "position_size_r has no effect in training/simulated mode",
+                    "proposal": proposal,
+                }
+            )
+            _append_hypothesis(
+                state_dir,
+                {
+                    "timestamp": now.isoformat(),
+                    "mode": "hermes_asset_rejected",
+                    "asset": asset,
+                    "error": "position_size_r_inert_in_training_mode",
+                    "proposal": proposal,
+                },
+            )
+            continue
 
         if proposal is None:
             cycle_results.append(
