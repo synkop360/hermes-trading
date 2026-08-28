@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 import hashlib
 import hmac
+import io
 import os
 from typing import Protocol
 
@@ -43,6 +44,9 @@ class ControlClientLike(Protocol):
         ...
 
     def set_config(self, key: str, value: str) -> dict[str, object]:
+        ...
+
+    def pnl_graph(self) -> tuple[bytes, str]:
         ...
 
 
@@ -89,6 +93,12 @@ class DiscordControlBot:
         restart = _bool_text(result.get("restart_required"))
         return f"Hermes config updated {result.get('key')}={result.get('value')} restart_required={restart}"
 
+    def pnl_graph(self, *, user_id: int, otp: str) -> tuple[bytes, str] | str:
+        denial = self._deny(user_id, otp)
+        if denial is not None:
+            return denial
+        return self._control_client.pnl_graph()
+
     def _deny(self, user_id: int, otp: str) -> str | None:
         if user_id not in self._config.allowed_user_ids:
             return "unauthorized"
@@ -129,6 +139,19 @@ async def run_discord_bot(config: DiscordBotConfig) -> None:
         message = await asyncio.to_thread(bot.qualification, user_id=interaction.user.id, otp=otp)
         await interaction.followup.send(
             message,
+            ephemeral=True,
+        )
+
+    @tree.command(name="pnl_graph", description="Read Hermes wallet and P&L graph")
+    async def pnl_graph_command(interaction: discord.Interaction, otp: str) -> None:
+        await interaction.response.defer(ephemeral=True)
+        result = await asyncio.to_thread(bot.pnl_graph, user_id=interaction.user.id, otp=otp)
+        if isinstance(result, str):
+            await interaction.followup.send(result, ephemeral=True)
+            return
+        content, _content_type = result
+        await interaction.followup.send(
+            file=discord.File(io.BytesIO(content), filename="hermes-pnl-graph.png"),
             ephemeral=True,
         )
 

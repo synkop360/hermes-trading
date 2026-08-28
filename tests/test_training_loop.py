@@ -4,7 +4,7 @@ from pathlib import Path
 import tempfile
 import unittest
 
-from hermes_trading.loop import run_cycle
+from hermes_trading.loop import _load_yaml, run_cycle
 from hermes_trading.market_data import ClosedCandle, MarketSnapshot
 from hermes_trading.persistence import StateRepository
 from hermes_trading.persistence.artifacts import ArtifactProjector
@@ -131,3 +131,21 @@ class TrainingLoopTests(unittest.TestCase):
         self.assertEqual(projector.projected_items, 9)
         self.assertEqual(projector.reconcile_calls, 0)
         self.assertFalse(second.degraded)
+
+
+class LoadYamlTests(unittest.TestCase):
+    def test_load_yaml_strips_a_leading_utf8_bom(self) -> None:
+        # A stray UTF-8 BOM (e.g. from a `Get-Content -Raw | ssh "cat > ..."`
+        # push) must not survive into the first top-level key: read_text()
+        # without an explicit encoding falls back to the platform locale
+        # (cp1252 on Windows), which decodes the BOM as mojibake glued onto
+        # "entry" instead of stripping it, silently losing the whole key.
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "strategy.yaml"
+            path.write_bytes(b"\xef\xbb\xbfentry:\n  indicator: rsi\n  threshold: 1.5\n")
+
+            loaded = _load_yaml(path)
+
+        self.assertIn("entry", loaded)
+        self.assertEqual(loaded["entry"]["indicator"], "rsi")
+        self.assertEqual(loaded["entry"]["threshold"], Decimal("1.5"))

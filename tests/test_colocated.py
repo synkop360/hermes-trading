@@ -9,10 +9,23 @@ from hermes_trading.colocated import (
     should_start_control_api,
     start_control_api_if_configured,
 )
-from hermes_trading.run import ensure_state_files
+from hermes_trading.run import ensure_state_files, resolve_state_dir
 
 
 class ColocatedEntrypointTests(unittest.TestCase):
+    def test_resolve_state_dir_defaults_to_project_root_state(self) -> None:
+        root = Path("/some/project")
+
+        self.assertEqual(resolve_state_dir(root, {}), root / "state")
+
+    def test_resolve_state_dir_honors_env_override(self) -> None:
+        root = Path("/some/project")
+
+        self.assertEqual(
+            resolve_state_dir(root, {"HERMES_STATE_DIR": "/other/state-consultant"}),
+            Path("/other/state-consultant"),
+        )
+
     def test_control_api_starts_only_when_hmac_secret_exists(self) -> None:
         self.assertFalse(should_start_control_api({}))
         self.assertTrue(should_start_control_api({"HERMES_CONTROL_HMAC_SECRET": "secret"}))

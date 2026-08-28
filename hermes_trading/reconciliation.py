@@ -351,6 +351,7 @@ class ReconciliationService:
                     previous.entry_price, previous.stop_price, previous.strategy_version,
                     previous.opened_at, remote.updated_at if remaining == 0 else None,
                     realized, total_fees,
+                    take_profit_price=previous.take_profit_price,
                 ))
 
     def _persist_issues(self, issues: list[ReconciliationIssue]) -> None:

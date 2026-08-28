@@ -8,16 +8,17 @@ from collections import Counter
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 import httpx
 import yaml
 
+from hermes_trading.adapters import market_analysis
 from hermes_trading.costs import CostLedger, openai_usage_event
 from hermes_trading.score import net_return, score
 from hermes_trading.model_runner import ReflectionModelRunner
 from hermes_trading.persistence.repository import StateRepository
-from hermes_trading.providers import HermesCatalog, ProviderRouter
+from hermes_trading.providers import HermesCatalog, ModelCandidate, ProviderRouter
 from hermes_trading.strategy_registry import StrategyRegistry
 
 
@@ -41,7 +42,7 @@ STRATEGY_VARIABLE_BOUNDS: dict[str, tuple[float, float]] = {
     "stop_loss_pct": (0.3, 3.0),
     "position_size_r": (0.1, 1.0),
     "exit.stop_atr": (0.5, 4.0),
-    "exit.take_profit_atr": (1.0, 8.0),
+    "exit.take_profit_atr": (1.0, 15.0),
     "exit.max_bars": (1.0, 24.0),
 }
 STRATEGY_VARIABLE_MAX_STEP: dict[str, float] = {
@@ -49,7 +50,7 @@ STRATEGY_VARIABLE_MAX_STEP: dict[str, float] = {
     "stop_loss_pct": 0.2,
     "position_size_r": 0.1,
     "exit.stop_atr": 0.5,
-    "exit.take_profit_atr": 1.0,
+    "exit.take_profit_atr": 7.0,
     "exit.max_bars": 4.0,
 }
 # Modes that never submit real Kraken orders (mirrors loop.py::resolve_trading_config's
@@ -203,7 +204,12 @@ def _write_reflection_state(
 def _legacy_reflection_timestamp(state_dir: Path, asset: str) -> datetime | None:
     for record in reversed(_load_jsonl(state_dir / "hypotheses.jsonl")):
         mode = str(record.get("mode", ""))
-        if not mode.startswith("hermes_"):
+        # hermes_multi_asset_* rows are per-cycle summaries (logged even when
+        # nothing changed) and never carry an "asset" field -- they must not
+        # be treated as a wildcard match for every asset below, or a run that
+        # never had a single genuine per-asset reflection ends up re-poisoning
+        # its own cooldown every cycle and can never become eligible again.
+        if not mode.startswith("hermes_") or mode.startswith("hermes_multi_asset"):
             continue
         record_asset = str(record.get("asset", "")).upper()
         if record_asset and record_asset != asset.upper():
@@ -235,6 +241,168 @@ def _record_timestamp(record: dict[str, Any]) -> datetime | None:
         if parsed is not None:
             return parsed
     return None
+
+
+@dataclass(frozen=True)
+class ReflectionHealthSettings:
+    enabled: bool
+    stale_after_hours: float
+    cooldown_seconds: int
+
+
+def resolve_reflection_health_settings(env: dict[str, str] | None = None) -> ReflectionHealthSettings:
+    values = env if env is not None else os.environ
+    enabled = str(values.get("HERMES_REFLECTION_STALE_ALERT_ENABLED", "true")).strip().lower() != "false"
+    return ReflectionHealthSettings(
+        enabled=enabled,
+        stale_after_hours=float(values.get("HERMES_REFLECTION_STALE_ALERT_HOURS", "36")),
+        cooldown_seconds=int(values.get("HERMES_REFLECTION_STALE_ALERT_COOLDOWN_SECONDS", "21600")),
+    )
+
+
+def _last_hypothesis_at(state_dir: Path) -> datetime | None:
+    """Every run_hermes_reflection call appends a hypothesis record, whether or
+    not it applied a change -- unlike reflection_state.json's per-asset
+    last_reflection_at, which only updates on an applied change. This is the
+    correct "was reflection invoked at all" signal for staleness detection.
+    """
+    for record in reversed(_load_jsonl(state_dir / "hypotheses.jsonl")):
+        timestamp = _parse_timestamp(record.get("timestamp"))
+        if timestamp is not None:
+            return timestamp
+    return None
+
+
+def _load_reflection_health_state(path: Path) -> dict[str, Any]:
+    if not path.exists():
+        return {}
+    try:
+        return json.loads(path.read_text(encoding="utf-8") or "{}")
+    except json.JSONDecodeError:
+        return {}
+
+
+def _write_reflection_health_state(path: Path, status: str, now: datetime) -> None:
+    path.write_text(
+        json.dumps({"status": status, "last_alert_at": now.isoformat()}, indent=2, sort_keys=True),
+        encoding="utf-8",
+    )
+
+
+def _reflection_alert_cooldown_elapsed(state: dict[str, Any], now: datetime, cooldown_seconds: int) -> bool:
+    raw = state.get("last_alert_at")
+    if not raw:
+        return True
+    last_alert_at = _parse_timestamp(raw)
+    return last_alert_at is None or (now - last_alert_at).total_seconds() >= cooldown_seconds
+
+
+def build_due_reflection_health_alert(
+    state_dir: Path,
+    settings: ReflectionHealthSettings,
+    now: datetime | None = None,
+) -> str | None:
+    """Alert when reflection hasn't run in a long time, and send one resolve
+    message when it resumes. Mirrors funds.py's alert/cooldown/resolve state
+    machine, simplified to the two states this needs (ok/stale)."""
+    if not settings.enabled:
+        return None
+    current_time = (now or datetime.now(timezone.utc)).astimezone(timezone.utc)
+    last_at = _last_hypothesis_at(state_dir)
+    if last_at is None:
+        return None
+    hours_since = (current_time - last_at).total_seconds() / 3600.0
+    is_stale = hours_since >= settings.stale_after_hours
+
+    health_path = state_dir / "reflection_health.json"
+    state = _load_reflection_health_state(health_path)
+    previous_status = str(state.get("status") or "ok")
+
+    if not is_stale:
+        if previous_status == "stale":
+            _write_reflection_health_state(health_path, "ok", current_time)
+            return "Hermes Trading | Reflection resumed: hypotheses.jsonl is updating again."
+        return None
+
+    if previous_status == "ok" or _reflection_alert_cooldown_elapsed(state, current_time, settings.cooldown_seconds):
+        _write_reflection_health_state(health_path, "stale", current_time)
+        return (
+            f"Hermes Trading | Reflection has not run in {hours_since:.1f}h "
+            f"(threshold {settings.stale_after_hours:.0f}h) -- check the in-process trigger "
+            "(HERMES_REFLECTION_INPROCESS_EVERY_CYCLES) and the external hermes-trading-watch cron."
+        )
+    return None
+
+
+def _regime_marker_path(state_dir: Path) -> Path:
+    return state_dir / "reflection-regime-started-at.txt"
+
+
+def load_regime_started_at(
+    state_dir: Path,
+    env: dict[str, str] | None = None,
+    *,
+    now: datetime | None = None,
+) -> datetime:
+    """Timestamp marking the start of the current strategy "regime".
+
+    Reflection's score/consecutive_losses metrics are scoped to trades closed
+    at or after this point (see ``_records_since`` and its callers below), so
+    a losing streak from a since-replaced entry/exit indicator can't
+    perpetually veto the current one -- mirrors
+    qualification_runner.py::run_from_state's training-started-at pattern:
+    an env override takes precedence, otherwise a marker file is read and, if
+    absent, created defaulting to now (so the very first read after this
+    scoping ships "starts the clock" instead of silently doing nothing).
+    """
+    env = dict(os.environ if env is None else env)
+    current = now or datetime.now(timezone.utc)
+    configured = env.get("HERMES_REFLECTION_REGIME_STARTED_AT", "").strip()
+    marker_path = _regime_marker_path(state_dir)
+    try:
+        value = configured or (
+            marker_path.read_text(encoding="utf-8").strip() if marker_path.exists() else current.isoformat()
+        )
+        started_at = datetime.fromisoformat(value).astimezone(timezone.utc)
+    except ValueError:
+        started_at = current
+    if not configured and not marker_path.exists():
+        marker_path.parent.mkdir(parents=True, exist_ok=True)
+        marker_path.write_text(started_at.isoformat() + "\n", encoding="utf-8")
+    return started_at
+
+
+def mark_regime_start(state_dir: Path, *, now: datetime | None = None) -> datetime:
+    """Reset the regime marker to now.
+
+    Call this after a structural strategy change (entry/exit indicator,
+    direction) so score/consecutive_losses stop being computed over trades
+    from a strategy logic that no longer exists. Exposed for
+    scripts/mark_reflection_regime.py.
+    """
+    started_at = now or datetime.now(timezone.utc)
+    marker_path = _regime_marker_path(state_dir)
+    marker_path.parent.mkdir(parents=True, exist_ok=True)
+    marker_path.write_text(started_at.isoformat() + "\n", encoding="utf-8")
+    return started_at
+
+
+def _records_since(
+    records: list[dict[str, Any]],
+    timestamp: datetime | None,
+) -> list[dict[str, Any]]:
+    if timestamp is None:
+        return records
+
+    result = []
+
+    for record in records:
+        record_time = _record_timestamp(record)
+
+        if record_time is not None and record_time >= timestamp:
+            result.append(record)
+
+    return result
 
 
 def _records_after(
@@ -327,6 +495,7 @@ def _asset_needs_reflection(
     goal: dict[str, Any],
     policy: ReflectionPolicy,
     now: datetime,
+    regime_started_at: datetime | None = None,
 ) -> tuple[bool, list[str], dict[str, Any]]:
     new_trades = _records_after(trades, last_reflection_at)
     new_decisions = _records_after(decisions, last_reflection_at)
@@ -348,8 +517,16 @@ def _asset_needs_reflection(
         str(decision["reason"]) for decision in no_trade_decisions if decision.get("reason")
     )
 
-    consecutive_losses = _consecutive_losses(trades)
-    current_score = score(trades, goal) if trades else -0.2
+    # Eligibility (has_trade_history below) intentionally stays on the full,
+    # unscoped trade history -- an asset with a long track record should still
+    # be trusted to run automated no-trade-drought tuning even while its
+    # regime-scoped sample is still empty. Only the *performance judgment*
+    # metrics (score, consecutive_losses) are scoped to the current regime, so
+    # a losing streak from a since-replaced indicator can't keep vetoing the
+    # current one every cycle.
+    scored_trades = _records_since(trades, regime_started_at)
+    consecutive_losses = _consecutive_losses(scored_trades)
+    current_score = score(scored_trades, goal) if scored_trades else -0.2
 
     hours_since_reflection: float | None = None
 
@@ -360,14 +537,18 @@ def _asset_needs_reflection(
 
     reasons = []
 
-    # No-trade decisions may tune accessibility only after the strategy has a
-    # sufficiently large closed-trade history. They cannot bootstrap a brand-new
-    # strategy on their own.
-    has_trade_history = len(trades) >= policy.min_closed_trades
-    trade_sample_eligible = has_trade_history and len(new_trades) >= policy.min_new_trades
+    # A brand-new asset (total_trades below policy.min_closed_trades, e.g. LINK
+    # or SOL the day they're added) must not be permanently excluded from the
+    # no-trade-drought path just for lacking history it can never accumulate
+    # without that path's help first -- that was a real bootstrap deadlock
+    # (zero trades -> ineligible -> entry.threshold never loosens -> zero
+    # trades, forever). Once an asset does have min_closed_trades or more,
+    # trade_sample_eligible's own len(new_trades) >= min_new_trades bar
+    # already requires real evidence, so nothing here weakens that judgment
+    # for an asset with an established track record.
+    trade_sample_eligible = len(new_trades) >= policy.min_new_trades
     no_trade_drought_eligible = (
-        has_trade_history
-        and len(new_trades) == 0
+        len(new_trades) == 0
         and len(no_trade_decisions) >= policy.min_new_decisions
     )
     eligible_sample = trade_sample_eligible or no_trade_drought_eligible
@@ -424,6 +605,7 @@ def _asset_needs_reflection(
         "new_no_trade_decisions": len(no_trade_decisions),
         "total_decisions": len(decisions),
         "total_trades": len(trades),
+        "scored_trades": len(scored_trades),
         "eligible_sample": eligible_sample,
         "cooldown_active": cooling_down,
         "consecutive_losses": consecutive_losses,
@@ -612,6 +794,50 @@ def _resolve_asset_strategy(
 
     return _deep_merge(base, override)
 
+def _market_analysis_snapshot(
+    effective_strategy: dict[str, Any],
+    metrics: dict[str, Any],
+    decisions: list[dict[str, Any]],
+    trades: list[dict[str, Any]],
+) -> dict[str, Any]:
+    latest_decision = decisions[-1] if decisions else {}
+    latest_trade = trades[-1] if trades else {}
+    return {
+        "entry_threshold": _entry_threshold(effective_strategy),
+        "exit_take_profit_atr": effective_strategy.get("exit", {}).get("take_profit_atr"),
+        "score": metrics.get("score"),
+        "consecutive_losses": metrics.get("consecutive_losses"),
+        "dominant_no_trade_reason": metrics.get("dominant_no_trade_reason"),
+        "recent_reference_price": latest_decision.get("reference_price"),
+        "recent_decision_reason": latest_decision.get("reason"),
+        "recent_trade_realized_pnl": latest_trade.get("realized_pnl"),
+        "new_decisions_since_last_reflection": metrics.get("new_decisions"),
+        "new_trades_since_last_reflection": metrics.get("new_trades"),
+    }
+
+
+def _fetch_market_analysis(
+    asset: str,
+    snapshot: dict[str, Any],
+    env: dict[str, str],
+) -> dict[str, Any] | None:
+    """Advisory-only local-model opinion for the reflection prompt below.
+
+    Returns None when the feature is off (default -- opt in with
+    HERMES_MARKET_ANALYSIS_ENABLED=true). When enabled, any failure (model
+    unreachable, malformed response, ...) is captured as an {"error": ...}
+    dict rather than raised, so a flaky local model can never break a
+    reflection cycle -- see market_analysis.fetch's docstring for why this
+    stays advisory-only and out of the live trading decision entirely.
+    """
+    if str(env.get("HERMES_MARKET_ANALYSIS_ENABLED", "false")).strip().lower() not in {"1", "true", "yes"}:
+        return None
+    try:
+        return market_analysis.fetch(asset, snapshot, env)
+    except Exception as error:
+        return {"error": str(error)}
+
+
 def _build_asset_reflection_prompt(
     asset: str,
     effective_strategy: dict[str, Any],
@@ -621,8 +847,16 @@ def _build_asset_reflection_prompt(
     trigger_reasons: list[str],
     metrics: dict[str, Any],
     env: dict[str, str],
+    market_analysis_opinion: dict[str, Any] | None = None,
 ) -> str:
     variable_options = ", ".join(f'"{name}"' for name in _offered_reflection_variables(env))
+    market_analysis_section = ""
+    if market_analysis_opinion and "error" not in market_analysis_opinion:
+        market_analysis_section = (
+            "\nA local market-analysis model offered this opinion. It is a small, "
+            "unverified model -- weigh it lightly against the trade/decision data "
+            f"above, which is ground truth and this is not:\n{json.dumps(market_analysis_opinion)}\n"
+        )
     return (
         "You are reviewing exactly one trading symbol.\n"
         "Propose at most one strategy change for this symbol.\n"
@@ -645,12 +879,81 @@ def _build_asset_reflection_prompt(
         f"Recent symbol trades:\n{json.dumps(trades[-25:])}\n"
         "Recent symbol decisions, including no-trade decisions:\n"
         f"{json.dumps(decisions[-100:])}\n"
+        f"{market_analysis_section}"
     )
+
+def generate_deterministic_asset_proposal(
+    asset: str,
+    prompt: str,
+    env: dict[str, str],
+    *,
+    effective_strategy: dict[str, Any],
+    metrics: dict[str, Any],
+    trades: list[dict[str, Any]],
+    goal: dict[str, Any],
+    policy: ReflectionPolicy,
+    **_ignored: Any,
+) -> tuple[dict[str, Any] | None, dict[str, Any]]:
+    """Pure-Python proposal generator needing no external process or API call.
+
+    Used as the in-process reflection trigger's proposal source (loop.py runs
+    inside the Railway container, which has no ``hermes`` CLI, no local model,
+    and typically no OpenAI key) -- it must never shell out or make a network
+    call. Reuses the exact same accessibility-guard and scoring logic the
+    LLM path relies on, so it produces proposals the rest of the pipeline
+    (bounds clamping, one-variable-only, hypothesis logging) already knows
+    how to validate and apply.
+    """
+    model_info = {"provider": "deterministic", "model": None, "errors": []}
+
+    if metrics.get("dominant_no_trade_reason") == "expected_payoff_below_costs":
+        payoff_proposal = _payoff_gate_accessibility_proposal(asset, effective_strategy)
+        if payoff_proposal is not None:
+            return payoff_proposal, model_info
+
+    current_threshold = _entry_threshold(effective_strategy)
+    if current_threshold is None:
+        return None, model_info
+
+    low, high = STRATEGY_VARIABLE_BOUNDS["entry.threshold"]
+    step = STRATEGY_VARIABLE_MAX_STEP["entry.threshold"]
+    target_return = float(goal.get("target_return_30d", 0.05))
+    realized_return = _realized_return(trades)
+    current_score = score(trades, goal) if trades else -0.2
+    winners_miss_costs = not _average_winning_trade_clears_costs(trades, effective_strategy)
+
+    if realized_return < target_return and (current_score < 0 or winners_miss_costs):
+        after = max(low, current_threshold - step)
+        reason = (
+            "deterministic in-process reflection: realized return missed target and "
+            + (
+                "winning trades don't clear round-trip transaction costs"
+                if winners_miss_costs and current_score >= 0
+                else "the score is negative"
+            )
+            + ", so entry was tightened to trade more selectively."
+        )
+    elif realized_return < target_return:
+        after = min(min(high, policy.max_entry_threshold), current_threshold + step)
+        reason = "deterministic in-process reflection: realized return missed target, so entry was loosened."
+    else:
+        after = max(low, current_threshold - step)
+        reason = "deterministic in-process reflection: realized return met target, so entry was tightened."
+
+    if after == current_threshold:
+        return None, model_info
+
+    return (
+        {"asset": asset, "variable": "entry.threshold", "value": after, "reason": reason},
+        model_info,
+    )
+
 
 def _generate_asset_proposal(
     asset: str,
     prompt: str,
     env: dict[str, str],
+    **_ignored: Any,
 ) -> tuple[dict[str, Any] | None, dict[str, Any]]:
     """Hermes automatic selection is always tried before free candidates and OpenAI."""
     state_dir = Path(env["HERMES_REFLECTION_STATE_DIR"])
@@ -667,11 +970,19 @@ def _generate_asset_proposal(
         openai_run = (
             lambda request: _run_openai_prompt(request, fallback_model, env, cost_ledger=ledger)
         ) if _has_openai_api_key(env) else None
+        pinned_provider = env.get("HERMES_REFLECTION_PINNED_PROVIDER", "").strip()
+        pinned_model = env.get("HERMES_REFLECTION_PINNED_MODEL", "").strip()
+        pinned_candidate = (
+            ModelCandidate(provider=pinned_provider, model=pinned_model, free=False, source="pinned")
+            if pinned_provider and pinned_model
+            else None
+        )
         result = ReflectionModelRunner(
             ProviderRouter(repository, HermesCatalog.load(cache_path)),
             local_run=local_run,
             openai_run=openai_run,
             cost_ledger=ledger,
+            pinned_candidate=pinned_candidate,
         ).run(prompt)
         proposal = json.loads(result.output)
         if not isinstance(proposal, dict):
@@ -685,7 +996,11 @@ def _generate_asset_proposal(
 
 
 def _load_yaml(path: Path) -> dict[str, Any]:
-    return yaml.safe_load(path.read_text()) or {}
+    # Explicit encoding -- see hermes_trading.loop._load_yaml's comment: a
+    # UTF-8 BOM decodes as mojibake instead of being stripped when
+    # read_text() falls back to a non-UTF-8 locale encoding (cp1252 on
+    # Windows), corrupting the first YAML key.
+    return yaml.safe_load(path.read_text(encoding="utf-8")) or {}
 
 
 def _write_yaml(path: Path, data: dict[str, Any]) -> None:
@@ -715,6 +1030,24 @@ def _append_hypothesis(state_dir: Path, payload: dict[str, Any]) -> None:
         handle.write(json.dumps(payload, separators=(",", ":")) + "\n")
 
 
+def _append_market_analysis_log(state_dir: Path, asset: str, opinion: dict[str, Any]) -> None:
+    """Records every attempted market-analysis call (success or error),
+    independent of whether the resulting proposal gets applied -- unlike
+    hypotheses.jsonl, which only carries market_analysis on applied changes,
+    this answers "when did we last actually call the consultant model" with
+    a direct file read instead of cross-referencing the model server's own
+    logs (see docs/COMMANDS.md's baseline-vs-consultant comparison section
+    for why that gap mattered)."""
+    payload = {
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "asset": asset,
+        "status": "error" if "error" in opinion else "ok",
+        **opinion,
+    }
+    with (state_dir / "market_analysis.jsonl").open("a", encoding="utf-8") as handle:
+        handle.write(json.dumps(payload, separators=(",", ":")) + "\n")
+
+
 def _has_openai_api_key(env: dict[str, str]) -> bool:
     return bool(env.get("OPENAI_API_KEY") or env.get("HERMES_OPENAI_API_KEY"))
 
@@ -741,6 +1074,31 @@ def _max_drawdown(trades: list[dict[str, Any]]) -> float:
     return worst
 
 
+def _round_trip_cost_pct(strategy: dict[str, Any]) -> float:
+    """Simulated round-trip transaction cost (both legs taker) plus the minimum edge, as a fraction."""
+    simulation = strategy.get("simulation")
+    simulation = simulation if isinstance(simulation, dict) else {}
+    taker_fee_rate = float(simulation.get("taker_fee_rate", 0.004))
+    slippage_rate = float(simulation.get("slippage_rate", 0.001))
+    minimum_edge_pct = float(simulation.get("minimum_expected_edge_pct", 0.2))
+    return 2 * (taker_fee_rate + slippage_rate) + minimum_edge_pct / 100
+
+
+def _average_winning_trade_clears_costs(trades: list[dict[str, Any]], strategy: dict[str, Any]) -> bool:
+    """False when winners are too small (or absent) to cover round-trip transaction costs.
+
+    A strategy can look fine by score/realized-return alone while its winners are
+    consistently smaller than fees + slippage -- the average trade is a "win" on
+    direction but a loss after costs. Loosening entry in that state only produces
+    more of the same losing trades, so this feeds the same tightening branch as a
+    negative score.
+    """
+    wins = [net_return(trade) for trade in trades if net_return(trade) > 0]
+    if not wins:
+        return False
+    return (sum(wins) / len(wins)) >= _round_trip_cost_pct(strategy)
+
+
 def run_fallback_reflection(state_dir: Path) -> dict[str, Any]:
     strategy_path = state_dir / "strategy.yaml"
     goal = _load_yaml(state_dir / "goal.yaml")
@@ -762,13 +1120,18 @@ def run_fallback_reflection(state_dir: Path) -> dict[str, Any]:
         variable = "entry.threshold"
         before = int(updated.setdefault("entry", {}).get("threshold", 30))
         target = float(goal.get("target_return_30d", 0.05))
-        if realized_return < target and current_score < 0:
-            # Underperforming AND losing money: entries are too frequent or too
+        winners_miss_costs = not _average_winning_trade_clears_costs(trades, strategy)
+        if realized_return < target and (current_score < 0 or winners_miss_costs):
+            # Underperforming AND (losing money OR winners too small to clear
+            # round-trip transaction costs): entries are too frequent or too
             # low-quality relative to trading costs. Loosening the entry filter
             # here would only generate more losing trades, so tighten instead.
             after = max(2, before - 2)
             reason = (
-                "realized return missed the target and the score is negative, "
+                "realized return missed the target and average winning trades don't clear "
+                "round-trip transaction costs, so the fallback tightened entry to trade more selectively."
+                if winners_miss_costs and current_score >= 0
+                else "realized return missed the target and the score is negative, "
                 "so the fallback tightened entry to trade more selectively."
             )
         elif realized_return < target:
@@ -1028,13 +1391,34 @@ def _validate_strategy_change(strategy: dict[str, Any], variable: str, asset: st
     max_step = STRATEGY_VARIABLE_MAX_STEP[variable]
     if current is not None and abs(candidate - float(current)) > max_step:
         raise ValueError(f"{variable} change exceeds the maximum step {max_step}")
+@dataclass
+class ReflectionCycleSchedule:
+    every_cycles: int
+    cycles: int = 0
+
+    def record_cycle(self) -> bool:
+        if self.every_cycles <= 0:
+            return False
+        self.cycles += 1
+        if self.cycles < self.every_cycles:
+            return False
+        self.cycles = 0
+        return True
+
+
 def run_hermes_reflection(
     state_dir: Path,
     env: dict[str, str] | None = None,
+    *,
+    proposal_generator: Callable[..., tuple[dict[str, Any] | None, dict[str, Any]]] | None = None,
+    market_analysis_fetcher: Callable[[str, dict[str, Any], dict[str, str]], dict[str, Any] | None] | None = None,
 ) -> dict[str, Any]:
+    generate_proposal = proposal_generator or _generate_asset_proposal
+    fetch_market_analysis = market_analysis_fetcher or _fetch_market_analysis
     env = dict(os.environ if env is None else env)
     env["HERMES_REFLECTION_STATE_DIR"] = str(state_dir)
     policy = resolve_reflection_policy(env)
+    regime_started_at = load_regime_started_at(state_dir, env)
 
     strategy_path = state_dir / "strategy.yaml"
     strategy = _load_yaml(strategy_path)
@@ -1077,43 +1461,71 @@ def run_hermes_reflection(
     applied_changes = []
     cycle_results = []
 
+    # Pass 1: evaluate every asset's eligibility up front (cheap, no LLM calls)
+    # so a systemic problem -- e.g. the ATR payoff gate locking out several
+    # assets at once -- can be recognized and fixed together in pass 2,
+    # instead of each asset independently rediscovering the same diagnosis on
+    # its own cooldown.
+    evaluations: dict[str, dict[str, Any]] = {}
     for asset in assets:
-        asset_trades = _records_for_asset(
-            all_trades,
-            asset,
-        )
-        asset_decisions = _records_for_asset(
-            all_decisions,
-            asset,
-        )
-
-        asset_state = reflection_state.get(
-            asset,
-            {},
-        )
-
-        last_reflection_at = _parse_timestamp(
-            asset_state.get("last_reflection_at")
-        )
+        asset_trades = _records_for_asset(all_trades, asset)
+        asset_decisions = _records_for_asset(all_decisions, asset)
+        asset_state = reflection_state.get(asset, {})
+        last_reflection_at = _parse_timestamp(asset_state.get("last_reflection_at"))
         if last_reflection_at is None:
-            last_reflection_at = _legacy_reflection_timestamp(
-                state_dir,
-                asset,
-            )
+            last_reflection_at = _legacy_reflection_timestamp(state_dir, asset)
+        should_reflect, trigger_reasons, metrics = _asset_needs_reflection(
+            asset=asset,
+            trades=asset_trades,
+            decisions=asset_decisions,
+            last_reflection_at=last_reflection_at,
+            goal=goal,
+            policy=policy,
+            now=now,
+            regime_started_at=regime_started_at,
+        )
+        evaluations[asset] = {
+            "should_reflect": should_reflect,
+            "trigger_reasons": trigger_reasons,
+            "metrics": metrics,
+            "last_reflection_at": last_reflection_at,
+            "asset_trades": asset_trades,
+            "asset_decisions": asset_decisions,
+            # Same regime scope as the score/consecutive_losses metrics above,
+            # so the LLM prompt and generate_proposal() judge performance
+            # against the current strategy only, not a since-replaced one.
+            "scoped_trades": _records_since(asset_trades, regime_started_at),
+        }
 
-        should_reflect, trigger_reasons, metrics = (
-            _asset_needs_reflection(
-                asset=asset,
-                trades=asset_trades,
-                decisions=asset_decisions,
-                last_reflection_at=last_reflection_at,
-                goal=goal,
-                policy=policy,
-                now=now,
-            )
+    def _payoff_locked_out(evaluation: dict[str, Any]) -> bool:
+        metrics = evaluation["metrics"]
+        return (
+            metrics.get("dominant_no_trade_reason") == "expected_payoff_below_costs"
+            and int(metrics.get("new_trades", 0)) == 0
         )
 
-        if not should_reflect:
+    systemic_assets = {asset for asset, evaluation in evaluations.items() if _payoff_locked_out(evaluation)}
+    has_qualifying_evidence = any(
+        evaluations[asset]["should_reflect"] for asset in systemic_assets
+    )
+
+    for asset in assets:
+        evaluation = evaluations[asset]
+        should_reflect = evaluation["should_reflect"]
+        trigger_reasons = evaluation["trigger_reasons"]
+        metrics = evaluation["metrics"]
+        scoped_trades = evaluation["scoped_trades"]
+        asset_decisions = evaluation["asset_decisions"]
+        last_reflection_at = evaluation["last_reflection_at"]
+
+        systemic_override = (
+            not should_reflect
+            and has_qualifying_evidence
+            and asset in systemic_assets
+            and (last_reflection_at is None or (now - last_reflection_at).total_seconds() >= 3600)
+        )
+
+        if not should_reflect and not systemic_override:
             cycle_results.append(
                 {
                     "asset": asset,
@@ -1128,29 +1540,58 @@ def run_hermes_reflection(
             asset,
         )
 
-        prompt = _build_asset_reflection_prompt(
-            asset=asset,
-            effective_strategy=effective_strategy,
-            goal=goal,
-            trades=asset_trades,
-            decisions=asset_decisions,
-            trigger_reasons=trigger_reasons,
-            metrics=metrics,
-            env=env,
-        )
+        if systemic_override:
+            # A sibling asset already earned eligibility this cycle with the
+            # same payoff-gate lockout; apply the same accessibility fix here
+            # rather than waiting out this asset's own cooldown to rediscover it.
+            proposal = _payoff_gate_accessibility_proposal(asset, effective_strategy)
+            model_info = {"provider": "systemic_accessibility_guard", "model": None, "errors": []}
+            trigger_reasons = trigger_reasons + ["shared payoff-gate lockout diagnosis from a sibling asset"]
+            market_analysis_opinion = None
+        else:
+            try:
+                market_analysis_opinion = fetch_market_analysis(
+                    asset,
+                    _market_analysis_snapshot(effective_strategy, metrics, asset_decisions, scoped_trades),
+                    env,
+                )
+            except Exception as error:
+                # A custom market_analysis_fetcher (injected by a caller) is not
+                # guaranteed to have _fetch_market_analysis's own try/except --
+                # this cycle must proceed regardless of what an advisory,
+                # optional opinion source does.
+                market_analysis_opinion = {"error": str(error)}
+            if market_analysis_opinion is not None:
+                _append_market_analysis_log(state_dir, asset, market_analysis_opinion)
+            prompt = _build_asset_reflection_prompt(
+                asset=asset,
+                effective_strategy=effective_strategy,
+                goal=goal,
+                trades=scoped_trades,
+                decisions=asset_decisions,
+                trigger_reasons=trigger_reasons,
+                metrics=metrics,
+                env=env,
+                market_analysis_opinion=market_analysis_opinion,
+            )
 
-        proposal, model_info = _generate_asset_proposal(
-            asset,
-            prompt,
-            env,
-        )
-        proposal = _no_trade_accessibility_proposal(
-            asset,
-            effective_strategy,
-            proposal,
-            metrics,
-            policy,
-        )
+            proposal, model_info = generate_proposal(
+                asset,
+                prompt,
+                env,
+                effective_strategy=effective_strategy,
+                metrics=metrics,
+                trades=scoped_trades,
+                goal=goal,
+                policy=policy,
+            )
+            proposal = _no_trade_accessibility_proposal(
+                asset,
+                effective_strategy,
+                proposal,
+                metrics,
+                policy,
+            )
 
         if (
             proposal is not None
@@ -1245,6 +1686,7 @@ def run_hermes_reflection(
             "metrics": metrics,
             "provider": model_info["provider"],
             "model": model_info["model"],
+            "market_analysis": market_analysis_opinion,
         }
 
         applied_changes.append(change)
@@ -1326,6 +1768,7 @@ def run_hermes_reflection(
                 "metrics": change["metrics"],
                 "provider": change["provider"],
                 "model": change["model"],
+                "market_analysis": change["market_analysis"],
             },
         )
 

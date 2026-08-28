@@ -1,6 +1,6 @@
 import tempfile
 import unittest
-from datetime import timedelta
+from datetime import datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
 
@@ -12,7 +12,8 @@ from hermes_trading.qualification_runner import QualificationCycleSchedule
 from tests.test_qualification import NOW, evidence
 
 
-def closed_position(position_id: str, realized_pnl: Decimal) -> Position:
+def closed_position(position_id: str, realized_pnl: Decimal, closed_at: datetime | None = None) -> Position:
+    closed = closed_at or NOW
     return Position(
         position_id=position_id,
         asset="BTC/USDT",
@@ -21,8 +22,8 @@ def closed_position(position_id: str, realized_pnl: Decimal) -> Position:
         entry_price=Decimal("65001.0"),
         stop_price=Decimal("64675.0"),
         strategy_version="83",
-        opened_at="2026-07-30T20:00:02+00:00",
-        closed_at="2026-07-30T21:00:02+00:00",
+        opened_at=(closed - timedelta(hours=1)).isoformat(),
+        closed_at=closed.isoformat(),
         realized_pnl=realized_pnl,
         fees=Decimal("0.01"),
     )
@@ -83,6 +84,46 @@ class QualificationRunnerTests(unittest.TestCase):
         gate = report.snapshot.gate("overall_pnl")
         self.assertEqual(gate.status.value, "pass")
         self.assertIn("pnl=3", gate.observed)
+
+    def test_state_runner_excludes_positions_closed_before_training_start(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            state_dir = Path(temp_dir)
+            repository = StateRepository.open(state_dir / "trading.db")
+            repository.migrate()
+            repository.save_position(closed_position("pos-1", Decimal("-40")))
+            (state_dir / "qualification-training-started-at.txt").write_text(
+                (NOW + timedelta(days=1)).isoformat() + "\n", encoding="utf-8"
+            )
+            (state_dir / "strategy.yaml").write_text("version: '83'\n", encoding="utf-8")
+            report = QualificationRunner(repository, state_dir, QualificationService()).run_from_state(
+                QualificationPhase.VALIDATION_READY, now=NOW + timedelta(days=1)
+            )
+            repository.close()
+
+        gate = report.snapshot.gate("overall_pnl")
+        self.assertEqual(gate.status.value, "pass")
+        self.assertIn("pnl=0", gate.observed)
+        self.assertEqual(report.snapshot.gate("closed_positions").observed, "0")
+
+    def test_state_runner_excludes_positions_closed_after_qualification_run_time(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            state_dir = Path(temp_dir)
+            repository = StateRepository.open(state_dir / "trading.db")
+            repository.migrate()
+            repository.save_position(closed_position("pos-1", Decimal("2"), NOW))
+            repository.save_position(closed_position("pos-2", Decimal("30"), NOW + timedelta(days=1)))
+            (state_dir / "qualification-training-started-at.txt").write_text(
+                (NOW - timedelta(days=1)).isoformat() + "\n", encoding="utf-8"
+            )
+            (state_dir / "strategy.yaml").write_text("version: '83'\n", encoding="utf-8")
+            report = QualificationRunner(repository, state_dir, QualificationService()).run_from_state(
+                QualificationPhase.VALIDATION_READY, now=NOW
+            )
+            repository.close()
+
+        gate = report.snapshot.gate("overall_pnl")
+        self.assertIn("pnl=2", gate.observed)
+        self.assertEqual(report.snapshot.gate("closed_positions").observed, "1")
 
     def test_state_runner_fails_qualification_on_negative_overall_pnl(self):
         with tempfile.TemporaryDirectory() as temp_dir:

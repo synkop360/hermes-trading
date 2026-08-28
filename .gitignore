@@ -19,6 +19,7 @@ wheels/
 
 # Runtime trading state
 state/
+state-*/
 trades.jsonl
 *.sqlite
 *.sqlite-wal
@@ -28,3 +29,11 @@ backups/
 # Agent coordination and local artifacts
 .superpowers/
 .test-tmp*/
+
+# Cached third-party historical market data (large CSVs, easily re-fetched
+# via scripts/fetch_historical_data.py -- never commit these)
+market_data_cache/
+
+# graphify's generated knowledge-graph snapshots -- regeneratable locally via
+# `graphify update .`, large (many dated full-analysis snapshots), never commit
+graphify-out/

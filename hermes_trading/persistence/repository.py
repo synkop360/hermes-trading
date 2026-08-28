@@ -204,7 +204,7 @@ class StateRepository:
         rows = self._connection.execute(
             """
             SELECT position_id, asset, status, quantity, entry_price, stop_price,
-                   strategy_version, opened_at, closed_at, realized_pnl, fees
+                   strategy_version, opened_at, closed_at, realized_pnl, fees, take_profit_price
             FROM positions
             WHERE status IN ('opening', 'open', 'closing')
             ORDER BY opened_at, position_id
@@ -216,7 +216,7 @@ class StateRepository:
         rows = self._connection.execute(
             """
             SELECT position_id, asset, status, quantity, entry_price, stop_price,
-                   strategy_version, opened_at, closed_at, realized_pnl, fees
+                   strategy_version, opened_at, closed_at, realized_pnl, fees, take_profit_price
             FROM positions
             WHERE status = 'closed' AND closed_at IS NOT NULL
             ORDER BY closed_at, position_id
@@ -409,8 +409,8 @@ class StateRepository:
                     """
                     INSERT INTO positions (
                         position_id, asset, status, quantity, entry_price, stop_price,
-                        strategy_version, opened_at, closed_at, realized_pnl, fees
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        strategy_version, opened_at, closed_at, realized_pnl, fees, take_profit_price
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     ON CONFLICT(position_id) DO UPDATE SET
                         asset = excluded.asset,
                         status = excluded.status,
@@ -421,7 +421,8 @@ class StateRepository:
                         opened_at = excluded.opened_at,
                         closed_at = excluded.closed_at,
                         realized_pnl = excluded.realized_pnl,
-                        fees = excluded.fees
+                        fees = excluded.fees,
+                        take_profit_price = excluded.take_profit_price
                     """,
                     self._position_values(position),
                 )
@@ -434,7 +435,7 @@ class StateRepository:
         row = self._connection.execute(
             """
             SELECT position_id, asset, status, quantity, entry_price, stop_price,
-                   strategy_version, opened_at, closed_at, realized_pnl, fees
+                   strategy_version, opened_at, closed_at, realized_pnl, fees, take_profit_price
             FROM positions
             WHERE asset = ? AND status IN ('opening', 'open', 'closing')
             ORDER BY opened_at DESC
@@ -448,7 +449,7 @@ class StateRepository:
         rows = self._connection.execute(
             """
             SELECT position_id, asset, status, quantity, entry_price, stop_price,
-                   strategy_version, opened_at, closed_at, realized_pnl, fees
+                   strategy_version, opened_at, closed_at, realized_pnl, fees, take_profit_price
             FROM positions
             WHERE status IN ('opening', 'open', 'closing')
             ORDER BY opened_at, position_id
@@ -791,11 +792,12 @@ class StateRepository:
                 self._connection.execute(
                     """
                     INSERT INTO positions (position_id, asset, status, quantity, entry_price, stop_price,
-                        strategy_version, opened_at, closed_at, realized_pnl, fees)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        strategy_version, opened_at, closed_at, realized_pnl, fees, take_profit_price)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     ON CONFLICT(position_id) DO UPDATE SET
                         status = excluded.status, closed_at = excluded.closed_at,
-                        realized_pnl = excluded.realized_pnl, fees = excluded.fees
+                        realized_pnl = excluded.realized_pnl, fees = excluded.fees,
+                        stop_price = excluded.stop_price
                     """,
                     self._position_values(position),
                 )
@@ -1170,6 +1172,7 @@ class StateRepository:
             position.closed_at,
             str(position.realized_pnl),
             str(position.fees),
+            str(position.take_profit_price) if position.take_profit_price is not None else None,
         )
 
     @staticmethod
@@ -1186,6 +1189,7 @@ class StateRepository:
             closed_at=row["closed_at"],
             realized_pnl=Decimal(row["realized_pnl"]),
             fees=Decimal(row["fees"]),
+            take_profit_price=Decimal(row["take_profit_price"]) if row["take_profit_price"] is not None else None,
         )
 
     @staticmethod

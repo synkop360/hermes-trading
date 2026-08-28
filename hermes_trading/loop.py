@@ -49,6 +49,7 @@ from hermes_trading.notifications import (
     build_cycle_notifications,
     build_due_profitability_notifications,
     build_error_notification,
+    build_inprocess_reflection_notification,
     build_qualification_notification,
     build_summary_notifications,
     NotificationSettings,
@@ -62,6 +63,13 @@ from hermes_trading.qualification_runner import (
     QualificationCycleSchedule,
     QualificationRunner,
     compute_virtual_wallet_balance,
+)
+from hermes_trading.reflect import (
+    ReflectionCycleSchedule,
+    build_due_reflection_health_alert,
+    generate_deterministic_asset_proposal,
+    resolve_reflection_health_settings,
+    run_hermes_reflection,
 )
 from hermes_trading.reflection_guard import reflection_model_entry_block
 
@@ -242,7 +250,15 @@ def _load_yaml(path: Path) -> dict[str, Any]:
         return Decimal(loader.construct_scalar(node).replace("_", ""))
 
     DecimalSafeLoader.add_constructor("tag:yaml.org,2002:float", decimal_value)
-    return yaml.load(path.read_text(), Loader=DecimalSafeLoader) or {}
+    # Explicit encoding: Path.read_text() otherwise defaults to
+    # locale.getpreferredencoding(), which is cp1252 on Windows -- a UTF-8
+    # BOM (e.g. from a prior `Get-Content -Raw | ssh "cat > ..."` push) then
+    # decodes as three mojibake characters glued onto the first YAML key
+    # instead of being stripped, silently corrupting it (discovered when a
+    # BOM-prefixed strategy.yaml made every entry.* key vanish under this
+    # loader locally, while the same file parsed fine on Railway's UTF-8
+    # Linux locale).
+    return yaml.load(path.read_text(encoding="utf-8"), Loader=DecimalSafeLoader) or {}
 
 
 async def run_cycle(
@@ -252,11 +268,12 @@ async def run_cycle(
     market_data: MarketDataCoordinator,
     strategy: dict[str, Any],
     mode: str,
+    equity: Decimal | None = None,
 ) -> CycleResult:
     """Process one closed-candle batch through the canonical training engine."""
     if mode != "training":
         raise TradingModeError("run_cycle is available only in training mode")
-    engine = PositionEngine(state, projector)
+    engine = PositionEngine(state, projector, equity=equity)
     recovery_error = engine.recover_pending_projections()
     snapshots = await market_data.collect(assets)
     results = tuple(
@@ -460,6 +477,7 @@ async def run_live_cycle(
                 position.closed_at,
                 position.realized_pnl,
                 position.fees,
+                take_profit_price=position.take_profit_price,
             )
             state.save_position(position)
         protection_signal = Decision(
@@ -812,6 +830,10 @@ async def _run_training_loop(
     qualification_schedule = QualificationCycleSchedule(
         int(os.getenv("HERMES_QUALIFICATION_EVERY_CYCLES", "0"))
     )
+    reflection_schedule = ReflectionCycleSchedule(
+        int(os.getenv("HERMES_REFLECTION_INPROCESS_EVERY_CYCLES", "0"))
+    )
+    reflection_health_settings = resolve_reflection_health_settings(dict(values))
     try:
         while True:
             started_at = datetime.now(timezone.utc)
@@ -823,7 +845,7 @@ async def _run_training_loop(
                 if funds_alert:
                     await _notify_all([funds_alert], notification_settings)
                 strategy = _load_yaml(state_dir / "strategy.yaml")
-                cycle = await run_cycle(assets, state, projector, market_data, strategy, trading.mode)
+                cycle = await run_cycle(assets, state, projector, market_data, strategy, trading.mode, equity=wallet_balance)
                 trades = _cycle_trades(cycle)
                 orders = _cycle_orders(cycle)
                 profitability_report = await _update_profitability_best_effort(state_dir)
@@ -832,6 +854,27 @@ async def _run_training_loop(
                     qualification_report = QualificationRunner(state, state_dir, QualificationService()).run_from_state(
                         QualificationPhase.VALIDATION_READY, now=started_at
                     )
+                reflection_message = None
+                if reflection_schedule.record_cycle():
+                    # Deterministic, pure-Python generator only -- this runs
+                    # inside the worker, which has no `hermes` CLI, no local
+                    # model, and typically no OpenAI key. A failure here must
+                    # never take down the trading cycle, so it's contained and
+                    # reported rather than left to trip the circuit breaker.
+                    try:
+                        before_version = str(strategy.get("version", "01"))
+                        updated_strategy = run_hermes_reflection(
+                            state_dir, dict(values), proposal_generator=generate_deterministic_asset_proposal
+                        )
+                        reflection_message = build_inprocess_reflection_notification(before_version, updated_strategy)
+                    except Exception as error:
+                        reflection_message = f"Hermes Trading | In-process reflection failed: {error}"
+                try:
+                    reflection_health_alert = build_due_reflection_health_alert(
+                        state_dir, reflection_health_settings, started_at
+                    )
+                except Exception:
+                    reflection_health_alert = None
                 heartbeat = _attach_profitability_gate(
                     {
                         "timestamp": started_at.isoformat(), "assets": assets,
@@ -849,6 +892,10 @@ async def _run_training_loop(
                 await _notify_worker_feature_updates(state_dir, notification_settings, started_at)
                 if qualification_report is not None:
                     messages.append(build_qualification_notification(qualification_report))
+                if reflection_message is not None:
+                    messages.append(reflection_message)
+                if reflection_health_alert is not None:
+                    messages.append(reflection_health_alert)
                 messages.extend(build_summary_notifications(state_dir, trades, notification_settings, pnl_summary, started_at))
                 if profitability_report:
                     messages.extend(

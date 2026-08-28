@@ -32,6 +32,7 @@ class ReflectionModelRunner:
         command_run: Callable[..., subprocess.CompletedProcess[str]] | None = None,
         timeout_seconds: int | None = None,
         cost_ledger: CostLedger | None = None,
+        pinned_candidate: ModelCandidate | None = None,
     ) -> None:
         self.router = router
         self.local_run = local_run
@@ -39,19 +40,20 @@ class ReflectionModelRunner:
         self.command_run = command_run
         self.timeout_seconds = timeout_seconds or int(os.environ.get("HERMES_REFLECTION_TIMEOUT_SECONDS", "60"))
         self.cost_ledger = cost_ledger
+        self.pinned_candidate = pinned_candidate
 
     def run(self, prompt: str, *, now: datetime | None = None) -> ModelRunResult:
         current = (now or datetime.now(UTC)).astimezone(UTC)
         errors: list[tuple[str, str | None, Exception]] = []
-        try:
-            return ModelRunResult(_json_output(self._hermes(prompt)), "hermes_auto", None)
-        except Exception as error:
-            errors.append(("hermes_auto", "auto", error))
-            self.router.store.record_provider_attempt(
-                ProviderAttempt("hermes_auto", "auto", _error_class(error), current, _retry_after_seconds(error))
-            )
 
-        for candidate in self.router.candidates(now=current):
+        if self.pinned_candidate is not None:
+            # A pinned model replaces both the "hermes_auto" opaque selector and
+            # the free-pool rotation below with one fixed choice, so the same
+            # model answers every reflection cycle instead of whichever free
+            # candidate happened to be available/successful most recently.
+            # Local/OpenAI fallback on failure is unchanged -- resilience is
+            # preserved, only the "which free model" rotation is removed.
+            candidate = self.pinned_candidate
             try:
                 started = datetime.now(UTC)
                 output = _json_output(self._hermes(prompt, candidate))
@@ -65,6 +67,29 @@ class ReflectionModelRunner:
                     retry_after_seconds=_retry_after_seconds(error),
                     now=current,
                 )
+        else:
+            try:
+                return ModelRunResult(_json_output(self._hermes(prompt)), "hermes_auto", None)
+            except Exception as error:
+                errors.append(("hermes_auto", "auto", error))
+                self.router.store.record_provider_attempt(
+                    ProviderAttempt("hermes_auto", "auto", _error_class(error), current, _retry_after_seconds(error))
+                )
+
+            for candidate in self.router.candidates(now=current):
+                try:
+                    started = datetime.now(UTC)
+                    output = _json_output(self._hermes(prompt, candidate))
+                    self.router.record_success(candidate, now=current, latency_ms=int((datetime.now(UTC) - started).total_seconds() * 1000))
+                    return ModelRunResult(output, candidate.provider, candidate.model)
+                except Exception as error:
+                    errors.append((candidate.provider, candidate.model, error))
+                    self.router.record_failure(
+                        candidate,
+                        error_class=_error_class(error),
+                        retry_after_seconds=_retry_after_seconds(error),
+                        now=current,
+                    )
 
         if self.local_run is not None:
             if _provider_cooling_down("local_model", "fallback", list(self.router.store.provider_attempts()), current):

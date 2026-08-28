@@ -114,6 +114,28 @@ class LocalControlApiTests(unittest.TestCase):
         self.assertEqual(persisted["HERMES_TRADING_TIMEFRAME"], "15m")
         self.assertEqual(dangerous_response.status, 400)
 
+    def test_pnl_graph_returns_signed_png_response(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            state_dir = Path(directory)
+            repository = StateRepository.open(state_dir / "trading.db")
+            repository.migrate()
+            api = LocalControlApi(repository, state_dir, secret="secret", now=lambda: NOW)
+
+            response = api.handle(
+                "GET",
+                "/pnl-graph",
+                self.signed_headers("secret", "nonce-pnl-graph", NOW, ""),
+                "",
+            )
+            unauthorized = api.handle("GET", "/pnl-graph", {}, "")
+            repository.close()
+
+        self.assertEqual(response.status, 200)
+        self.assertEqual(response.content_type, "image/png")
+        self.assertIsInstance(response.body, bytes)
+        self.assertEqual(response.body[:8], b"\x89PNG\r\n\x1a\n")
+        self.assertEqual(unauthorized.status, 401)
+
     def test_http_handler_serves_signed_status_on_loopback_server(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             state_dir = Path(directory)

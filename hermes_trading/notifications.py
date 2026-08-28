@@ -301,6 +301,13 @@ def build_qualification_notification(report: QualificationReport) -> str:
     )
 
 
+def build_inprocess_reflection_notification(before_version: str, after_strategy: dict[str, Any]) -> str:
+    after_version = str(after_strategy.get("version", before_version))
+    if after_version == before_version:
+        return f"Hermes Trading | In-process reflection: no change (version {before_version})"
+    return f"Hermes Trading | In-process reflection: strategy v{before_version} -> v{after_version}"
+
+
 def build_worker_feature_update(feature: str, detail: str, *, status: str = "available") -> str:
     return f"Hermes Trading | Worker feature {status} {feature}: {detail}"
 

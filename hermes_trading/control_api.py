@@ -12,13 +12,14 @@ from hermes_trading.control import ControlService
 from hermes_trading.control_auth import SQLiteNonceReplayStore, verify_command
 from hermes_trading.operator_config import OperatorConfigError, list_operator_config, set_operator_config
 from hermes_trading.persistence.repository import StateRepository
+from hermes_trading.pnl_graph import build_pnl_graph_series, render_pnl_graph_png
 from hermes_trading.qualification import QualificationPhase
 
 
 @dataclass(frozen=True)
 class ControlResponse:
     status: int
-    body: str
+    body: str | bytes
     content_type: str = "application/json"
 
 
@@ -47,6 +48,8 @@ class LocalControlApi:
             return _json_response(401, {"error": "unauthorized"})
         if method == "GET" and path == "/status":
             return _json_response(200, self._status_payload())
+        if method == "GET" and path == "/pnl-graph":
+            return self._pnl_graph_response()
         if method == "GET" and path == "/config":
             return _json_response(200, list_operator_config(self._state_dir, os.environ))
         if method == "POST" and path == "/config":
@@ -92,6 +95,15 @@ class LocalControlApi:
         result = ControlService(self._repository, self._state_dir).request_qualification(phase)
         return _json_response(200, result)
 
+    def _pnl_graph_response(self) -> ControlResponse:
+        series = build_pnl_graph_series(
+            self._repository,
+            self._state_dir,
+            now=self._now(),
+            env=os.environ,
+        )
+        return ControlResponse(200, render_pnl_graph_png(series), "image/png")
+
     def _config_response(self, body: str) -> ControlResponse:
         try:
             payload = json.loads(body)
@@ -136,7 +148,7 @@ def make_control_handler(api: LocalControlApi) -> type[BaseHTTPRequestHandler]:
             length = int(self.headers.get("Content-Length", "0"))
             body = self.rfile.read(length).decode("utf-8") if length else ""
             response = api.handle(self.command, self.path, self.headers, body)
-            encoded = response.body.encode("utf-8")
+            encoded = response.body if isinstance(response.body, bytes) else response.body.encode("utf-8")
             self.send_response(response.status)
             self.send_header("Content-Type", response.content_type)
             self.send_header("Content-Length", str(len(encoded)))

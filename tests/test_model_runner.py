@@ -116,6 +116,42 @@ class ReflectionModelRunnerTests(unittest.TestCase):
         self.assertEqual(result.provider, "hermes_auto")
         self.assertEqual(patched.call_args.args[0][:3], ["hermes", "-z", "prompt"])
 
+    def test_pinned_candidate_is_tried_first_and_skips_auto_select_and_pool(self):
+        calls = []
+        catalog = HermesCatalog((ModelCandidate("nous", "a:free", True, "test"),))
+
+        def run(command, **kwargs):
+            calls.append(command)
+            return subprocess.CompletedProcess(command, 0, '{"variable":"entry.threshold"}\n', '')
+
+        result = ReflectionModelRunner(
+            ProviderRouter(Store(), catalog),
+            command_run=run,
+            pinned_candidate=ModelCandidate("openrouter", "pinned:model", False, "pinned"),
+        ).run("prompt")
+
+        self.assertEqual(len(calls), 1)
+        self.assertEqual(calls[0][-4:], ["--provider", "openrouter", "-m", "pinned:model"])
+        self.assertEqual(result.provider, "openrouter")
+        self.assertEqual(result.model, "pinned:model")
+
+    def test_pinned_candidate_failure_still_falls_through_to_local_and_openai(self):
+        store = Store()
+
+        def run(command, **kwargs):
+            raise RuntimeError("pinned model unavailable")
+
+        result = ReflectionModelRunner(
+            ProviderRouter(store, HermesCatalog(())),
+            command_run=run,
+            pinned_candidate=ModelCandidate("openrouter", "pinned:model", False, "pinned"),
+            openai_run=lambda prompt: '{"variable":"entry.threshold"}',
+        ).run("prompt")
+
+        self.assertEqual(result.provider, "openai_api")
+        self.assertEqual(store.attempts[0].provider, "openrouter")
+        self.assertEqual(store.attempts[0].model, "pinned:model")
+
     def test_free_hermes_usage_records_zero_cost_when_confirmed_free(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             ledger = CostLedger(Path(temp_dir))

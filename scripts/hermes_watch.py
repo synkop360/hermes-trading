@@ -24,6 +24,7 @@ STATE_FILES = [
     "orders.jsonl",
     "hypotheses.jsonl",
     "reflection_state.json",
+    "positions.json",
 ]
 DEFAULT_NO_TRADE_DECISIONS = 30
 
@@ -46,10 +47,22 @@ def _clean_railway_stdout(output: str) -> str:
     return output
 
 
+def _looks_like_ssh_gateway_payload(content: str) -> bool:
+    """True for Railway's own SSH-gateway discovery/handshake JSON. Seen in
+    production: `railway ssh -- "<command>"` started returning this instead
+    of executing the command (while Railway itself was down), and this
+    cron -- run unattended every ~15-20 min -- silently overwrote every
+    local state file with it on each cycle, since only an empty response was
+    previously rejected. No real state file is ever a JSON object carrying
+    both of these top-level keys together."""
+    stripped = content.lstrip()
+    return stripped.startswith('{"status":"ready"') and '"account"' in content[:200]
+
+
 def _download_remote_file(name: str) -> bool:
     result = _run(["railway.cmd", "ssh", "--", f"cat {REMOTE_STATE_DIR}/{name} 2>/dev/null || true"])
     content = _clean_railway_stdout(result.stdout)
-    if not content:
+    if not content or _looks_like_ssh_gateway_payload(content):
         return False
     target = STATE_DIR / name
     target.parent.mkdir(parents=True, exist_ok=True)

@@ -119,11 +119,11 @@ class PersistenceTests(unittest.TestCase):
             self.repo._connection.execute("PRAGMA busy_timeout").fetchone()[0],
             5000,
         )
-        self.assertEqual(self.repo.schema_version(), 4)
+        self.assertEqual(self.repo.schema_version(), 5)
 
         self.repo.migrate()
 
-        self.assertEqual(self.repo.schema_version(), 4)
+        self.assertEqual(self.repo.schema_version(), 5)
         self.assertEqual(self.repo.integrity_check(), "ok")
 
     def test_duplicate_candle_and_risk_evidence_counts_are_visible(self) -> None:
@@ -181,11 +181,12 @@ class PersistenceTests(unittest.TestCase):
             self.repo._connection.execute("DROP TABLE risk_decisions")
             self.repo._connection.execute("DROP TABLE projection_payloads")
             self.repo._connection.execute("DROP TABLE control_nonces")
-            self.repo._connection.execute("DELETE FROM schema_migrations WHERE version IN (2, 3, 4)")
+            self.repo._connection.execute("DROP TABLE positions")
+            self.repo._connection.execute("DELETE FROM schema_migrations WHERE version IN (1, 2, 3, 4, 5)")
 
         self.repo.migrate()
 
-        self.assertEqual(self.repo.schema_version(), 4)
+        self.assertEqual(self.repo.schema_version(), 5)
         self.assertIn("projection_payloads", self.repo.table_names())
         payload = self.repo._connection.execute(
             "SELECT payload FROM projection_payloads WHERE decision_id = ?",
@@ -250,7 +251,7 @@ class PersistenceTests(unittest.TestCase):
         with self.assertRaises(UnsupportedSchemaError):
             self.repo.migrate()
 
-        self.assertEqual(self.repo.schema_version(), 4)
+        self.assertEqual(self.repo.schema_version(), 5)
 
     def test_recorded_v1_is_rejected_when_a_table_is_incompatible(self) -> None:
         self.repo.migrate()
@@ -263,7 +264,7 @@ class PersistenceTests(unittest.TestCase):
         with self.assertRaises(UnsupportedSchemaError):
             self.repo.migrate()
 
-        self.assertEqual(self.repo.schema_version(), 4)
+        self.assertEqual(self.repo.schema_version(), 5)
 
     def test_recorded_v1_rejects_a_disabled_active_position_index(self) -> None:
         self.repo.migrate()
@@ -282,7 +283,7 @@ class PersistenceTests(unittest.TestCase):
         with self.assertRaises(UnsupportedSchemaError):
             self.repo.migrate()
 
-        self.assertEqual(self.repo.schema_version(), 4)
+        self.assertEqual(self.repo.schema_version(), 5)
 
     def test_recorded_v1_rejects_uppercase_active_status_literals(self) -> None:
         self.repo.migrate()
@@ -304,7 +305,7 @@ class PersistenceTests(unittest.TestCase):
         with self.assertRaises(UnsupportedSchemaError):
             self.repo.migrate()
 
-        self.assertEqual(self.repo.schema_version(), 4)
+        self.assertEqual(self.repo.schema_version(), 5)
 
     def test_order_intent_client_id_is_unique(self) -> None:
         self.repo.migrate()
@@ -322,6 +323,19 @@ class PersistenceTests(unittest.TestCase):
 
         with self.assertRaises(ActivePositionExists):
             self.repo.save_position(sample_position("two", "BTC/USDT"))
+
+    def test_position_take_profit_price_round_trips_when_set_and_when_absent(self) -> None:
+        self.repo.migrate()
+        with_target = sample_position("with-target", "BTC/USDT")
+        with_target = Position(**{**with_target.__dict__, "take_profit_price": Decimal("66000.0")})
+
+        self.repo.save_position(with_target)
+
+        self.assertEqual(self.repo.open_position("BTC/USDT").take_profit_price, Decimal("66000.0"))
+
+        self.repo.save_position(sample_position("without-target", "ETH/USDT"))
+
+        self.assertIsNone(self.repo.open_position("ETH/USDT").take_profit_price)
 
     def test_order_intent_rejects_a_missing_decision(self) -> None:
         self.repo.migrate()

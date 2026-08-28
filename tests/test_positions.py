@@ -1,3 +1,4 @@
+from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from concurrent.futures import ThreadPoolExecutor
@@ -32,6 +33,10 @@ def candle(close_at: datetime, *, open: str, low: str, close: str, high: str | N
         ),
         price={"closes": tuple(Decimal("100") for _ in range(15)) + (Decimal("80"),), "candles": history},
     )
+
+
+def candle_for(asset: str, close_at: datetime, *, open: str, low: str, close: str, high: str | None = None) -> MarketSnapshot:
+    return replace(candle(close_at, open=open, low=low, close=close, high=high), asset=asset)
 
 
 def entry_strategy() -> dict[str, object]:
@@ -145,6 +150,27 @@ class PositionEngineTests(unittest.TestCase):
         self.assertEqual(result.reason, "take_profit_atr")
         self.assertGreater(result.closed_positions[0].realized_pnl, Decimal("0"))
 
+    def test_take_profit_atr_is_frozen_at_entry_and_not_shrunk_by_later_atr_contraction(self) -> None:
+        wide_history = tuple({"high": Decimal("82"), "low": Decimal("78"), "close": Decimal("80")} for _ in range(15))
+        strategy = entry_strategy()
+        strategy["exit"] = {"take_profit_atr": "2"}
+        entry = candle(datetime(2026, 7, 30, 20, tzinfo=UTC), open="80", low="79", close="80", history=wide_history)
+        opened = self.engine.process_candle(entry, strategy)
+
+        self.assertEqual(opened.position.take_profit_price, Decimal("88.08"))
+
+        narrow_history = tuple({"high": Decimal("80.5"), "low": Decimal("79.5"), "close": Decimal("80")} for _ in range(15))
+        # A fresh ATR recomputed from this narrower history would put take-profit
+        # near entry price (~82.08), which candle.high=83 would clear -- but the
+        # target frozen at entry (88.08) must not shrink, so the position holds.
+        held = self.engine.process_candle(
+            candle(datetime(2026, 7, 30, 21, tzinfo=UTC), open="80", low="80", high="83", close="82", history=narrow_history),
+            strategy,
+        )
+
+        self.assertEqual(held.reason, "position_open")
+        self.assertEqual(held.closed_positions, ())
+
     def test_rsi_recovery_with_adx_filter_fails_closed_without_ohlc_history(self) -> None:
         strategy = {"entry": {"indicator": "rsi_recovery", "threshold": "25", "direction": "long", "max_adx": "25"}}
 
@@ -167,6 +193,50 @@ class PositionEngineTests(unittest.TestCase):
         self.assertEqual(first.position.status.value, "open")
         self.assertEqual(second.reason, "max_bars")
         self.assertEqual(second.closed_positions[0].status.value, "closed")
+
+    def test_exposure_cap_blocks_a_new_entry_at_capacity(self) -> None:
+        strategy = entry_strategy()
+        strategy["simulation"] = {"max_concurrent_positions": "1"}
+        self.engine.process_candle(self.entry_candle, strategy)
+
+        second_entry = candle_for("ETH/USDT", datetime(2026, 7, 30, 20, tzinfo=UTC), open="100", low="79", close="80")
+        result = self.engine.process_candle(second_entry, strategy)
+
+        self.assertEqual(result.reason, "exposure_limit")
+        self.assertIsNone(result.position)
+        self.assertEqual(len(self.state.active_positions()), 1)
+
+    def test_exposure_cap_allows_entry_under_capacity(self) -> None:
+        strategy = entry_strategy()
+        strategy["simulation"] = {"max_concurrent_positions": "2"}
+        self.engine.process_candle(self.entry_candle, strategy)
+
+        second_entry = candle_for("ETH/USDT", datetime(2026, 7, 30, 20, tzinfo=UTC), open="100", low="79", close="80")
+        result = self.engine.process_candle(second_entry, strategy)
+
+        self.assertEqual(result.position.status.value, "open")
+        self.assertEqual(len(self.state.active_positions()), 2)
+
+    def test_exposure_cap_absent_does_not_limit_entries(self) -> None:
+        strategy = entry_strategy()
+        self.engine.process_candle(self.entry_candle, strategy)
+
+        second_entry = candle_for("ETH/USDT", datetime(2026, 7, 30, 20, tzinfo=UTC), open="100", low="79", close="80")
+        result = self.engine.process_candle(second_entry, strategy)
+
+        self.assertEqual(result.position.status.value, "open")
+
+    def test_exposure_cap_does_not_block_an_exit_of_an_already_open_position(self) -> None:
+        strategy = entry_strategy()
+        strategy["simulation"] = {"max_concurrent_positions": "1"}
+        self.engine.process_candle(self.entry_candle, strategy)
+
+        result = self.engine.process_candle(
+            candle(datetime(2026, 7, 30, 21, tzinfo=UTC), open="100", low="70", close="90"),
+            strategy,
+        )
+
+        self.assertEqual(result.closed_positions[0].status.value, "closed")
 
     def test_same_candle_is_not_processed_twice(self) -> None:
         first = self.engine.process_candle(self.entry_candle, entry_strategy())
@@ -247,6 +317,255 @@ class PositionEngineTests(unittest.TestCase):
 
         exit_order = result.orders[0]
         self.assertEqual(exit_order.fees, exit_order.filled_quantity * exit_order.average_fill_price * Decimal("0.01"))
+
+    def test_entry_defaults_to_taker_fee_and_market_order(self) -> None:
+        strategy = entry_strategy()
+        strategy["simulation"] = {"taker_fee_rate": "0.01", "maker_fee_rate": "0.001"}
+
+        result = self.engine.process_candle(self.entry_candle, strategy)
+
+        entry_order = result.orders[0]
+        self.assertEqual(entry_order.order_type, "market")
+        self.assertEqual(entry_order.fees, entry_order.filled_quantity * entry_order.average_fill_price * Decimal("0.01"))
+
+    def test_entry_uses_maker_fee_and_limit_order_when_configured(self) -> None:
+        strategy = entry_strategy()
+        strategy["entry"]["fee"] = "maker"
+        strategy["simulation"] = {"taker_fee_rate": "0.01", "maker_fee_rate": "0.001"}
+
+        result = self.engine.process_candle(self.entry_candle, strategy)
+
+        entry_order = result.orders[0]
+        self.assertEqual(entry_order.order_type, "limit")
+        self.assertEqual(entry_order.fees, entry_order.filled_quantity * entry_order.average_fill_price * Decimal("0.001"))
+
+    def test_maker_entry_can_clear_the_cost_gate_where_taker_could_not(self) -> None:
+        strategy = entry_strategy()
+        strategy["exit"] = {"take_profit_pct": "0.5"}
+        # taker + taker exit-leg-assumed + 2*slippage = 0.2+0.2+0.2 = 0.6% > 0.5% target: blocked.
+        # maker entry + taker exit-leg-assumed + 2*slippage = 0.05+0.2+0.2 = 0.45% <= 0.5%: allowed.
+        strategy["simulation"] = {
+            "taker_fee_rate": "0.002", "maker_fee_rate": "0.0005", "slippage_rate": "0.001",
+            "minimum_expected_edge_pct": "0",
+        }
+        blocked = self.engine.process_candle(self.entry_candle, strategy)
+        self.assertEqual(blocked.reason, "expected_payoff_below_costs")
+
+        strategy["entry"]["fee"] = "maker"
+        allowed = self.engine.process_candle(
+            candle(datetime(2026, 7, 30, 21, tzinfo=UTC), open="100", low="79", close="80"), strategy,
+        )
+
+        self.assertEqual(allowed.position.status.value, "open")
+
+    def test_entry_uses_flat_quote_notional_when_no_equity_is_tracked(self) -> None:
+        strategy = entry_strategy()
+        strategy["simulation"] = {"quote_notional": "7"}
+
+        result = self.engine.process_candle(self.entry_candle, strategy)
+
+        entry_order = result.orders[0]
+        self.assertAlmostEqual(
+            float(entry_order.filled_quantity * entry_order.average_fill_price), 7.0, places=6,
+        )
+
+    def test_entry_compounds_off_equity_when_tracked(self) -> None:
+        # stop_loss_pct=0.5 -> stop_fraction is exactly 0.5% of fill_price
+        # regardless of price, so: risk_budget = 50 * 0.0025 * 0.5 = 0.0625,
+        # notional = 0.0625 / 0.005 = 12.5.
+        engine = PositionEngine(self.state, equity=Decimal("50"))
+        strategy = entry_strategy()
+        strategy["position_size_r"] = "0.5"
+
+        result = engine.process_candle(self.entry_candle, strategy)
+
+        entry_order = result.orders[0]
+        self.assertAlmostEqual(
+            float(entry_order.filled_quantity * entry_order.average_fill_price), 12.5, places=6,
+        )
+
+    def test_entry_notional_grows_with_equity(self) -> None:
+        strategy = entry_strategy()
+        strategy["position_size_r"] = "0.5"
+        small = PositionEngine(self.state, equity=Decimal("50")).process_candle(self.entry_candle, strategy)
+
+        with tempfile.TemporaryDirectory() as other_dir:
+            other_state = StateRepository.open(Path(other_dir) / "trading.db")
+            other_state.migrate()
+            large = PositionEngine(other_state, equity=Decimal("500")).process_candle(self.entry_candle, strategy)
+            other_state.close()
+
+        small_notional = small.orders[0].filled_quantity * small.orders[0].average_fill_price
+        large_notional = large.orders[0].filled_quantity * large.orders[0].average_fill_price
+        self.assertAlmostEqual(float(large_notional / small_notional), 10.0, places=6)
+
+    def test_entry_notional_never_exceeds_half_of_equity(self) -> None:
+        engine = PositionEngine(self.state, equity=Decimal("50"))
+        strategy = entry_strategy()
+        strategy["position_size_r"] = "1.0"
+        strategy["simulation"] = {"risk_per_trade_pct": "0.5"}  # deliberately huge
+
+        result = engine.process_candle(self.entry_candle, strategy)
+
+        entry_order = result.orders[0]
+        notional = entry_order.filled_quantity * entry_order.average_fill_price
+        self.assertLessEqual(notional, Decimal("25"))
+
+    def test_trailing_atr_ratchets_stop_up_on_a_hold_cycle(self) -> None:
+        # 15 identical (high=82, low=78, close=80) candles -> ATR(14) is exactly
+        # 4 (true range = max(4, |82-80|, |78-80|) = 4 every bar).
+        history = tuple({"high": Decimal("82"), "low": Decimal("78"), "close": Decimal("80")} for _ in range(15))
+        strategy = entry_strategy()
+        strategy["exit"] = {"trailing_atr": "1.5"}
+        entry = candle(datetime(2026, 7, 30, 20, tzinfo=UTC), open="80", low="79", close="80", history=history)
+        opened = self.engine.process_candle(entry, strategy)
+        self.assertEqual(opened.position.stop_price, Decimal("79.6796"))  # stop_loss_pct=0.5% initial stop
+        self.assertIsNone(opened.position.take_profit_price)
+
+        held = self.engine.process_candle(
+            candle(datetime(2026, 7, 30, 21, tzinfo=UTC), open="88", low="85", high="91", close="90", history=history),
+            strategy,
+        )
+
+        self.assertEqual(held.reason, "position_open")
+        self.assertEqual(held.closed_positions, ())
+        self.assertEqual(held.position.stop_price, Decimal("84"))  # 90 - 4*1.5
+
+    def test_trailing_atr_never_lowers_the_stop(self) -> None:
+        history = tuple({"high": Decimal("82"), "low": Decimal("78"), "close": Decimal("80")} for _ in range(15))
+        strategy = entry_strategy()
+        strategy["exit"] = {"trailing_atr": "1.5"}
+        entry = candle(datetime(2026, 7, 30, 20, tzinfo=UTC), open="80", low="79", close="80", history=history)
+        self.engine.process_candle(entry, strategy)
+        self.engine.process_candle(
+            candle(datetime(2026, 7, 30, 21, tzinfo=UTC), open="88", low="85", high="91", close="90", history=history),
+            strategy,
+        )
+
+        # A pullback that stays above the ratcheted 84 stop must not drag it
+        # back down toward this candle's own (lower) implied trailing level.
+        held = self.engine.process_candle(
+            candle(datetime(2026, 7, 30, 22, tzinfo=UTC), open="86", low="84.5", high="87", close="85", history=history),
+            strategy,
+        )
+
+        self.assertEqual(held.position.stop_price, Decimal("84"))
+
+    def test_trailing_atr_ratchet_survives_a_fresh_repository_read(self) -> None:
+        # Validates the persistence-layer fix this feature depends on: the
+        # positions UPSERT previously dropped stop_price on conflict entirely.
+        history = tuple({"high": Decimal("82"), "low": Decimal("78"), "close": Decimal("80")} for _ in range(15))
+        strategy = entry_strategy()
+        strategy["exit"] = {"trailing_atr": "1.5"}
+        entry = candle(datetime(2026, 7, 30, 20, tzinfo=UTC), open="80", low="79", close="80", history=history)
+        self.engine.process_candle(entry, strategy)
+        self.engine.process_candle(
+            candle(datetime(2026, 7, 30, 21, tzinfo=UTC), open="88", low="85", high="91", close="90", history=history),
+            strategy,
+        )
+
+        reread = self.state.open_position("BTC/USDT")
+
+        self.assertEqual(reread.stop_price, Decimal("84"))
+
+    def test_trailing_atr_without_configuration_does_not_move_the_stop(self) -> None:
+        history = tuple({"high": Decimal("82"), "low": Decimal("78"), "close": Decimal("80")} for _ in range(15))
+        strategy = entry_strategy()
+        strategy["exit"] = {"stop_atr": "1.5"}
+        entry = candle(datetime(2026, 7, 30, 20, tzinfo=UTC), open="80", low="79", close="80", history=history)
+        opened = self.engine.process_candle(entry, strategy)
+
+        held = self.engine.process_candle(
+            candle(datetime(2026, 7, 30, 21, tzinfo=UTC), open="88", low="85", high="91", close="90", history=history),
+            strategy,
+        )
+
+        self.assertEqual(held.position.stop_price, opened.position.stop_price)
+
+    def _rsi_recovered_candle(self, *, low: str, close: str) -> MarketSnapshot:
+        rising_closes = tuple(Decimal(value) for value in range(80, 95))
+        return MarketSnapshot(
+            asset="BTC/USDT", timeframe="1h", availability="available",
+            decision_action="evaluate", reason="closed_candle_available",
+            candle=ClosedCandle(
+                self.entry_candle.candle.open_timestamp + timedelta(hours=1),
+                self.entry_candle.candle.close_timestamp + timedelta(hours=1),
+                Decimal(low), Decimal(close), Decimal(low), Decimal(close), Decimal("1"),
+            ),
+            price={"closes": rising_closes},
+        )
+
+    def test_explicit_exit_holds_when_favorable_move_does_not_clear_costs(self) -> None:
+        strategy = entry_strategy()
+        strategy["exit"] = {"indicator": "rsi", "threshold": "50"}
+        self.engine.process_candle(self.entry_candle, strategy)
+
+        result = self.engine.process_candle(self._rsi_recovered_candle(low="80", close="80.2"), strategy)
+
+        self.assertEqual(result.reason, "position_open")
+        self.assertEqual(result.closed_positions, ())
+        self.assertEqual(result.position.status.value, "open")
+
+    def test_explicit_exit_closes_once_favorable_move_clears_costs(self) -> None:
+        strategy = entry_strategy()
+        strategy["exit"] = {"indicator": "rsi", "threshold": "50"}
+        self.engine.process_candle(self.entry_candle, strategy)
+
+        result = self.engine.process_candle(self._rsi_recovered_candle(low="82", close="82"), strategy)
+
+        self.assertEqual(result.reason, "explicit_exit")
+        closed = result.closed_positions[0]
+        self.assertEqual(closed.status.value, "closed")
+        self.assertGreater(closed.realized_pnl, Decimal("0"))
+        exit_order = result.orders[0]
+        self.assertEqual(exit_order.order_type, "limit")
+        self.assertEqual(exit_order.fees, exit_order.filled_quantity * exit_order.average_fill_price * Decimal("0.0025"))
+
+    def test_explicit_exit_can_opt_back_into_taker_pricing(self) -> None:
+        strategy = entry_strategy()
+        strategy["exit"] = {"indicator": "rsi", "threshold": "50", "fee": "taker"}
+        self.engine.process_candle(self.entry_candle, strategy)
+
+        result = self.engine.process_candle(self._rsi_recovered_candle(low="82", close="82"), strategy)
+
+        self.assertEqual(result.reason, "explicit_exit")
+        exit_order = result.orders[0]
+        self.assertEqual(exit_order.order_type, "market")
+        self.assertEqual(exit_order.fees, exit_order.filled_quantity * exit_order.average_fill_price * Decimal("0.004"))
+
+    def test_trailing_overrides_explicit_exit_holds_instead_of_closing_when_enabled(self) -> None:
+        strategy = entry_strategy()
+        strategy["exit"] = {
+            "indicator": "rsi", "threshold": "50", "trailing_atr": "1.5",
+            "trailing_overrides_explicit_exit": True,
+        }
+        self.engine.process_candle(self.entry_candle, strategy)
+
+        result = self.engine.process_candle(self._rsi_recovered_candle(low="82", close="82"), strategy)
+
+        self.assertEqual(result.reason, "position_open")
+        self.assertEqual(result.closed_positions, ())
+        self.assertEqual(result.position.status.value, "open")
+
+    def test_trailing_overrides_explicit_exit_is_a_noop_without_trailing_atr(self) -> None:
+        strategy = entry_strategy()
+        strategy["exit"] = {"indicator": "rsi", "threshold": "50", "trailing_overrides_explicit_exit": True}
+        self.engine.process_candle(self.entry_candle, strategy)
+
+        result = self.engine.process_candle(self._rsi_recovered_candle(low="82", close="82"), strategy)
+
+        self.assertEqual(result.reason, "explicit_exit")
+        self.assertEqual(result.closed_positions[0].status.value, "closed")
+
+    def test_trailing_overrides_explicit_exit_defaults_to_false(self) -> None:
+        strategy = entry_strategy()
+        strategy["exit"] = {"indicator": "rsi", "threshold": "50", "trailing_atr": "1.5"}
+        self.engine.process_candle(self.entry_candle, strategy)
+
+        result = self.engine.process_candle(self._rsi_recovered_candle(low="82", close="82"), strategy)
+
+        self.assertEqual(result.reason, "explicit_exit")
+        self.assertEqual(result.closed_positions[0].status.value, "closed")
 
     def test_projection_resumes_idempotently_after_each_output_step(self) -> None:
         for fail_at in range(1, 9):

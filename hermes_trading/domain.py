@@ -133,6 +133,7 @@ class Position:
     closed_at: str | None = None
     realized_pnl: Decimal = Decimal("0")
     fees: Decimal = Decimal("0")
+    take_profit_price: Decimal | None = None
 
     def __post_init__(self) -> None:
         _reject_binary_floats(
@@ -141,6 +142,7 @@ class Position:
             stop_price=self.stop_price,
             realized_pnl=self.realized_pnl,
             fees=self.fees,
+            take_profit_price=self.take_profit_price,
         )
 
 

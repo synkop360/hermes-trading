@@ -62,6 +62,30 @@ class ControlClientTests(unittest.TestCase):
         self.assertEqual(calls[1]["body"], '{"key":"HERMES_TRADING_TIMEFRAME","value":"15m"}')
         self.assertIn("X-Hermes-Signature", calls[1]["headers"])
 
+    def test_pnl_graph_uses_signed_bytes_request(self) -> None:
+        captured = {}
+
+        def request_bytes(method, url, headers, body):
+            captured.update({"method": method, "url": url, "headers": headers, "body": body})
+            return b"\x89PNG\r\n\x1a\nimage", "image/png"
+
+        client = ControlClient(
+            "http://127.0.0.1:8765",
+            "secret",
+            request_bytes=request_bytes,
+            now=lambda: NOW,
+            nonce=lambda: "nonce-png",
+        )
+
+        content, content_type = client.pnl_graph()
+
+        self.assertEqual(content[:8], b"\x89PNG\r\n\x1a\n")
+        self.assertEqual(content_type, "image/png")
+        self.assertEqual(captured["method"], "GET")
+        self.assertEqual(captured["url"], "http://127.0.0.1:8765/pnl-graph")
+        self.assertEqual(captured["body"], "")
+        self.assertIn("X-Hermes-Signature", captured["headers"])
+
 
 if __name__ == "__main__":
     unittest.main()

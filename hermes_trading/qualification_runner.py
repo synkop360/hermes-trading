@@ -76,7 +76,12 @@ class QualificationRunner:
         typed_evidence = QualificationEvidenceCollector(
             self.projector.state_dir, repository=self.repository
         ).collect()
-        closed_positions = self.repository.closed_positions()
+        closed_positions = tuple(
+            position
+            for position in self.repository.closed_positions()
+            if position.closed_at is not None
+            and started_at <= datetime.fromisoformat(position.closed_at).astimezone(UTC) <= current
+        )
         total_realized_pnl = sum((position.realized_pnl for position in closed_positions), Decimal("0"))
         evidence = QualificationEvidence(
             training_started_at=started_at,

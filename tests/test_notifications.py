@@ -11,6 +11,7 @@ from hermes_trading.notifications import (
     NotificationConfigError,
     NotificationSettings,
     WorkerFeatureUpdateLedger,
+    build_inprocess_reflection_notification,
     build_qualification_notification,
     PnlSummaryCounter,
     build_cycle_notifications,
@@ -144,6 +145,16 @@ class CycleNotificationTests(unittest.TestCase):
         self.assertIn(report.run_id, message)
         self.assertIn("MISSING | replay_without_lookahead", message)
         self.assertIn("Promotable: false", message)
+
+    def test_inprocess_reflection_notification_reports_version_change(self):
+        message = build_inprocess_reflection_notification("119", {"version": "120"})
+
+        self.assertEqual(message, "Hermes Trading | In-process reflection: strategy v119 -> v120")
+
+    def test_inprocess_reflection_notification_reports_no_change(self):
+        message = build_inprocess_reflection_notification("119", {"version": "119"})
+
+        self.assertEqual(message, "Hermes Trading | In-process reflection: no change (version 119)")
 
     def test_profitability_snapshot_is_due_once_per_configured_period(self):
         settings = resolve_notification_settings(

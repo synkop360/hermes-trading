@@ -16,6 +16,7 @@ class ControlClientConfigError(RuntimeError):
 
 
 RequestJson = Callable[[str, str, Mapping[str, str], str], dict[str, object]]
+RequestBytes = Callable[[str, str, Mapping[str, str], str], tuple[bytes, str]]
 
 
 class ControlClient:
@@ -25,6 +26,7 @@ class ControlClient:
         hmac_secret: str,
         *,
         request_json: RequestJson | None = None,
+        request_bytes: RequestBytes | None = None,
         now: Callable[[], datetime] | None = None,
         nonce: Callable[[], str] | None = None,
         allowed_hosts: frozenset[str] | None = None,
@@ -33,6 +35,7 @@ class ControlClient:
         self._base_url = base_url.rstrip("/")
         self._hmac_secret = hmac_secret
         self._request_json = request_json or _httpx_request_json
+        self._request_bytes = request_bytes or _httpx_request_bytes
         self._now = now or (lambda: datetime.now(UTC))
         self._nonce = nonce or (lambda: f"control-{uuid4()}")
 
@@ -50,16 +53,26 @@ class ControlClient:
         body = json.dumps({"key": key, "value": value}, separators=(",", ":"), sort_keys=True)
         return self._signed_request("POST", "/config", body)
 
+    def pnl_graph(self) -> tuple[bytes, str]:
+        return self._signed_request_bytes("GET", "/pnl-graph", "")
+
     def _signed_request(self, method: str, path: str, body: str) -> dict[str, object]:
+        headers = self._signed_headers(body)
+        return self._request_json(method, self._base_url + path, headers, body)
+
+    def _signed_request_bytes(self, method: str, path: str, body: str) -> tuple[bytes, str]:
+        headers = self._signed_headers(body)
+        return self._request_bytes(method, self._base_url + path, headers, body)
+
+    def _signed_headers(self, body: str) -> dict[str, str]:
         current = self._now().astimezone(UTC)
         nonce = self._nonce()
-        headers = {
+        return {
             "Content-Type": "application/json",
             "X-Hermes-Nonce": nonce,
             "X-Hermes-Timestamp": current.isoformat(),
             "X-Hermes-Signature": sign_command(self._hmac_secret, nonce, current, body),
         }
-        return self._request_json(method, self._base_url + path, headers, body)
 
 
 def control_status_message(payload: Mapping[str, object]) -> str:
@@ -86,6 +99,12 @@ def _httpx_request_json(method: str, url: str, headers: Mapping[str, str], body:
     if not isinstance(payload, dict):
         raise RuntimeError("control API returned a non-object payload")
     return payload
+
+
+def _httpx_request_bytes(method: str, url: str, headers: Mapping[str, str], body: str) -> tuple[bytes, str]:
+    response = httpx.request(method, url, headers=dict(headers), content=body.encode("utf-8"), timeout=10.0)
+    response.raise_for_status()
+    return response.content, response.headers.get("Content-Type", "application/octet-stream")
 
 
 def _validate_control_url(value: str, allowed_hosts: frozenset[str]) -> None:

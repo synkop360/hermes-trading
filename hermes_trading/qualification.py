@@ -118,13 +118,21 @@ class QualificationService:
 
 def _overall_pnl_gate(evidence: QualificationEvidence) -> GateResult:
     passed = evidence.total_realized_pnl >= 0
-    observed = f"pnl={evidence.total_realized_pnl} wallet={evidence.wallet_balance} (start={evidence.starting_wallet_balance})"
+    pnl_pct = _pnl_percent(evidence.total_realized_pnl, evidence.starting_wallet_balance)
+    observed = f"pnl={evidence.total_realized_pnl} ({pnl_pct}) wallet={evidence.wallet_balance} (start={evidence.starting_wallet_balance})"
     reason = (
-        f"virtual wallet at {evidence.wallet_balance} (pnl {evidence.total_realized_pnl:+})"
+        f"virtual wallet at {evidence.wallet_balance} (pnl {evidence.total_realized_pnl:+} / {pnl_pct})"
         if passed
-        else f"virtual wallet pnl is negative: {evidence.total_realized_pnl} (wallet {evidence.wallet_balance}, started at {evidence.starting_wallet_balance})"
+        else f"virtual wallet pnl is negative: {evidence.total_realized_pnl} ({pnl_pct}) (wallet {evidence.wallet_balance}, started at {evidence.starting_wallet_balance})"
     )
     return GateResult("overall_pnl", GateStatus.PASS if passed else GateStatus.FAIL, observed, ">= 0", reason)
+
+
+def _pnl_percent(total_realized_pnl: Decimal, starting_wallet_balance: Decimal) -> str:
+    if starting_wallet_balance == 0:
+        return "n/a"
+    percent = (total_realized_pnl / starting_wallet_balance) * 100
+    return f"{percent:+.2f}%"
 
 
 def _gate(name: str, passed: bool, observed: str, required: str) -> GateResult:

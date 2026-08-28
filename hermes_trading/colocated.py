@@ -15,7 +15,7 @@ import yaml
 from hermes_trading.control_server import build_control_server, resolve_control_server_config
 from hermes_trading.discord_bot import run_discord_bot, resolve_discord_bot_config
 from hermes_trading.loop import parse_assets, run_loop
-from hermes_trading.run import ensure_state_files
+from hermes_trading.run import ensure_state_files, resolve_state_dir
 
 
 DISCORD_REQUIRED = (
@@ -35,7 +35,7 @@ class RunningService:
 
 def main() -> None:
     project_root = Path(__file__).resolve().parents[1]
-    state_dir = project_root / "state"
+    state_dir = resolve_state_dir(project_root)
     ensure_state_files(state_dir)
     goal = yaml.safe_load((state_dir / "goal.yaml").read_text(encoding="utf-8")) or {}
 

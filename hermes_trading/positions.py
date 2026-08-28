@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from decimal import Decimal
 from typing import Any
 from uuid import NAMESPACE_URL, uuid5
@@ -9,7 +9,7 @@ from hermes_trading.domain import Decision, Fill, OrderIntent, OrderRecord, Orde
 from hermes_trading.market_data import MarketSnapshot
 from hermes_trading.persistence.artifacts import ArtifactProjector
 from hermes_trading.persistence.repository import ProjectionItem, StateRepository
-from hermes_trading.strategy import StrategySignal, _atr, _decimal_setting, evaluate_strategy
+from hermes_trading.strategy import StrategySignal, _atr, _decimal_setting, _is_maker_entry, _is_maker_exit, evaluate_strategy
 
 
 @dataclass(frozen=True)
@@ -19,6 +19,7 @@ class SimulationSettings:
     maker_fee_rate: Decimal = Decimal("0.0025")
     slippage_rate: Decimal = Decimal("0.001")
     minimum_expected_edge_pct: Decimal = Decimal("0.2")
+    risk_per_trade_pct: Decimal = Decimal("0.0025")
 
     @classmethod
     def from_strategy(cls, strategy: dict[str, Any]) -> SimulationSettings:
@@ -31,10 +32,11 @@ class SimulationSettings:
             "maker_fee_rate": _decimal_setting(source.get("maker_fee_rate", "0.0025"), "maker_fee_rate"),
             "slippage_rate": _decimal_setting(source.get("slippage_rate", "0.001"), "slippage_rate"),
             "minimum_expected_edge_pct": _decimal_setting(source.get("minimum_expected_edge_pct", "0.2"), "minimum_expected_edge_pct"),
+            "risk_per_trade_pct": _decimal_setting(source.get("risk_per_trade_pct", "0.0025"), "risk_per_trade_pct"),
         }
         if values["quote_notional"] <= 0:
             raise ValueError("quote_notional must be greater than zero")
-        for name in ("taker_fee_rate", "maker_fee_rate", "slippage_rate"):
+        for name in ("taker_fee_rate", "maker_fee_rate", "slippage_rate", "risk_per_trade_pct"):
             if values[name] < 0 or values[name] >= 1:
                 raise ValueError(f"{name} must be in [0, 1)")
         if values["minimum_expected_edge_pct"] < 0:
@@ -54,9 +56,21 @@ class PositionProcessResult:
 
 
 class PositionEngine:
-    def __init__(self, state: StateRepository, projector: ArtifactProjector | None = None) -> None:
+    def __init__(
+        self,
+        state: StateRepository,
+        projector: ArtifactProjector | None = None,
+        *,
+        equity: Decimal | None = None,
+    ) -> None:
         self.state = state
         self.projector = projector
+        # Current portfolio equity (e.g. loop.py's compute_virtual_wallet_balance,
+        # computed once per cycle) -- when known, _entry sizes trades as a fraction
+        # of it (compounding) instead of the fixed SimulationSettings.quote_notional.
+        # None preserves the historical flat-notional behavior for callers that
+        # don't track a wallet balance (tests, qualification replay).
+        self.equity = equity
 
     def process_candle(
         self,
@@ -82,6 +96,8 @@ class PositionEngine:
             signal = StrategySignal("no_trade", snapshot.asset, "out_of_order_candle", candle.close, identity.candle_id)
         else:
             signal = evaluate_strategy(snapshot, strategy, existing)
+            if signal.action == "enter" and self._exposure_cap_reached(strategy):
+                signal = StrategySignal("no_trade", snapshot.asset, "exposure_limit", signal.reference_price, signal.candle_id)
         now = identity.close_timestamp.isoformat()
         decision = Decision(
             decision_id=_identifier("decision", signal.candle_id, signal.action),
@@ -112,6 +128,11 @@ class PositionEngine:
             orders.append(order)
             fills.append(fill)
             closed = (current,)
+        elif signal.action == "hold" and existing is not None:
+            trailed = self._trail_stop(snapshot, strategy, existing)
+            if trailed is not None:
+                current = trailed
+                positions.append(current)
 
         committed = self.state.persist_candle_outcome(
             identity.asset,
@@ -164,16 +185,14 @@ class PositionEngine:
     def _entry(self, snapshot: MarketSnapshot, decision: Decision, strategy: dict[str, Any], settings: SimulationSettings) -> tuple[Position, OrderIntent, OrderRecord, Fill]:
         candle = snapshot.candle
         fill_price = candle.close * (Decimal("1") + settings.slippage_rate)
-        quantity = settings.quote_notional / fill_price
         _positive_finite(fill_price, "entry fill price")
-        _positive_finite(quantity, "entry quantity")
-        fee = quantity * fill_price * settings.taker_fee_rate
         exit_rule = strategy.get("exit")
         stop_atr = _decimal_setting(exit_rule["stop_atr"], "stop_atr") if isinstance(exit_rule, dict) and "stop_atr" in exit_rule else None
+        take_profit_atr = _decimal_setting(exit_rule["take_profit_atr"], "take_profit_atr") if isinstance(exit_rule, dict) and "take_profit_atr" in exit_rule else None
+        atr = _atr(snapshot) if (stop_atr is not None or take_profit_atr is not None) else None
         if stop_atr is not None:
             if stop_atr <= 0:
                 raise ValueError("stop_atr must be greater than zero")
-            atr = _atr(snapshot)
             if atr is None:
                 raise ValueError("stop_atr requires at least 15 OHLC candles")
             stop_price = fill_price - atr * stop_atr
@@ -183,7 +202,102 @@ class PositionEngine:
                 raise ValueError("stop_loss_pct must be greater than zero and less than 100")
             stop_price = fill_price * (Decimal("1") - stop_pct / Decimal("100"))
         _positive_finite(stop_price, "stop price")
-        return self._records(decision, "buy", quantity, fill_price, fee, stop_price, strategy, PositionStatus.OPEN, order_type="market")
+
+        quote_notional = self._entry_notional(strategy, settings, fill_price, stop_price)
+        quantity = quote_notional / fill_price
+        _positive_finite(quantity, "entry quantity")
+        maker = _is_maker_entry(strategy.get("entry"))
+        fee = quantity * fill_price * (settings.maker_fee_rate if maker else settings.taker_fee_rate)
+
+        take_profit_price = None
+        trailing_active = isinstance(exit_rule, dict) and "trailing_atr" in exit_rule
+        if take_profit_atr is not None and not trailing_active:
+            if take_profit_atr <= 0:
+                raise ValueError("take_profit_atr must be greater than zero")
+            if atr is None:
+                raise ValueError("take_profit_atr requires at least 15 OHLC candles")
+            # Frozen at entry so a later contraction in rolling ATR can't shrink
+            # the target toward entry price and turn a "win" into a cost-blind loss.
+            take_profit_price = fill_price + atr * take_profit_atr
+            _positive_finite(take_profit_price, "take profit price")
+        return self._records(
+            decision, "buy", quantity, fill_price, fee, stop_price, strategy, PositionStatus.OPEN,
+            order_type="limit" if maker else "market", take_profit_price=take_profit_price,
+        )
+
+    def _entry_notional(
+        self, strategy: dict[str, Any], settings: SimulationSettings, fill_price: Decimal, stop_price: Decimal,
+    ) -> Decimal:
+        """Trade size in quote currency: compounding (equity-based) when the
+        caller supplied a current wallet balance, otherwise the historical flat
+        SimulationSettings.quote_notional.
+
+        Mirrors risk.py::RiskEngine.authorize_entry's live-mode formula
+        (risk_budget = equity * risk_per_trade_pct * position_size_r, sized by
+        stop distance) so position_size_r finally means something in training
+        mode too -- previously this simulator always used a fixed notional and
+        the live-only risk engine was the sole consumer of that variable
+        (reflect.py's SUPPORTED_STRATEGY_VARIABLES docstring called it "inert"
+        here). Floor/ceiling guard against a shrunken account producing
+        unplaceable dust orders or a formula edge case sizing unreasonably large.
+        """
+        if self.equity is None:
+            return settings.quote_notional
+        stop_fraction = (fill_price - stop_price) / fill_price
+        if stop_fraction <= 0:
+            return settings.quote_notional
+        position_size_r = _decimal_setting(strategy.get("position_size_r", "0.5"), "position_size_r")
+        risk_budget = self.equity * settings.risk_per_trade_pct * position_size_r
+        notional = risk_budget / stop_fraction
+        notional = max(notional, Decimal("1"))
+        notional = min(notional, self.equity * Decimal("0.5"))
+        return notional
+
+    def _exposure_cap_reached(self, strategy: dict[str, Any]) -> bool:
+        """Whether opening a new position right now would exceed
+        simulation.max_concurrent_positions (unset/absent = no cap).
+
+        Mirrors risk.py::RiskLimits' live-mode exposure caps, ported to
+        training mode: correlated assets (this basket trades in near
+        lockstep) held simultaneously compound a single market-wide move
+        into several losses at once rather than one, which is what actually
+        happened across the basket during the 2026-08-25 drawdown.
+        """
+        simulation = strategy.get("simulation")
+        simulation = simulation if isinstance(simulation, dict) else {}
+        cap = simulation.get("max_concurrent_positions")
+        if cap is None:
+            return False
+        cap_value = int(_decimal_setting(cap, "max_concurrent_positions"))
+        if cap_value <= 0:
+            raise ValueError("max_concurrent_positions must be greater than zero")
+        return len(self.state.active_positions()) >= cap_value
+
+    def _trail_stop(self, snapshot: MarketSnapshot, strategy: dict[str, Any], position: Position) -> Position | None:
+        """Ratchets an open position's stop up toward the current price by a
+        fixed ATR multiple, never down. Returns None (no persisted change)
+        when exit.trailing_atr isn't configured or the candidate stop
+        wouldn't actually raise the existing one.
+
+        Only fires on "hold" cycles -- stop_loss/take_profit/max_bars/
+        explicit_exit checks in evaluate_strategy already ran first and would
+        have exited the position this same candle if warranted, so there is
+        no ordering conflict with those.
+        """
+        exit_rule = strategy.get("exit")
+        if not isinstance(exit_rule, dict) or "trailing_atr" not in exit_rule:
+            return None
+        trailing_atr = _decimal_setting(exit_rule["trailing_atr"], "trailing_atr")
+        if trailing_atr <= 0:
+            raise ValueError("trailing_atr must be greater than zero")
+        atr = _atr(snapshot)
+        if atr is None:
+            return None
+        candle = snapshot.candle
+        candidate_stop = candle.close - atr * trailing_atr
+        if candidate_stop <= position.stop_price:
+            return None
+        return replace(position, stop_price=candidate_stop)
 
     def _exit(self, snapshot: MarketSnapshot, decision: Decision, strategy: dict[str, Any], settings: SimulationSettings, position: Position, signal: StrategySignal) -> tuple[Position, OrderIntent, OrderRecord, Fill]:
         candle = snapshot.candle
@@ -195,14 +309,14 @@ class PositionEngine:
             base_price = candle.close
         fill_price = base_price * (Decimal("1") - settings.slippage_rate)
         exit_rule = strategy.get("exit")
-        maker = signal.reason == "explicit_exit" and isinstance(exit_rule, dict) and str(exit_rule.get("fee", "taker")).lower() == "maker"
+        maker = signal.reason == "explicit_exit" and _is_maker_exit(exit_rule)
         fee = position.quantity * fill_price * (settings.maker_fee_rate if maker else settings.taker_fee_rate)
         _positive_finite(fill_price, "exit fill price")
         _positive_finite(position.quantity, "exit quantity")
         closed, intent, order, fill = self._records(decision, "sell", position.quantity, fill_price, fee, position.stop_price, strategy, PositionStatus.CLOSED, previous=position, order_type="limit" if maker else "market")
         return closed, intent, order, fill
 
-    def _records(self, decision: Decision, side: str, quantity: Decimal, fill_price: Decimal, fee: Decimal, stop_price: Decimal, strategy: dict[str, Any], status: PositionStatus, previous: Position | None = None, *, order_type: str) -> tuple[Position, OrderIntent, OrderRecord, Fill]:
+    def _records(self, decision: Decision, side: str, quantity: Decimal, fill_price: Decimal, fee: Decimal, stop_price: Decimal, strategy: dict[str, Any], status: PositionStatus, previous: Position | None = None, *, order_type: str, take_profit_price: Decimal | None = None) -> tuple[Position, OrderIntent, OrderRecord, Fill]:
         marker = f"{decision.candle_id}:{side}"
         position_id = previous.position_id if previous is not None else _identifier("position", decision.asset, decision.candle_id)
         client_order_id = _identifier("intent", marker)
@@ -212,11 +326,15 @@ class PositionEngine:
         order = OrderRecord(order_id, client_order_id, decision.asset, side, order_type, OrderStatus.FILLED, quantity, quantity, fill_price, fee, now, now)
         fill = Fill(_identifier("fill", marker), order_id, decision.asset, side, quantity, fill_price, fee, now)
         if previous is None:
-            position = Position(position_id, decision.asset, status, quantity, fill_price, stop_price, decision.strategy_version, now, fees=fee)
+            position = Position(position_id, decision.asset, status, quantity, fill_price, stop_price, decision.strategy_version, now, fees=fee, take_profit_price=take_profit_price)
         else:
             total_fees = previous.fees + fee
             pnl = previous.quantity * (fill_price - previous.entry_price) - total_fees
-            position = Position(position_id, previous.asset, status, previous.quantity, previous.entry_price, previous.stop_price, previous.strategy_version, previous.opened_at, now, pnl, total_fees)
+            position = Position(
+                position_id, previous.asset, status, previous.quantity, previous.entry_price, previous.stop_price,
+                previous.strategy_version, previous.opened_at, now, pnl, total_fees,
+                take_profit_price=previous.take_profit_price,
+            )
         return position, intent, order, fill
 
 def _identifier(*parts: str) -> str:
@@ -237,11 +355,19 @@ def _expected_payoff_covers_costs(
     (``take_profit_atr``, converted to a price percentage using the candle close).
     A strategy with neither key configured is not blocked here; other guards are
     responsible for that case.
+
+    The entry leg reflects entry.fee (known at this point); the exit leg stays
+    pinned to taker regardless of exit.fee -- which exit reason will actually
+    fire (stop_loss/take_profit/max_bars all stay taker; only explicit_exit can
+    be maker) isn't known yet, so this deliberately keeps the conservative,
+    worst-case exit-cost assumption rather than risk waving through a trade
+    that wouldn't actually clear costs if it exits via a taker path.
     """
     exit_rule = strategy.get("exit")
     if not isinstance(exit_rule, dict):
         return True
-    round_trip_cost = Decimal("2") * (settings.taker_fee_rate + settings.slippage_rate)
+    entry_fee_rate = settings.maker_fee_rate if _is_maker_entry(strategy.get("entry")) else settings.taker_fee_rate
+    round_trip_cost = entry_fee_rate + settings.taker_fee_rate + Decimal("2") * settings.slippage_rate
     edge = settings.minimum_expected_edge_pct / Decimal("100")
     required = round_trip_cost + edge
     if "take_profit_pct" in exit_rule:

@@ -31,6 +31,15 @@ DEFAULT_STRATEGY = {
 }
 
 
+def resolve_state_dir(project_root: Path, env: dict[str, str] | None = None) -> Path:
+    """Defaults to <project_root>/state, matching Railway; HERMES_STATE_DIR
+    overrides it so a second local instance (a separate wallet/state
+    entirely) can run alongside the default one without colliding."""
+    env = os.environ if env is None else env
+    override = env.get("HERMES_STATE_DIR", "").strip()
+    return Path(override) if override else project_root / "state"
+
+
 def ensure_state_files(state_dir: Path) -> None:
     state_dir.mkdir(parents=True, exist_ok=True)
     (state_dir / "history").mkdir(exist_ok=True)
@@ -58,7 +67,7 @@ def ensure_state_files(state_dir: Path) -> None:
 
 def main() -> None:
     project_root = Path(__file__).resolve().parents[1]
-    state_dir = project_root / "state"
+    state_dir = resolve_state_dir(project_root)
     ensure_state_files(state_dir)
     goal = yaml.safe_load((state_dir / "goal.yaml").read_text()) or {}
 

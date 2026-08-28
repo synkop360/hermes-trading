@@ -6,6 +6,7 @@ import tempfile
 import unittest
 from decimal import Decimal
 from pathlib import Path
+from unittest.mock import patch
 
 from hermes_trading.domain import Decision, Fill, OrderIntent, OrderRecord, OrderStatus
 from hermes_trading.persistence.repository import StateRepository
@@ -47,6 +48,11 @@ class OperationalScriptTests(unittest.TestCase):
             "generate_final_qualification_evidence.py",
             "generate_qualification_replay.py",
             "qualification_evidence_status.py",
+            "position_viewer.py",
+            "sync_railway_state.py",
+            "mark_reflection_regime.py",
+            "watch_consultant.py",
+            "compare_wallets.py",
         ):
             script_path = ROOT / "scripts" / script_name
             spec = importlib.util.spec_from_file_location(script_name, script_path)
@@ -177,6 +183,57 @@ class OperationalScriptTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("replay_without_lookahead=", result.stdout)
         self.assertIn("fees_and_slippage_charged=", result.stdout)
+
+    def test_reset_qualification_restarts_clock_and_clears_evidence(self) -> None:
+        state_dir = ROOT / ".test-tmp-reset-qualification"
+        state_dir.mkdir(exist_ok=True)
+        (state_dir / "qualification-training-started-at.txt").write_text(
+            "2020-01-01T00:00:00+00:00\n", encoding="utf-8"
+        )
+        (state_dir / "qualification-evidence.json").write_text('{"fees_and_slippage_charged": true}', encoding="utf-8")
+        (state_dir / "qualification-replay.json").write_text('{"status": "pass"}', encoding="utf-8")
+
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(ROOT / "scripts" / "reset_qualification.py"),
+                "--state-dir",
+                str(state_dir),
+            ],
+            cwd=ROOT,
+            text=True,
+            capture_output=True,
+            timeout=30,
+        )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        restarted_at = (state_dir / "qualification-training-started-at.txt").read_text(encoding="utf-8").strip()
+        self.assertNotEqual(restarted_at, "2020-01-01T00:00:00+00:00")
+        self.assertFalse((state_dir / "qualification-evidence.json").exists())
+        self.assertFalse((state_dir / "qualification-replay.json").exists())
+
+    def test_mark_reflection_regime_resets_marker_to_now(self) -> None:
+        state_dir = ROOT / ".test-tmp-mark-reflection-regime"
+        state_dir.mkdir(exist_ok=True)
+        (state_dir / "reflection-regime-started-at.txt").write_text("2020-01-01T00:00:00+00:00\n", encoding="utf-8")
+
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(ROOT / "scripts" / "mark_reflection_regime.py"),
+                "--state-dir",
+                str(state_dir),
+            ],
+            cwd=ROOT,
+            text=True,
+            capture_output=True,
+            timeout=30,
+        )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        marker = (state_dir / "reflection-regime-started-at.txt").read_text(encoding="utf-8").strip()
+        self.assertNotEqual(marker, "2020-01-01T00:00:00+00:00")
+        self.assertIn(marker, result.stdout)
 
     def test_generate_qualification_replay_writes_journal_scan_report(self) -> None:
         state_dir = ROOT / ".test-tmp-generate-qualification-replay"
@@ -370,3 +427,358 @@ class OperationalScriptTests(unittest.TestCase):
                 {"content": "Hermes smoke: lance /status, /qualification puis /config"},
             ),
         )
+
+
+class WatchConsultantTests(unittest.TestCase):
+    @staticmethod
+    def _load_module():
+        script_path = ROOT / "scripts" / "watch_consultant.py"
+        spec = importlib.util.spec_from_file_location("watch_consultant", script_path)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        return module
+
+    def test_default_interval_matches_prods_observed_cadence(self) -> None:
+        module = self._load_module()
+
+        self.assertEqual(module.DEFAULT_INTERVAL_SECONDS, 900.0)
+
+    def test_run_reflection_once_calls_hermes_path_not_deterministic(self) -> None:
+        module = self._load_module()
+
+        with (
+            tempfile.TemporaryDirectory() as tmp,
+            patch.object(module.subprocess, "run") as run,
+        ):
+            state_dir = Path(tmp)
+            module.run_reflection_once(state_dir, ROOT)
+
+        command = run.call_args.args[0]
+        self.assertIn("--hermes", command)
+        self.assertIn("--state-dir", command)
+        self.assertEqual(command[command.index("--state-dir") + 1], str(state_dir))
+
+    def test_main_calls_reflection_unconditionally_every_interval_with_no_pre_gate(self) -> None:
+        module = self._load_module()
+        calls: list[str] = []
+
+        def fake_run_reflection_once(state_dir, project_dir):
+            calls.append(str(state_dir))
+            if len(calls) >= 3:
+                raise SystemExit("stop-test-loop")
+            return None
+
+        module.run_reflection_once = fake_run_reflection_once
+
+        with tempfile.TemporaryDirectory() as tmp:
+            with self.assertRaises(SystemExit) as caught:
+                module.main(["--state-dir", tmp, "--interval-seconds", "0.001"])
+
+        self.assertEqual(str(caught.exception), "stop-test-loop")
+        # No evidence was ever written to state_dir -- if a pre-gate still
+        # existed, this would never have called run_reflection_once at all.
+        self.assertEqual(len(calls), 3)
+
+    def test_main_calls_once_and_exits_when_interval_is_zero(self) -> None:
+        module = self._load_module()
+        calls: list[str] = []
+        module.run_reflection_once = lambda state_dir, project_dir: calls.append(str(state_dir))
+
+        with tempfile.TemporaryDirectory() as tmp:
+            exit_code = module.main(["--state-dir", tmp, "--interval-seconds", "0"])
+
+        self.assertEqual(exit_code, 0)
+        self.assertEqual(len(calls), 1)
+
+    def test_main_survives_a_failed_reflection_call_and_keeps_polling(self) -> None:
+        module = self._load_module()
+        calls = {"count": 0}
+
+        def flaky_run_reflection_once(state_dir, project_dir):
+            calls["count"] += 1
+            if calls["count"] == 1:
+                raise subprocess.CalledProcessError(1, ["uv"], output="", stderr="local model unreachable")
+            raise SystemExit("stop-test-loop")
+
+        module.run_reflection_once = flaky_run_reflection_once
+
+        with tempfile.TemporaryDirectory() as tmp:
+            with self.assertRaises(SystemExit):
+                module.main(["--state-dir", tmp, "--interval-seconds", "0.001"])
+
+        self.assertEqual(calls["count"], 2)
+
+
+class CompareWalletsTests(unittest.TestCase):
+    @staticmethod
+    def _load_module():
+        script_path = ROOT / "scripts" / "compare_wallets.py"
+        spec = importlib.util.spec_from_file_location("compare_wallets", script_path)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        return module
+
+    def test_summarize_scopes_trades_to_the_marker_and_computes_wallet_balance(self) -> None:
+        module = self._load_module()
+
+        with tempfile.TemporaryDirectory() as tmp:
+            state_dir = Path(tmp)
+            (state_dir / "qualification-training-started-at.txt").write_text(
+                "2026-08-15T00:00:00+00:00\n", encoding="utf-8"
+            )
+            trades = [
+                {"closed_at": "2026-08-10T00:00:00+00:00", "realized_pnl": "-5.00"},  # before marker, excluded
+                {"closed_at": "2026-08-16T00:00:00+00:00", "realized_pnl": "1.50"},
+                {"closed_at": "2026-08-17T00:00:00+00:00", "realized_pnl": "-0.75"},
+            ]
+            (state_dir / "trades.jsonl").write_text(
+                "\n".join(json.dumps(row) for row in trades) + "\n", encoding="utf-8"
+            )
+
+            summary = module.summarize(state_dir, "baseline")
+
+        self.assertEqual(summary["trade_count"], 2)
+        self.assertEqual(summary["wins"], 1)
+        self.assertEqual(summary["losses"], 1)
+        self.assertEqual(summary["total_realized_pnl"], Decimal("0.75"))
+        self.assertEqual(summary["wallet_balance"], Decimal("50.75"))
+        self.assertEqual(summary["win_rate_pct"], 50.0)
+
+    def test_summarize_handles_zero_trades(self) -> None:
+        module = self._load_module()
+
+        with tempfile.TemporaryDirectory() as tmp:
+            state_dir = Path(tmp)
+            (state_dir / "qualification-training-started-at.txt").write_text(
+                "2026-08-18T00:00:00+00:00\n", encoding="utf-8"
+            )
+            (state_dir / "trades.jsonl").write_text("")
+
+            summary = module.summarize(state_dir, "consultant")
+
+        self.assertEqual(summary["trade_count"], 0)
+        self.assertIsNone(summary["win_rate_pct"])
+        self.assertEqual(summary["wallet_balance"], Decimal("50"))
+
+    def test_summarize_raises_when_state_dir_is_missing(self) -> None:
+        module = self._load_module()
+
+        with self.assertRaises(FileNotFoundError):
+            module.summarize(ROOT / ".test-tmp-does-not-exist", "baseline")
+
+    def test_format_comparison_includes_both_labels_and_state_dirs(self) -> None:
+        module = self._load_module()
+        with tempfile.TemporaryDirectory() as tmp_a, tempfile.TemporaryDirectory() as tmp_b:
+            state_a = Path(tmp_a)
+            state_b = Path(tmp_b)
+            (state_a / "qualification-training-started-at.txt").write_text(
+                "2026-08-18T00:00:00+00:00\n", encoding="utf-8"
+            )
+            (state_a / "trades.jsonl").write_text("")
+            (state_b / "qualification-training-started-at.txt").write_text(
+                "2026-08-18T00:00:00+00:00\n", encoding="utf-8"
+            )
+            (state_b / "trades.jsonl").write_text("")
+
+            baseline = module.summarize(state_a, "baseline")
+            consultant = module.summarize(state_b, "consultant")
+            rendered = module.format_comparison(baseline, consultant)
+
+        self.assertIn(str(state_a), rendered)
+        self.assertIn(str(state_b), rendered)
+        self.assertIn("BASELINE", rendered)
+        self.assertIn("CONSULTANT", rendered)
+
+    def test_format_comparison_rounds_wallet_and_pnl_to_three_decimals(self) -> None:
+        module = self._load_module()
+        with tempfile.TemporaryDirectory() as tmp:
+            state_dir = Path(tmp)
+            (state_dir / "qualification-training-started-at.txt").write_text(
+                "2026-08-18T00:00:00+00:00\n", encoding="utf-8"
+            )
+            trades = [
+                {"closed_at": "2026-08-19T00:00:00+00:00", "realized_pnl": "0.0095320489123"},
+            ]
+            (state_dir / "trades.jsonl").write_text(
+                "\n".join(json.dumps(row) for row in trades) + "\n", encoding="utf-8"
+            )
+
+            summary = module.summarize(state_dir, "baseline")
+            rendered = module.format_comparison(summary, summary)
+
+        self.assertIn("50.010", rendered)
+        self.assertIn("0.010", rendered)
+        self.assertNotIn("0.0095320489123", rendered)
+
+
+class SyncRailwayStateTests(unittest.TestCase):
+    @staticmethod
+    def _load_module():
+        script_path = ROOT / "scripts" / "sync_railway_state.py"
+        spec = importlib.util.spec_from_file_location("sync_railway_state", script_path)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        return module
+
+    def test_download_remote_file_writes_content_and_strips_ssh_banner(self) -> None:
+        module = self._load_module()
+        calls: list[list[str]] = []
+
+        def fake_runner(command: list[str]) -> subprocess.CompletedProcess[str]:
+            calls.append(command)
+            return subprocess.CompletedProcess(
+                command, 0, stdout="Using SSH key from file foo.pub: bar\n{\"positions\": []}\n", stderr=""
+            )
+
+        with tempfile.TemporaryDirectory() as tmp:
+            state_dir = Path(tmp)
+            wrote = module.download_remote_file(state_dir, "positions.json", runner=fake_runner)
+
+            self.assertTrue(wrote)
+            self.assertEqual(
+                (state_dir / "positions.json").read_text(encoding="utf-8"), '{"positions": []}'
+            )
+            self.assertEqual(calls[0][-1], "cat /app/state/positions.json 2>/dev/null || true")
+
+    def test_download_remote_file_skips_when_remote_content_empty(self) -> None:
+        module = self._load_module()
+
+        def fake_runner(command: list[str]) -> subprocess.CompletedProcess[str]:
+            return subprocess.CompletedProcess(command, 0, stdout="", stderr="")
+
+        with tempfile.TemporaryDirectory() as tmp:
+            state_dir = Path(tmp)
+            wrote = module.download_remote_file(state_dir, "positions.json", runner=fake_runner)
+
+            self.assertFalse(wrote)
+            self.assertFalse((state_dir / "positions.json").exists())
+
+    def test_download_remote_file_rejects_the_ssh_gateway_discovery_payload(self) -> None:
+        # Seen in production: railway ssh -- "<command>" returned Railway's own
+        # account/discovery JSON instead of executing the command, and this
+        # silently overwrote goal.yaml/strategy.yaml/trades.jsonl with it (only
+        # empty responses were rejected before) -- corrupting the live baseline
+        # instance's config until caught and repaired by hand.
+        module = self._load_module()
+        gateway_payload = (
+            '{"status":"ready","account":{"user":{"name":null,"username":"synkop360"}},'
+            '"actions":[{"command":"ssh -T whoami@railway.new"}]}'
+        )
+
+        def fake_runner(command: list[str]) -> subprocess.CompletedProcess[str]:
+            return subprocess.CompletedProcess(command, 0, stdout=gateway_payload, stderr="")
+
+        with tempfile.TemporaryDirectory() as tmp:
+            state_dir = Path(tmp)
+            (state_dir / "strategy.yaml").write_text("version: '187'\n", encoding="utf-8")
+
+            wrote = module.download_remote_file(state_dir, "strategy.yaml", runner=fake_runner)
+
+            self.assertFalse(wrote)
+            self.assertEqual((state_dir / "strategy.yaml").read_text(encoding="utf-8"), "version: '187'\n")
+
+    def test_sync_once_reports_only_successfully_downloaded_files(self) -> None:
+        module = self._load_module()
+
+        def fake_runner(command: list[str]) -> subprocess.CompletedProcess[str]:
+            requested_name = command[-1].split("cat ")[1].split(" ")[0].rsplit("/", 1)[-1]
+            if requested_name == "positions.json":
+                return subprocess.CompletedProcess(command, 0, stdout="{}", stderr="")
+            return subprocess.CompletedProcess(command, 0, stdout="", stderr="")
+
+        with tempfile.TemporaryDirectory() as tmp:
+            state_dir = Path(tmp)
+            synced = module.sync_once(
+                state_dir, runner=fake_runner, files=["positions.json", "trades.jsonl"]
+            )
+
+            self.assertEqual(synced, ["positions.json"])
+            self.assertTrue((state_dir / "positions.json").exists())
+            self.assertFalse((state_dir / "trades.jsonl").exists())
+
+    def test_download_remote_file_survives_transient_railway_ssh_failure(self) -> None:
+        module = self._load_module()
+
+        def failing_runner(command: list[str]) -> subprocess.CompletedProcess[str]:
+            raise subprocess.CalledProcessError(1, command, output="", stderr="ssh: connection reset")
+
+        with tempfile.TemporaryDirectory() as tmp:
+            state_dir = Path(tmp)
+            wrote = module.download_remote_file(state_dir, "positions.json", runner=failing_runner)
+
+            self.assertFalse(wrote)
+            self.assertFalse((state_dir / "positions.json").exists())
+
+    def test_sync_once_skips_file_whose_ssh_call_fails_but_still_syncs_the_rest(self) -> None:
+        module = self._load_module()
+
+        def flaky_runner(command: list[str]) -> subprocess.CompletedProcess[str]:
+            requested_name = command[-1].split("cat ")[1].split(" ")[0].rsplit("/", 1)[-1]
+            if requested_name == "trades.jsonl":
+                raise subprocess.CalledProcessError(1, command, output="", stderr="ssh: connection reset")
+            return subprocess.CompletedProcess(command, 0, stdout="{}", stderr="")
+
+        with tempfile.TemporaryDirectory() as tmp:
+            state_dir = Path(tmp)
+            synced = module.sync_once(
+                state_dir, runner=flaky_runner, files=["positions.json", "trades.jsonl", "heartbeat.json"]
+            )
+
+            self.assertEqual(synced, ["positions.json", "heartbeat.json"])
+
+    def test_main_loop_survives_a_failed_cycle_and_keeps_polling(self) -> None:
+        module = self._load_module()
+        calls = {"count": 0}
+
+        def flaky_sync_once(state_dir, *, runner=module.default_runner, files=module.STATE_FILES):
+            calls["count"] += 1
+            if calls["count"] == 1:
+                raise subprocess.CalledProcessError(1, ["railway.cmd"], output="", stderr="ssh: connection reset")
+            raise SystemExit("stop-test-loop")
+
+        module.sync_once = flaky_sync_once
+
+        with tempfile.TemporaryDirectory() as tmp:
+            with self.assertRaises(SystemExit) as caught:
+                module.main(["--state-dir", tmp, "--interval-seconds", "0.01"])
+
+        self.assertEqual(str(caught.exception), "stop-test-loop")
+        self.assertEqual(calls["count"], 2)
+
+
+class HermesWatchTests(unittest.TestCase):
+    @staticmethod
+    def _load_module():
+        script_path = ROOT / "scripts" / "hermes_watch.py"
+        spec = importlib.util.spec_from_file_location("hermes_watch", script_path)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        return module
+
+    def test_download_remote_file_rejects_the_ssh_gateway_discovery_payload(self) -> None:
+        # Same failure as sync_railway_state.py's guard covers, but this is
+        # the external hermes-trading-watch cron's own separate, unpatched
+        # copy of the same download logic -- it re-corrupted every local
+        # state file on every unattended cycle (~every 15-20 min) while
+        # railway ssh was returning this payload instead of running the
+        # requested command, wiping out a hand-repaired state/strategy.yaml
+        # within minutes of it being fixed.
+        module = self._load_module()
+        gateway_payload = (
+            '{"status":"ready","account":{"user":{"name":null,"username":"synkop360"}},'
+            '"actions":[{"command":"ssh -T whoami@railway.new"}]}'
+        )
+
+        def fake_run(command, *, input_text=None):
+            return subprocess.CompletedProcess(command, 0, stdout=gateway_payload, stderr="")
+
+        with tempfile.TemporaryDirectory() as tmp:
+            state_dir = Path(tmp)
+            (state_dir / "strategy.yaml").write_text("version: '187'\n", encoding="utf-8")
+            module._run = fake_run
+            module.STATE_DIR = state_dir
+
+            wrote = module._download_remote_file("strategy.yaml")
+
+            self.assertFalse(wrote)
+            self.assertEqual((state_dir / "strategy.yaml").read_text(encoding="utf-8"), "version: '187'\n")

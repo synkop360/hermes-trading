@@ -51,6 +51,10 @@ class RecordingControlClient:
         self.calls.append(("set_config", f"{key}={value}"))
         return {"key": key, "value": value, "restart_required": True}
 
+    def pnl_graph(self) -> tuple[bytes, str]:
+        self.calls.append(("pnl_graph", None))
+        return b"\x89PNG\r\n\x1a\nimage", "image/png"
+
 
 class FakeDiscordClient:
     def __init__(self, *, intents: object) -> None:
@@ -96,7 +100,10 @@ class FakeInteraction:
     async def _send_initial(self, message: str, *, ephemeral: bool) -> None:
         self._events.append(("initial_response", message, ephemeral))
 
-    async def _send(self, message: str, *, ephemeral: bool) -> None:
+    async def _send(self, message: str | None = None, *, ephemeral: bool, file: object | None = None) -> None:
+        if file is not None:
+            self._events.append(("followup_file", getattr(file, "filename", None), ephemeral))
+            return
         self._events.append(("followup", message, ephemeral))
 
 
@@ -115,6 +122,15 @@ class FakeDiscordControlBot:
 
     def config_set(self, *, user_id: int, otp: str, key: str, value: str) -> str:
         return f"config set {key}={value} for {user_id} with {otp}"
+
+    def pnl_graph(self, *, user_id: int, otp: str) -> tuple[bytes, str]:
+        return b"\x89PNG\r\n\x1a\nimage", "image/png"
+
+
+class FakeDiscordFile:
+    def __init__(self, fp, *, filename: str) -> None:
+        self.fp = fp
+        self.filename = filename
 
 
 class DiscordBotConfigTests(unittest.TestCase):
@@ -252,6 +268,27 @@ class DiscordControlBotTests(unittest.TestCase):
             [("config", None), ("set_config", "HERMES_TRADING_TIMEFRAME=15m")],
         )
 
+    def test_pnl_graph_uses_control_client_after_authorization(self) -> None:
+        control_client = RecordingControlClient()
+        bot = DiscordControlBot(
+            resolve_discord_bot_config(
+                {
+                    "HERMES_DISCORD_BOT_TOKEN": "bot-token",
+                    "HERMES_DISCORD_ALLOWED_USER_IDS": "123",
+                    "HERMES_CONTROL_HMAC_SECRET": "control-secret",
+                    "HERMES_DISCORD_TOTP_SECRET": TOTP_SECRET,
+                }
+            ),
+            control_client=control_client,
+            now=lambda: NOW,
+        )
+
+        content, content_type = bot.pnl_graph(user_id=123, otp=totp_code(TOTP_SECRET, NOW))
+
+        self.assertEqual(content[:8], b"\x89PNG\r\n\x1a\n")
+        self.assertEqual(content_type, "image/png")
+        self.assertEqual(control_client.calls, [("pnl_graph", None)])
+
     def test_discord_handlers_defer_before_offloading_blocking_bot_calls(self) -> None:
         config = resolve_discord_bot_config(
             {
@@ -266,6 +303,7 @@ class DiscordControlBotTests(unittest.TestCase):
             Intents=SimpleNamespace(default=lambda: object()),
             Client=FakeDiscordClient,
             Interaction=object,
+            File=FakeDiscordFile,
             app_commands=fake_app_commands,
         )
         modules = {
@@ -290,6 +328,7 @@ class DiscordControlBotTests(unittest.TestCase):
             asyncio.run(commands["qualification"](FakeInteraction(events), "222222"))
             asyncio.run(commands["config"](FakeInteraction(events), "333333"))
             asyncio.run(commands["config_set"](FakeInteraction(events), "444444", "HERMES_TRADING_TIMEFRAME", "15m"))
+            asyncio.run(commands["pnl_graph"](FakeInteraction(events), "555555"))
 
         self.assertEqual(events[0], ("defer", True))
         self.assertEqual(events[1][0:2], ("to_thread", "status"))
@@ -306,3 +345,6 @@ class DiscordControlBotTests(unittest.TestCase):
             events[11],
             ("followup", "config set HERMES_TRADING_TIMEFRAME=15m for 123 with 444444", True),
         )
+        self.assertEqual(events[12], ("defer", True))
+        self.assertEqual(events[13][0:2], ("to_thread", "pnl_graph"))
+        self.assertEqual(events[14], ("followup_file", "hermes-pnl-graph.png", True))

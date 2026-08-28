@@ -38,18 +38,43 @@ def evaluate_strategy(
                 take_profit = position.entry_price * (Decimal("1") + take_profit_pct / Decimal("100"))
                 if candle.high >= take_profit:
                     return StrategySignal("exit", snapshot.asset, "take_profit", take_profit, candle_id)
-            take_profit_atr = _optional_positive_setting(exit_rule.get("take_profit_atr"))
-            if take_profit_atr is not None:
-                atr = _atr(snapshot)
-                if atr is not None:
-                    take_profit = position.entry_price + atr * take_profit_atr
-                    if candle.high >= take_profit:
-                        return StrategySignal("exit", snapshot.asset, "take_profit_atr", take_profit, candle_id)
+            if (
+                "take_profit_atr" in exit_rule
+                and position.take_profit_price is not None
+                and candle.high >= position.take_profit_price
+            ):
+                # Frozen at entry (positions.py::_entry) so a rolling ATR
+                # contraction during the hold can't shrink the target back
+                # toward entry price and turn this into a cost-blind exit.
+                return StrategySignal("exit", snapshot.asset, "take_profit_atr", position.take_profit_price, candle_id)
             max_bars = _optional_positive_setting(exit_rule.get("max_bars"))
             if max_bars is not None and _bars_held(position.opened_at, candle.close_timestamp, snapshot.timeframe) >= int(max_bars):
                 return StrategySignal("exit", snapshot.asset, "max_bars", candle.close, candle_id)
-        if isinstance(exit_rule, dict) and _rsi_matches(snapshot, exit_rule, above=True):
-            return StrategySignal("exit", snapshot.asset, "explicit_exit", candle.close, candle_id)
+        # Opt-in: with trailing_atr configured, explicit_exit (RSI recovery)
+        # otherwise always wins the race against the trailing stop -- it fires
+        # the instant RSI clears the threshold + cost floor, which in practice
+        # is well before price has moved far enough for a wider trailing band
+        # to ever bind, capping every winner at whatever the RSI mean-reversion
+        # target gives regardless of trailing_atr's value (confirmed against
+        # real trade history: 100% of wins closed via explicit_exit, 0% via a
+        # ratcheted stop). Setting trailing_overrides_explicit_exit hands exits
+        # entirely to the (continuously ratcheting) stop_price and max_bars
+        # instead, letting a winner run past the RSI target -- default is
+        # unset/false, preserving today's behavior for every existing caller.
+        trailing_overrides_explicit_exit = (
+            isinstance(exit_rule, dict)
+            and "trailing_atr" in exit_rule
+            and bool(exit_rule.get("trailing_overrides_explicit_exit", False))
+        )
+        if (
+            not trailing_overrides_explicit_exit
+            and isinstance(exit_rule, dict)
+            and _rsi_matches(snapshot, exit_rule, above=True)
+        ):
+            required_move = _minimum_favorable_move_pct(strategy, exit_rule)
+            favorable_move = (candle.close - position.entry_price) / position.entry_price
+            if favorable_move >= required_move:
+                return StrategySignal("exit", snapshot.asset, "explicit_exit", candle.close, candle_id)
         return StrategySignal("hold", snapshot.asset, "position_open", candle.close, candle_id)
 
     entry = strategy.get("entry")
@@ -180,6 +205,52 @@ def _optional_positive_setting(value: object) -> Decimal | None:
     if result <= 0:
         raise ValueError("exit settings must be positive")
     return result
+
+
+def _is_maker_exit(exit_rule: dict[str, Any] | None) -> bool:
+    """Whether an ``explicit_exit`` (RSI recovery) close should be priced as a maker fill.
+
+    Defaults to maker: this exit fires opportunistically once RSI recovers, not
+    urgently like a stop, so it can reasonably be routed as a limit order. Set
+    ``exit.fee: taker`` to opt back into market pricing for this reason only;
+    stop_loss/take_profit/max_bars always stay taker regardless of this setting.
+    """
+    fee = exit_rule.get("fee", "maker") if isinstance(exit_rule, dict) else "maker"
+    return str(fee).lower() != "taker"
+
+
+def _is_maker_entry(entry_rule: dict[str, Any] | None) -> bool:
+    """Whether an entry fill should be priced as a maker (limit) order.
+
+    Defaults to taker (today's existing behavior, and the historically
+    simulated one) -- set ``entry.fee: maker`` to opt in. Unlike
+    ``_is_maker_exit``, there is no "urgent" entry reason that must always
+    stay taker, so this is a single toggle rather than a per-signal-reason
+    check. This simulation does not model limit-fill risk: a maker entry is
+    assumed to fill exactly like a taker one, just at the cheaper fee.
+    """
+    fee = entry_rule.get("fee", "taker") if isinstance(entry_rule, dict) else "taker"
+    return str(fee).lower() == "maker"
+
+
+def _minimum_favorable_move_pct(strategy: dict[str, Any], exit_rule: dict[str, Any]) -> Decimal:
+    """Round-trip transaction cost plus the configured minimum edge, as a price fraction.
+
+    The RSI recovery exit has no price target of its own, so without this floor
+    it fires the instant RSI crosses back over the threshold -- often on a bounce
+    too small to cover fees and slippage, turning a paper "win" into a realized
+    loss once costs are applied.
+    """
+    simulation = strategy.get("simulation")
+    simulation = simulation if isinstance(simulation, dict) else {}
+    taker_fee_rate = _decimal_setting(simulation.get("taker_fee_rate", "0.004"), "taker_fee_rate")
+    maker_fee_rate = _decimal_setting(simulation.get("maker_fee_rate", "0.0025"), "maker_fee_rate")
+    slippage_rate = _decimal_setting(simulation.get("slippage_rate", "0.001"), "slippage_rate")
+    minimum_edge_pct = _decimal_setting(simulation.get("minimum_expected_edge_pct", "0.2"), "minimum_expected_edge_pct")
+    entry_fee_rate = maker_fee_rate if _is_maker_entry(strategy.get("entry")) else taker_fee_rate
+    exit_fee_rate = maker_fee_rate if _is_maker_exit(exit_rule) else taker_fee_rate
+    round_trip_cost = entry_fee_rate + slippage_rate + exit_fee_rate + slippage_rate
+    return round_trip_cost + minimum_edge_pct / Decimal("100")
 
 
 def _bars_held(opened_at: str, close_timestamp: datetime, timeframe: str) -> int:
