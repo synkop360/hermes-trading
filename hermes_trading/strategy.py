@@ -109,6 +109,27 @@ def evaluate_strategy(
                 raise ValueError("partial_close_pct must be greater than zero and less than one")
             if "trailing_atr" not in exit_rule:
                 raise ValueError("exit.partial_close_pct requires exit.trailing_atr to be configured")
+            if bool(exit_rule.get("trailing_overrides_explicit_exit", False)):
+                # A base-config trailing_overrides_explicit_exit: true is
+                # checked FIRST, unconditionally, above -- it would
+                # permanently suppress explicit_exit/partial_exit from the
+                # very first hold cycle, making partial_close_pct silently
+                # dead code (confirmed the hard way: a misconfigured
+                # deployment scored statistically identical to the plain
+                # full-override variant on a real backtest). Fail loudly
+                # instead of silently no-op'ing a live deployment --
+                # partial_close_pct's own partial_exit_count check below is
+                # what's supposed to turn the override on, but only *after*
+                # the remainder has already banked once.
+                raise ValueError(
+                    "exit.partial_close_pct is incompatible with a base "
+                    "exit.trailing_overrides_explicit_exit: true -- that "
+                    "suppresses explicit_exit before partial_close_pct's own "
+                    "partial_exit_count gate ever runs, making it dead code. "
+                    "Leave trailing_overrides_explicit_exit unset; "
+                    "partial_close_pct enables the override itself, but only "
+                    "after the first partial close."
+                )
             if position.partial_exit_count > 0:
                 trailing_overrides_explicit_exit = True
         if (

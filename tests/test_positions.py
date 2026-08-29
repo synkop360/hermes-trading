@@ -644,6 +644,24 @@ class PositionEngineTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.engine.process_candle(self._rsi_recovered_candle(low="82", close="82"), strategy)
 
+    def test_partial_close_pct_rejects_a_base_trailing_override(self) -> None:
+        # A base-config trailing_overrides_explicit_exit: true is checked
+        # first, unconditionally -- it would permanently suppress
+        # explicit_exit/partial_exit before partial_close_pct's own
+        # partial_exit_count gate ever runs, silently making it dead code.
+        # This exact misconfiguration was deployed once and scored
+        # statistically identical to a plain full-override strategy on a
+        # real backtest before being caught -- must fail loudly instead.
+        strategy = entry_strategy()
+        strategy["exit"] = {
+            "indicator": "rsi", "threshold": "50", "trailing_atr": "1.5",
+            "trailing_overrides_explicit_exit": True, "partial_close_pct": "0.5",
+        }
+        self.engine.process_candle(self.entry_candle, strategy)
+
+        with self.assertRaises(ValueError):
+            self.engine.process_candle(self._rsi_recovered_candle(low="82", close="82"), strategy)
+
     def test_partial_close_pct_must_be_a_fraction(self) -> None:
         strategy = entry_strategy()
         strategy["exit"] = {
