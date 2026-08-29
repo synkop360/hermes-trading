@@ -23,6 +23,13 @@ from hermes_trading.strategy_registry import StrategyRegistry
 
 
 DEFAULT_OPENAI_REFLECTION_MODEL = "gpt-5.6-luna"
+# Hard ceiling on how many variables one asset can change in a single
+# reflection cycle when goal.yaml sets one_variable_only: false. Enforced in
+# code (run_hermes_reflection), not just prompt wording -- a model response
+# proposing more than this many changes has the extras dropped rather than
+# applied, so this is a real cap on blast radius per cycle, independent of
+# what any proposal_generator returns.
+MAX_CHANGES_PER_ASSET_PER_CYCLE = 3
 SUPPORTED_STRATEGY_VARIABLES = {
     "entry.threshold",
     "stop_loss_pct",
@@ -857,20 +864,48 @@ def _build_asset_reflection_prompt(
             "unverified model -- weigh it lightly against the trade/decision data "
             f"above, which is ground truth and this is not:\n{json.dumps(market_analysis_opinion)}\n"
         )
+    # goal.yaml's one_variable_only (default true) picks between two distinct
+    # JSON response schemas -- not just wording. Each proposed variable still
+    # goes through _validate_strategy_change's per-variable bounds/max-step
+    # guard exactly as before; MAX_CHANGES_PER_ASSET_PER_CYCLE additionally
+    # caps how many of them a single cycle can apply, independent of what the
+    # model returns.
+    allow_multiple = goal.get("one_variable_only", True) is False
+    if allow_multiple:
+        schema_instructions = (
+            "You are reviewing exactly one trading symbol.\n"
+            f"Propose between one and {MAX_CHANGES_PER_ASSET_PER_CYCLE} strategy changes for this symbol.\n"
+            "Return exactly one JSON object without Markdown or extra text.\n\n"
+            "Required keys:\n"
+            f'- "asset": exactly "{asset}"\n'
+            '- "changes": a JSON array of 1 to '
+            f"{MAX_CHANGES_PER_ASSET_PER_CYCLE} objects, each with:\n"
+            f'    - "variable": exactly one of {variable_options}\n'
+            '    - "value": the proposed numeric value\n'
+            '    - "reason": concise justification based only on the supplied data\n\n'
+            "Do not include the symbol in a variable path.\n"
+            "Do not propose changes for another symbol.\n"
+            "Do not propose the same variable twice.\n"
+            "Prefer conservative incremental adjustments.\n\n"
+        )
+    else:
+        schema_instructions = (
+            "You are reviewing exactly one trading symbol.\n"
+            "Propose at most one strategy change for this symbol.\n"
+            "Return exactly one JSON object without Markdown or extra text.\n\n"
+            "Required keys:\n"
+            f'- "variable": exactly one of {variable_options}\n'
+            '- "value": the proposed numeric value\n'
+            '- "reason": concise justification based only on the supplied data\n'
+            f'- "asset": exactly "{asset}"\n\n'
+            "Do not include the symbol in the variable path.\n"
+            "Do not propose changes for another symbol.\n"
+            "Do not change more than one variable.\n"
+            "Prefer a conservative incremental adjustment.\n\n"
+        )
     return (
-        "You are reviewing exactly one trading symbol.\n"
-        "Propose at most one strategy change for this symbol.\n"
-        "Return exactly one JSON object without Markdown or extra text.\n\n"
-        "Required keys:\n"
-        f'- "variable": exactly one of {variable_options}\n'
-        '- "value": the proposed numeric value\n'
-        '- "reason": concise justification based only on the supplied data\n'
-        f'- "asset": exactly "{asset}"\n\n'
-        "Do not include the symbol in the variable path.\n"
-        "Do not propose changes for another symbol.\n"
-        "Do not change more than one variable.\n"
-        "Prefer a conservative incremental adjustment.\n\n"
-        f"Symbol:\n{asset}\n\n"
+        schema_instructions
+        + f"Symbol:\n{asset}\n\n"
         f"Reflection triggers:\n{json.dumps(trigger_reasons)}\n\n"
         f"Symbol metrics:\n{json.dumps(metrics)}\n\n"
         "Effective symbol strategy after applying global defaults:\n"
@@ -1348,6 +1383,33 @@ def _set_nested(mapping: dict[str, Any], path: tuple[str, ...], value: Any) -> N
     current[path[-1]] = value
 
 
+def _proposal_change_items(proposal: dict[str, Any]) -> list[dict[str, Any]]:
+    """Normalizes a proposal into a flat list of single-variable change dicts.
+
+    A proposal_generator either returns the classic single {"variable",
+    "value", ...} shape (every existing generator: _generate_asset_proposal,
+    generate_deterministic_asset_proposal, the accessibility guards) or, when
+    the reflection prompt allowed it (goal.yaml one_variable_only: false), a
+    {"asset": ..., "changes": [...]} shape with one to
+    MAX_CHANGES_PER_ASSET_PER_CYCLE entries. Both normalize to this same list
+    shape so run_hermes_reflection only needs one code path to apply/log/
+    reject changes through -- entries beyond the cap are dropped, not
+    applied, regardless of how many the model actually returned.
+    """
+    changes = proposal.get("changes")
+    if not isinstance(changes, list):
+        return [proposal]
+    asset = proposal.get("asset")
+    items: list[dict[str, Any]] = []
+    for entry in changes[:MAX_CHANGES_PER_ASSET_PER_CYCLE]:
+        if not isinstance(entry, dict):
+            continue
+        item = dict(entry)
+        item.setdefault("asset", asset)
+        items.append(item)
+    return items
+
+
 def _apply_strategy_proposal(
     strategy: dict[str, Any],
     proposal: dict[str, Any],
@@ -1593,35 +1655,6 @@ def run_hermes_reflection(
                 policy,
             )
 
-        if (
-            proposal is not None
-            and _is_training_mode(env)
-            and str(proposal.get("variable", "")).strip().split(".")[-1] == "position_size_r"
-        ):
-            # position_size_r only affects RiskEngine.authorize_entry() on the
-            # live path; PositionEngine (training/simulated mode) ignores it
-            # entirely, so applying this proposal would be a no-op that still
-            # burns this asset's one-variable-per-cycle reflection budget.
-            cycle_results.append(
-                {
-                    "asset": asset,
-                    "status": "proposal_rejected",
-                    "error": "position_size_r has no effect in training/simulated mode",
-                    "proposal": proposal,
-                }
-            )
-            _append_hypothesis(
-                state_dir,
-                {
-                    "timestamp": now.isoformat(),
-                    "mode": "hermes_asset_rejected",
-                    "asset": asset,
-                    "error": "position_size_r_inert_in_training_mode",
-                    "proposal": proposal,
-                },
-            )
-            continue
-
         if proposal is None:
             cycle_results.append(
                 {
@@ -1646,65 +1679,104 @@ def run_hermes_reflection(
             )
             continue
 
-        try:
-            candidate, variable, normalized_asset = (
-                _apply_strategy_proposal(
-                    updated,
-                    proposal,
+        # Normally one item (today's classic single-variable proposal, or an
+        # accessibility guard's override); more than one only when goal.yaml
+        # set one_variable_only: false and the model returned a "changes"
+        # list -- see _proposal_change_items. Every item goes through the
+        # exact same apply/log/reject path below, threading `updated`
+        # forward so a later item's max-step guard sees an earlier item's
+        # change within this same cycle.
+        asset_last_change: dict[str, Any] | None = None
+        for proposal_item in _proposal_change_items(proposal):
+            if (
+                _is_training_mode(env)
+                and str(proposal_item.get("variable", "")).strip().split(".")[-1] == "position_size_r"
+            ):
+                # position_size_r only affects RiskEngine.authorize_entry() on the
+                # live path; PositionEngine (training/simulated mode) ignores it
+                # entirely, so applying this proposal would be a no-op that still
+                # burns this asset's reflection budget.
+                cycle_results.append(
+                    {
+                        "asset": asset,
+                        "status": "proposal_rejected",
+                        "error": "position_size_r has no effect in training/simulated mode",
+                        "proposal": proposal_item,
+                    }
                 )
-            )
-        except Exception as exc:
+                _append_hypothesis(
+                    state_dir,
+                    {
+                        "timestamp": now.isoformat(),
+                        "mode": "hermes_asset_rejected",
+                        "asset": asset,
+                        "error": "position_size_r_inert_in_training_mode",
+                        "proposal": proposal_item,
+                    },
+                )
+                continue
+
+            try:
+                candidate, variable, normalized_asset = (
+                    _apply_strategy_proposal(
+                        updated,
+                        proposal_item,
+                    )
+                )
+            except Exception as exc:
+                cycle_results.append(
+                    {
+                        "asset": asset,
+                        "status": "proposal_rejected",
+                        "error": str(exc),
+                        "proposal": proposal_item,
+                    }
+                )
+
+                _append_hypothesis(
+                    state_dir,
+                    {
+                        "timestamp": now.isoformat(),
+                        "mode": "hermes_asset_rejected",
+                        "asset": asset,
+                        "error": str(exc),
+                        "proposal": proposal_item,
+                    },
+                )
+                continue
+
+            updated = candidate
+
+            change = {
+                "asset": normalized_asset,
+                "variable": variable,
+                "value": proposal_item["value"],
+                "reason": proposal_item.get("reason", ""),
+                "triggers": trigger_reasons,
+                "metrics": metrics,
+                "provider": model_info["provider"],
+                "model": model_info["model"],
+                "market_analysis": market_analysis_opinion,
+            }
+
+            applied_changes.append(change)
+            asset_last_change = change
+
             cycle_results.append(
                 {
                     "asset": asset,
-                    "status": "proposal_rejected",
-                    "error": str(exc),
-                    "proposal": proposal,
+                    "status": "changed",
+                    **change,
                 }
             )
 
-            _append_hypothesis(
-                state_dir,
-                {
-                    "timestamp": now.isoformat(),
-                    "mode": "hermes_asset_rejected",
-                    "asset": asset,
-                    "error": str(exc),
-                    "proposal": proposal,
-                },
-            )
-            continue
-
-        updated = candidate
-
-        change = {
-            "asset": normalized_asset,
-            "variable": variable,
-            "value": proposal["value"],
-            "reason": proposal.get("reason", ""),
-            "triggers": trigger_reasons,
-            "metrics": metrics,
-            "provider": model_info["provider"],
-            "model": model_info["model"],
-            "market_analysis": market_analysis_opinion,
-        }
-
-        applied_changes.append(change)
-
-        reflection_state[asset] = {
-            "last_reflection_at": now.isoformat(),
-            "last_variable": variable,
-            "last_value": proposal["value"],
-            "last_score": metrics["score"],
-        }
-
-        cycle_results.append(
-            {
-                "asset": asset,
-                "status": "changed",
-                **change,
+        if asset_last_change is not None:
+            reflection_state[asset] = {
+                "last_reflection_at": now.isoformat(),
+                "last_variable": asset_last_change["variable"],
+                "last_value": asset_last_change["value"],
+                "last_score": metrics["score"],
             }
-        )
 
     if not applied_changes:
         _append_hypothesis(

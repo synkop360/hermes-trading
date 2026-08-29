@@ -18,11 +18,14 @@ from hermes_trading.loop import (
 )
 from hermes_trading.run import ensure_state_files
 from hermes_trading.reflect import (
+    MAX_CHANGES_PER_ASSET_PER_CYCLE,
     ReflectionCycleSchedule,
     _asset_needs_reflection,
+    _build_asset_reflection_prompt,
     _fetch_market_analysis,
     _legacy_reflection_timestamp,
     _load_yaml,
+    _proposal_change_items,
     build_due_reflection_health_alert,
     generate_deterministic_asset_proposal,
     load_regime_started_at,
@@ -597,6 +600,130 @@ class ReflectionTests(unittest.TestCase):
 
             self.assertIsNotNone(found)
             self.assertEqual(found.isoformat(), "2026-08-18T12:00:00+00:00")
+
+    def test_reflection_prompt_uses_the_single_variable_schema_by_default(self):
+        prompt = _build_asset_reflection_prompt(
+            "BTC/USDT", {"entry": {"threshold": 30}}, {}, [], [], [], {}, {},
+        )
+
+        self.assertIn("Do not change more than one variable.", prompt)
+        self.assertNotIn('"changes"', prompt)
+
+    def test_reflection_prompt_switches_to_the_multi_variable_schema_when_allowed(self):
+        prompt = _build_asset_reflection_prompt(
+            "BTC/USDT", {"entry": {"threshold": 30}}, {"one_variable_only": False}, [], [], [], {}, {},
+        )
+
+        self.assertIn('"changes"', prompt)
+        self.assertIn(str(MAX_CHANGES_PER_ASSET_PER_CYCLE), prompt)
+        self.assertNotIn("Do not change more than one variable.", prompt)
+
+    def test_hermes_reflection_applies_multiple_changes_when_one_variable_only_is_false(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            state = Path(temp_dir)
+            self._write_minimal_reflection_state(state)
+            (state / "goal.yaml").write_text(
+                yaml.safe_dump(
+                    {
+                        "asset": "BTC/USDT",
+                        "target_return_30d": 0.05,
+                        "max_drawdown": 0.08,
+                        "min_sharpe": 1.0,
+                        "reflection_every": 5,
+                        "one_variable_only": False,
+                    }
+                )
+            )
+            # Eligibility via genuine trade/decision volume (>= min_new_trades,
+            # >= min_new_decisions), not the no-trade-accessibility-drought
+            # path -- that guard only ever returns a classic single-variable
+            # override and would otherwise clobber the multi-change proposal
+            # this test is exercising.
+            (state / "trades.jsonl").write_text(
+                "\n".join(
+                    json.dumps({"asset": "BTC/USDT", "realized_pnl_pct": 0.01, "equity": 100 + index})
+                    for index in range(5)
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+            (state / "decisions.jsonl").write_text(
+                "\n".join(
+                    json.dumps({"asset": "BTC/USDT", "action": "hold", "timestamp": f"2026-07-30T10:{minute:02d}:00+00:00"})
+                    for minute in range(31)
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+
+            class FakeLocalResponse:
+                def raise_for_status(self):
+                    return None
+
+                def json(self):
+                    return {
+                        "choices": [
+                            {
+                                "message": {
+                                    "content": json.dumps(
+                                        {
+                                            "asset": "BTC/USDT",
+                                            "changes": [
+                                                {"variable": "entry.threshold", "value": 29, "reason": "a"},
+                                                {"variable": "stop_loss_pct", "value": 1.8, "reason": "b"},
+                                            ],
+                                        }
+                                    ),
+                                },
+                            },
+                        ],
+                    }
+
+            def fake_run(command, **kwargs):
+                raise RuntimeError("default unavailable")
+
+            with (
+                patch("hermes_trading.model_runner.subprocess.run", side_effect=fake_run),
+                patch("hermes_trading.reflect.httpx.post", return_value=FakeLocalResponse()),
+            ):
+                updated = run_hermes_reflection(
+                    state,
+                    env={
+                        "HERMES_LOCAL_MODEL": "ai/test-local",
+                        "HERMES_REFLECTION_TIMEOUT_SECONDS": "120",
+                        "HERMES_REFLECT_MIN_CLOSED_TRADES": "0",
+                    },
+                )
+
+            # Both changes carry the proposal's top-level "asset", so they
+            # land in strategy.symbols["BTC/USDT"] (a per-symbol override),
+            # not the root strategy -- the same scoping every other
+            # per-asset proposal (e.g. the accessibility guards) already uses.
+            btc_overrides = updated["symbols"]["BTC/USDT"]
+            self.assertEqual(btc_overrides["entry"]["threshold"], 29)
+            self.assertEqual(btc_overrides["stop_loss_pct"], 1.8)
+            hypotheses = (state / "hypotheses.jsonl").read_text()
+            self.assertIn('"variable":"entry.threshold"', hypotheses)
+            self.assertIn('"variable":"stop_loss_pct"', hypotheses)
+
+    def test_proposal_change_items_passes_through_a_classic_single_variable_proposal(self):
+        proposal = {"asset": "BTC/USDT", "variable": "entry.threshold", "value": 29, "reason": "x"}
+
+        self.assertEqual(_proposal_change_items(proposal), [proposal])
+
+    def test_proposal_change_items_drops_entries_past_the_per_cycle_cap(self):
+        proposal = {
+            "asset": "BTC/USDT",
+            "changes": [
+                {"variable": f"exit.max_bars", "value": index, "reason": "x"}
+                for index in range(MAX_CHANGES_PER_ASSET_PER_CYCLE + 5)
+            ],
+        }
+
+        items = _proposal_change_items(proposal)
+
+        self.assertEqual(len(items), MAX_CHANGES_PER_ASSET_PER_CYCLE)
+        self.assertTrue(all(item["asset"] == "BTC/USDT" for item in items))
 
 
 class DeterministicAssetProposalTests(unittest.TestCase):
