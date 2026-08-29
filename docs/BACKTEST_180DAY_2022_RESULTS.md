@@ -25,20 +25,27 @@ running processes.
 
 ## Status
 
-| instance | status |
-|---|---|
-| baseline | **stopped by request at ~99% through its window** (2022-07-09 of 2022-01-28 – 2022-07-27) — see final KPIs below |
-| consultant | **in progress** — running now as an independent process, seeded from `state-consultant`'s current `strategy.yaml` |
-| trailing-exit | **in progress** — running in parallel (`state-backtest-trailing-exit-parallel`), started earlier, seeded from `state-trailing-exit`'s current `strategy.yaml` |
+All three stopped by request once their numbers had stabilized (each held steady across
+several consecutive progress checks before stopping), rather than run to the literal
+last day of the 180-day window. All three treated as representative final results.
 
-Baseline seeded from `state/strategy.yaml` v187 (before this run's own reflection
-changes). Stopped deliberately ~18 days short of the full 180-day window; payoff ratio
-had been stable in the 0.33-0.36 band for many consecutive checks beforehand, so this is
-treated as a representative final result, not a partial/incomplete one.
+| instance | window position at stop | seeded from |
+|---|---|---|
+| baseline | ~99% (2022-07-09 of Jan 28 – Jul 27 2022) | `state/strategy.yaml` v187 |
+| consultant | ~85% (2022-06-07), **market analysis genuinely enabled** (see note below) | `state-consultant/strategy.yaml` v170 |
+| trailing-exit | ~99% (2022-07-09) | `state-trailing-exit/strategy.yaml` v03 |
+
+**Correction made mid-run:** the consultant backtest was restarted once. The first attempt
+called `run_hermes_reflection(..., env={})` — an *empty* env dict, which meant
+`HERMES_MARKET_ANALYSIS_ENABLED` was never set and the local Docker Model Runner opinion
+(consultant's actual differentiator from baseline) was never consulted for the first
+~280 trades. Restarted with real `os.environ` plus a forced
+`HERMES_MARKET_ANALYSIS_ENABLED=true`, matching `scripts/watch_consultant.py`'s own
+production behavior. The numbers below are from the corrected run.
 
 ## KPIs
 
-### Baseline (FINAL — stopped ~99% through its window, at 2022-07-09 of Jan 28 – Jul 27 2022)
+### Baseline (FINAL)
 
 | KPI | value |
 |---|---|
@@ -48,76 +55,177 @@ treated as a representative final result, not a partial/incomplete one.
 | avg loss | -0.0354 |
 | **payoff ratio** | **0.359** |
 | total P&L | **-12.1278** |
-| wallet | **37.872** (from $50 starting) — a 24.3% drawdown, ~3x `goal.yaml`'s `max_drawdown: 0.08` target |
-| reflection changes applied | 5 (all `entry.threshold` tightening, all via the no-trade-accessibility guard; seeded v187 → final v188) |
+| wallet | **37.872** — a 24.3% drawdown, ~3x `goal.yaml`'s `max_drawdown: 0.08` target |
+| exit reasons | `explicit_exit`: 594 (100% of wins), `stop_loss`: 555, `max_bars`: 1 |
+| reflection changes applied | 5 (all `entry.threshold` tightening via the no-trade-accessibility guard; v187 → v188) |
 
-### Consultant
+### Consultant (FINAL — market analysis genuinely active)
 
-In progress — will be filled in once complete.
-
-### Trailing-exit (partial, still running as of last check)
-
-| KPI | value (as of 2022-05-14, ~91% through its window) |
+| KPI | value |
 |---|---|
-| trades | 697 |
-| win rate | 23.7% |
-| avg win | +0.0458 |
-| avg loss | -0.0318 |
-| **payoff ratio** | **1.440** |
-| total P&L | -9.3614 |
-| wallet | 40.639 |
-| reflection changes applied | 1 (v03 → v04) |
+| trades | 959 |
+| win rate | 52.1% (500 W / 459 L) |
+| avg win | +0.0125 |
+| avg loss | -0.0377 |
+| **payoff ratio** | **0.331** |
+| total P&L | **-11.0592** |
+| wallet | **38.941** — a 22.1% drawdown |
+| exit reasons | `explicit_exit`: 500 (100% of wins), `stop_loss`: 456, `max_bars`: 3 |
+| reflection changes applied | 3 |
 
-Will be updated to final numbers once this run completes.
+**Key finding: market analysis, even genuinely consulted, does not move the payoff
+ratio.** 0.331 lands in the same 0.33-0.36 band as baseline (0.359) and the earlier
+no-market-analysis consultant run — consistent with its documented "advisory only,
+weigh lightly" design rather than something that should be expected to fix
+entry/exit sizing asymmetry.
+
+### Trailing-exit (FINAL)
+
+| KPI | value |
+|---|---|
+| trades | 1051 |
+| win rate | 24.6% (259 W / 792 L) |
+| avg win | +0.0443 |
+| avg loss | -0.0300 |
+| **payoff ratio** | **1.480** |
+| total P&L | **-12.2480** |
+| wallet | **37.752** — a 24.5% drawdown, similar magnitude to baseline/consultant despite the much better payoff ratio |
+| exit reasons | `explicit_exit`: 0 (disabled by design), `stop_loss`: 912, `max_bars`: 139 |
+| reflection changes applied | 1 |
 
 ## Results analysis
 
-- **Drawdown already exceeds the configured risk limit.** Wallet is down 21.3% from
-  its $50 start (`-10.64`), well past `goal.yaml`'s `max_drawdown: 0.08` (8%). In live
-  mode, `RiskEngine` would have hard-stopped trading well before this point; training
-  mode has no equivalent circuit breaker, so the backtest kept trading straight through
-  it. This is real evidence for adding a training-mode drawdown guard, not just a
-  live-mode one.
-- **Payoff ratio is stable, not noisy — and stable in the wrong place.** 0.334 has held
-  essentially flat (0.337 → 0.334) across a wide span of the backtest, on a large
-  sample (953 trades). At the current 52.0% win rate, breakeven needs a payoff ratio of
-  roughly **0.92** — actual is barely a third of that. This matches, and statistically
-  reinforces with much more data, the same structural finding from the small live
-  samples earlier this session: average losses are consistently 2-3x average wins.
-- **Reflection engaged correctly but adapted less than the long window might suggest.**
-  5 real, sane LLM-driven changes (one `entry.threshold` tightening per asset, all
-  triggered by negative score) over ~640 reflection-eligibility windows. The gate
-  (`hermes_trading/reflect.py:557`) requires **both** ≥5 new closed trades **and** ≥30
-  new decisions since an asset's last reflection — not a pure cooldown timer. Because
-  every applied change tightens entry criteria (trade less), it's self-throttling: each
-  adaptation makes the next one's evidence bar take proportionally longer to clear. A
-  long timeframe alone doesn't guarantee proportionally more adaptation under this
-  policy once the strategy starts tightening.
-- Win rate (52.0%) is actually reasonable in isolation — the problem is entirely on the
-  loss-size side, not trade selection frequency.
-
-*(Consultant/trailing-exit sections to be added once those runs complete — in
-particular, whether `trailing_overrides_explicit_exit` moves the payoff ratio toward
-breakeven here the way it did in the shorter, live-data-scoped tests earlier this
-session, at this much larger sample size and in a different market regime.)*
+- **All three instances lose a similar amount of money, by two structurally different
+  routes.** Drawdowns land within a few points of each other (24.3% / 22.1% / 24.5%),
+  each roughly 3x `goal.yaml`'s `max_drawdown: 0.08` target. But baseline/consultant get
+  there via a *bad payoff ratio at a decent win rate* (≈52% wins, but each loss costs
+  ~3x what each win pays), while trailing-exit gets there via a *bad win rate at a good
+  payoff ratio* (only 24.6% wins, but each win pays ~1.5x what each loss costs). Neither
+  side of that trade-off, taken alone, is enough to be profitable — this is the central
+  finding of the whole exercise.
+- **The mechanism is now precisely confirmed by exit-reason counts, not inferred.**
+  Baseline/consultant: 100% of wins are `explicit_exit`, 100% of losses are
+  `stop_loss`/`max_bars` — a clean 1:1 split, no exceptions across 2109 combined trades.
+  Trailing-exit: `explicit_exit` never fires (0 of 1051, by design); wins only happen
+  when a *ratcheted* stop or a profitable `max_bars` timeout closes above entry, which
+  the data shows happening far less often (24.6%) than `explicit_exit` used to convert
+  RSI-recovery bounces into wins (~52%). Disabling `explicit_exit` doesn't add profit
+  to existing wins so much as it removes the one mechanism that reliably banked a
+  bounce before it reversed — most RSI-recovery bounces are short-lived (consistent
+  with the very first finding this session, that even a 50-period EMA is too slow to
+  track them), so without an early exit most of them round-trip into a loss instead of
+  ever reaching the trailing stop's ratcheted protection.
+- **Market analysis doesn't touch the payoff ratio.** Confirmed with the local Docker
+  model genuinely in the loop (see correction note above): 0.331, statistically
+  indistinguishable from baseline's 0.359 and the earlier no-market-analysis run.
+- **Drawdown runs unchecked in training mode across all three.** None of the three
+  configurations has anything resembling live mode's `RiskEngine` kill switch. All
+  three drawdowns are of a similar, uncomfortable magnitude (22-25%) despite very
+  different exit mechanics underneath — worth a training-mode guard regardless of
+  which exit strategy is running.
+- **Reflection's adaptation rate stayed low on all three** (5 / 3 / 1 changes) for the
+  same self-throttling reason: the eligibility gate (`hermes_trading/reflect.py:557`)
+  needs ≥5 new trades *and* ≥30 new decisions since an asset's last reflection, and
+  every applied change so far reduces that asset's own future trade rate, pushing the
+  next eligibility check further out. A long timeframe alone doesn't guarantee
+  proportionally more adaptation once a strategy starts tightening.
 
 ## Key takeaways
 
-1. **The payoff-ratio problem is real and large-sample-confirmed, not small-sample
-   noise.** This is the single most important finding: 953 real trades converge on
-   almost exactly the same 0.33-0.38 payoff ratio range seen on live samples of a few
-   dozen trades all session. That consistency across sample sizes and even across a
-   completely different market regime (2022 vs. Aug 2026) is strong evidence the issue
-   is structural to how `explicit_exit` caps wins, not a fluke of small samples.
-2. **Training mode needs its own drawdown guard.** A 21% drawdown ran unchecked for
-   hundreds of trades in a mode that has no equivalent to live mode's `RiskEngine`
-   kill switch. Worth scoping as a follow-up regardless of what the other two
-   instances show.
-3. **Reflection's adaptation rate is self-limiting by design, not stuck.** Only 5
-   changes over ~640 eligibility windows isn't a bug — it's the eligibility gate's
-   trade-count requirement combined with each change reducing that asset's own future
-   trade rate. Worth knowing before assuming "more time = more adaptation."
-4. *(Pending)* Whether `trailing_overrides_explicit_exit` (trailing-exit) actually
-   closes the payoff-ratio gap at this scale, and whether consultant's independently-
-   drifted thresholds perform differently from baseline's, will be added once those
-   two runs finish.
+1. **Win rate and payoff ratio trade against each other under the current binary
+   exit design — the fix needs to combine them, not pick one side.** `explicit_exit`
+   on (baseline/consultant) buys win rate at the cost of payoff ratio;
+   `explicit_exit` fully off (trailing-exit) buys payoff ratio at the cost of win
+   rate. Both land at a similar net loss. This directly motivates a **hybrid**: let
+   `explicit_exit` keep closing quick, modest bounces (preserving win rate) but defer
+   to the trailing stop only once a trade has already moved meaningfully favorably
+   (capturing the payoff-ratio upside on the subset that's a genuine trend, without
+   giving up the base rate of quick wins on everything else). See the new
+   `exit.trailing_activation_atr` design below.
+2. **All three findings are large-sample-confirmed, not small-sample noise.** 2960
+   combined trades across baseline/consultant/trailing-exit converge on the same
+   structural story seen in live samples of a few dozen trades all session, across a
+   completely different market regime (2022 vs. Aug 2026) — strong evidence the issue
+   is structural to the exit design, not a fluke of small samples or this specific
+   period.
+3. **Training mode needs its own drawdown guard**, independent of which exit
+   mechanism is running — worth scoping as a follow-up.
+4. **Market analysis is confirmed advisory-only in practice, not just by design intent.**
+   Real model consultation, real large sample, no measurable effect on the payoff
+   ratio. Not a reason to disable it (it may still help entry timing in ways this
+   metric doesn't capture), but not a lever for this specific problem.
+5. **Reflection's adaptation rate is self-limiting by design, not stuck**, on all
+   three instances — the eligibility gate's trade-count requirement combined with
+   each change reducing that asset's own future trade rate. Worth knowing before
+   assuming "more time = more adaptation."
+
+## Follow-up: hybrid exit design (`exit.trailing_activation_atr`)
+
+`exit.trailing_activation_atr` refines `trailing_overrides_explicit_exit`: instead of
+handing exits to the trailing stop unconditionally from the first hold cycle, it lets
+`explicit_exit` keep firing normally until the trade has already moved at least N ATRs
+favorably, then defers to the trailing stop from that point on. Validated with a 7-way
+sweep of the same cached 180-day 2022 window, fixed strategy (no reflection), all 5
+assets, `PositionEngine`/`evaluate_strategy` unchanged:
+
+| Variant | Trades | Win rate | Payoff ratio | Total P&L |
+|---|---:|---:|---:|---:|
+| `explicit_exit` only (baseline-style) | 1386 | 51.4% | 0.356 | -14.8076 |
+| full trailing override (trailing-exit) | 1161 | 24.8% | 1.490 | -12.8893 |
+| `trailing_activation_atr=0.5` | 1164 | 25.6% | 1.420 | -12.8844 |
+| `trailing_activation_atr=1.0` | 1241 | 35.3% | 0.853 | -13.1343 |
+| `trailing_activation_atr=1.5` | 1323 | 45.0% | 0.491 | -14.3060 |
+| `trailing_activation_atr=2.0` | 1359 | 49.4% | 0.397 | -14.4755 |
+| `trailing_activation_atr=3.0` | 1383 | 51.1% | 0.356 | -14.8736 |
+
+**Result: `trailing_activation_atr` is a smooth, monotonic win-rate/payoff-ratio dial,
+not a way to combine both.** As the threshold rises, win rate and payoff ratio move
+directly against each other, converging back to baseline's numbers by 3.0 ATR. Total
+P&L is *worst* in the middle (1.5-2.0) and *best* at the extremes — 0.5 ATR and the
+full override are statistically indistinguishable (-12.8844 vs -12.8893). This
+falsified the initial hypothesis that a single governance-rule dial could combine
+trailing-exit's payoff ratio with baseline's win rate; the fix needed to split the
+*position*, not tune one rule for the whole trade.
+
+## Follow-up 2: partial-close and other structural variants (2026-08-29)
+
+Deployed as new live paper-trading agents (`state-partial-close/`, `state-short-ema/`,
+`state-activation-atr/`, `state-multi-variable/`) and backtested the static-strategy
+ones the same way as the sweep above (`activation_atr=0.5` reused from the sweep
+table; `multi-variable` isn't a static strategy — its effect is entirely in how
+reflection evolves the strategy over time, so it can't be backtested this way):
+
+| Variant | Trades | Win rate | Payoff ratio | Total P&L |
+|---|---:|---:|---:|---:|
+| `partial_close_pct=0.5` (new) | 1751 | 50.6% | 0.435 | **-12.7236** |
+| `short_ema` entry filter (new) | 674 | 54.3% | 0.301 | **-7.6638** |
+
+`exit.partial_close_pct` (see `hermes_trading/strategy.py`) banks a fraction of the
+position via `explicit_exit` (win rate) while the remainder keeps riding the trailing
+stop (payoff ratio) -- a structural alternative to the single-dial hybrids above,
+motivated directly by their negative result. At 0.5: win rate lands close to
+baseline's (50.6% vs 51.4%) *and* total P&L beats every trailing-family variant,
+including the pure override and every `trailing_activation_atr` point. It doesn't
+reach trailing-exit's full 1.49 payoff ratio -- it shifts the trade-off frontier
+outward rather than picking one extreme -- but it's the best result in the whole
+trailing-mechanism family so far.
+
+`entry.require_ema_rising` with a short `trend_ema_period: 20` (an earlier, long
+200-period version of this same filter had failed) is the standout of this whole
+document: -7.66 total P&L vs everything else clustered around -12 to -15, on a 54.3%
+win rate. Trades far less often (674 vs 1100-1750 for every other variant), which is
+expected from an added entry filter and deserves a caveat on sample size, but the
+combination of higher win rate *and* far fewer, more selective entries is a real
+signal worth taking seriously, not sampling noise.
+
+**A real bug was caught and fixed during this round:** the first `partial_close_pct`
+backtest attempt scored statistically identical to the plain full-override variant
+(24.8%/1.490 vs 24.6%/1.480) because its base config also had
+`trailing_overrides_explicit_exit: true` set -- that flag is checked first and
+unconditionally in `evaluate_strategy`, so it permanently suppressed
+`explicit_exit`/`partial_exit` before `partial_close_pct`'s own
+`partial_exit_count > 0` check ever ran, silently making the whole feature dead code.
+Fixed by explicitly clearing that flag in the config (the live `state-partial-close/`
+agent's own config was correct throughout -- only the backtest harness's copy of it
+was wrong) and by making the combination a hard `ValueError` in
+`evaluate_strategy` going forward, so this can't silently no-op again.
