@@ -134,6 +134,7 @@ class Position:
     realized_pnl: Decimal = Decimal("0")
     fees: Decimal = Decimal("0")
     take_profit_price: Decimal | None = None
+    partial_exit_count: int = 0
 
     def __post_init__(self) -> None:
         _reject_binary_floats(

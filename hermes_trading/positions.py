@@ -121,6 +121,15 @@ class PositionEngine:
             intents.append(intent)
             orders.append(order)
             fills.append(fill)
+        elif signal.action == "exit" and existing is not None and signal.reason == "partial_exit":
+            closed_leg, remainder, intent, order, fill = self._partial_exit(snapshot, decision, strategy, settings, existing)
+            positions.append(closed_leg)
+            positions.append(remainder)
+            intents.append(intent)
+            orders.append(order)
+            fills.append(fill)
+            closed = (closed_leg,)
+            current = remainder
         elif signal.action == "exit" and existing is not None:
             current, intent, order, fill = self._exit(snapshot, decision, strategy, settings, existing, signal)
             positions.append(current)
@@ -315,6 +324,55 @@ class PositionEngine:
         _positive_finite(position.quantity, "exit quantity")
         closed, intent, order, fill = self._records(decision, "sell", position.quantity, fill_price, fee, position.stop_price, strategy, PositionStatus.CLOSED, previous=position, order_type="limit" if maker else "market")
         return closed, intent, order, fill
+
+    def _partial_exit(self, snapshot: MarketSnapshot, decision: Decision, strategy: dict[str, Any], settings: SimulationSettings, position: Position) -> tuple[Position, Position, OrderIntent, OrderRecord, Fill]:
+        """Splits an explicit_exit trigger into a banked partial close plus an
+        open remainder (exit.partial_close_pct) -- see the docstring in
+        strategy.py::evaluate_strategy for why. Returns (closed_leg,
+        remainder, intent, order, fill): closed_leg is a brand-new,
+        immediately CLOSED Position for the realized fraction (its own
+        position_id, so wallet-balance/KPI code counts it as a normal
+        completed trade); remainder carries the original position_id forward
+        OPEN with a reduced quantity and partial_exit_count incremented.
+        Entry fees already paid are split proportionally between the two
+        legs rather than charged twice or dropped.
+        """
+        candle = snapshot.candle
+        exit_rule = strategy.get("exit")
+        partial_close_pct = _decimal_setting(exit_rule["partial_close_pct"], "partial_close_pct")
+        fill_price = candle.close * (Decimal("1") - settings.slippage_rate)
+        _positive_finite(fill_price, "partial exit fill price")
+        partial_quantity = position.quantity * partial_close_pct
+        _positive_finite(partial_quantity, "partial exit quantity")
+        remaining_quantity = position.quantity - partial_quantity
+        _positive_finite(remaining_quantity, "partial exit remaining quantity")
+        maker = _is_maker_exit(exit_rule)
+        exit_fee = partial_quantity * fill_price * (settings.maker_fee_rate if maker else settings.taker_fee_rate)
+        entry_fee_share = position.fees * partial_close_pct
+
+        marker = f"{decision.candle_id}:sell:partial"
+        closed_position_id = _identifier("position", decision.asset, decision.candle_id, "partial")
+        client_order_id = _identifier("intent", marker)
+        order_id = _identifier("order", marker)
+        now = decision.decided_at
+        order_type = "limit" if maker else "market"
+        intent = OrderIntent(client_order_id, decision.decision_id, decision.asset, "sell", order_type, partial_quantity, fill_price, now, closed_position_id, position.stop_price)
+        order = OrderRecord(order_id, client_order_id, decision.asset, "sell", order_type, OrderStatus.FILLED, partial_quantity, partial_quantity, fill_price, exit_fee, now, now)
+        fill = Fill(_identifier("fill", marker), order_id, decision.asset, "sell", partial_quantity, fill_price, exit_fee, now)
+
+        realized_pnl = partial_quantity * (fill_price - position.entry_price) - entry_fee_share - exit_fee
+        closed_leg = Position(
+            closed_position_id, position.asset, PositionStatus.CLOSED, partial_quantity, position.entry_price,
+            position.stop_price, position.strategy_version, position.opened_at, now, realized_pnl,
+            entry_fee_share + exit_fee, take_profit_price=position.take_profit_price,
+        )
+        remainder = replace(
+            position,
+            quantity=remaining_quantity,
+            fees=position.fees - entry_fee_share,
+            partial_exit_count=position.partial_exit_count + 1,
+        )
+        return closed_leg, remainder, intent, order, fill
 
     def _records(self, decision: Decision, side: str, quantity: Decimal, fill_price: Decimal, fee: Decimal, stop_price: Decimal, strategy: dict[str, Any], status: PositionStatus, previous: Position | None = None, *, order_type: str, take_profit_price: Decimal | None = None) -> tuple[Position, OrderIntent, OrderRecord, Fill]:
         marker = f"{decision.candle_id}:{side}"

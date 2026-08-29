@@ -231,6 +231,24 @@ V5_COLUMNS: dict[str, tuple[ColumnShape, ...]] = {
     ),
 }
 
+V6_COLUMNS: dict[str, tuple[ColumnShape, ...]] = {
+    "positions": (
+        ("position_id", "TEXT", 0, 1),
+        ("asset", "TEXT", 1, 0),
+        ("status", "TEXT", 1, 0),
+        ("quantity", "TEXT", 1, 0),
+        ("entry_price", "TEXT", 1, 0),
+        ("stop_price", "TEXT", 1, 0),
+        ("strategy_version", "TEXT", 1, 0),
+        ("opened_at", "TEXT", 1, 0),
+        ("closed_at", "TEXT", 0, 0),
+        ("realized_pnl", "TEXT", 1, 0),
+        ("fees", "TEXT", 1, 0),
+        ("take_profit_price", "TEXT", 0, 0),
+        ("partial_exit_count", "INTEGER", 1, 0),
+    ),
+}
+
 V1_INDEXES = {
     "unique_processed_candle": (
         "candles_processed",
@@ -517,6 +535,12 @@ MIGRATIONS: tuple[Migration, ...] = (
             "ALTER TABLE positions ADD COLUMN take_profit_price TEXT",
         ),
     ),
+    (
+        6,
+        (
+            "ALTER TABLE positions ADD COLUMN partial_exit_count INTEGER NOT NULL DEFAULT 0",
+        ),
+    ),
 )
 
 
@@ -588,6 +612,8 @@ def _validate_schema(connection: sqlite3.Connection, version: int) -> None:
         expected_columns.update(V4_COLUMNS)
     if version >= 5:
         expected_columns.update(V5_COLUMNS)
+    if version >= 6:
+        expected_columns.update(V6_COLUMNS)
     actual_tables = {
         row[0]
         for row in connection.execute(

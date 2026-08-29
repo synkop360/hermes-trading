@@ -66,6 +66,51 @@ def evaluate_strategy(
             and "trailing_atr" in exit_rule
             and bool(exit_rule.get("trailing_overrides_explicit_exit", False))
         )
+        if trailing_overrides_explicit_exit:
+            # Opt-in refinement: an unconditional override (the default, when
+            # this isn't set) buys payoff ratio at the cost of win rate --
+            # confirmed on real backtest data (2109 baseline/consultant trades
+            # vs. 1051 trailing-exit trades, same historical window): 100% of
+            # explicit_exit-enabled wins vs. only ~25% of trailing-only exits
+            # end up profitable, because most RSI-recovery bounces are short
+            # (explicit_exit was the only mechanism reliably banking one
+            # before it reversed). trailing_activation_atr lets explicit_exit
+            # keep closing quick, modest bounces normally -- preserving win
+            # rate -- and only hands control to the trailing stop once a
+            # trade has already moved at least this many ATRs favorably,
+            # which is the point a bounce has arguably become a real trend
+            # worth letting run. Unset (the default) means immediate
+            # override from the first hold cycle, identical to today.
+            activation_atr = _optional_positive_setting(exit_rule.get("trailing_activation_atr"))
+            if activation_atr is not None:
+                atr = _atr(snapshot)
+                favorable_move_price = candle.close - position.entry_price
+                trailing_overrides_explicit_exit = atr is not None and favorable_move_price >= atr * activation_atr
+        # Opt-in: banks profit on a fraction of the position via explicit_exit
+        # (preserving win rate) while the remainder keeps riding the
+        # ratcheting trailing stop (preserving payoff ratio) -- the two
+        # single-dial hybrids above (unconditional override / activation_atr)
+        # were confirmed on real 180-day backtest data to be a smooth
+        # monotonic trade-off between win rate and payoff ratio with no
+        # combined sweet spot; splitting the position structurally instead of
+        # picking one governance rule for the whole trade is the mechanism
+        # that can actually get both at once. Requires trailing_atr (the
+        # remainder needs a trailing stop to ride, or "let it run" is a
+        # no-op). position.partial_exit_count tracks whether this specific
+        # position has already banked its partial close -- once it has,
+        # explicit_exit is permanently disabled for the remainder (mirrors
+        # trailing_overrides_explicit_exit's unconditional case), so a
+        # position can only partial-close once, not repeatedly nibble itself
+        # away on successive RSI-recovery bounces.
+        partial_close_pct = None
+        if isinstance(exit_rule, dict) and "partial_close_pct" in exit_rule:
+            partial_close_pct = _decimal_setting(exit_rule["partial_close_pct"], "partial_close_pct")
+            if partial_close_pct <= 0 or partial_close_pct >= 1:
+                raise ValueError("partial_close_pct must be greater than zero and less than one")
+            if "trailing_atr" not in exit_rule:
+                raise ValueError("exit.partial_close_pct requires exit.trailing_atr to be configured")
+            if position.partial_exit_count > 0:
+                trailing_overrides_explicit_exit = True
         if (
             not trailing_overrides_explicit_exit
             and isinstance(exit_rule, dict)
@@ -74,7 +119,8 @@ def evaluate_strategy(
             required_move = _minimum_favorable_move_pct(strategy, exit_rule)
             favorable_move = (candle.close - position.entry_price) / position.entry_price
             if favorable_move >= required_move:
-                return StrategySignal("exit", snapshot.asset, "explicit_exit", candle.close, candle_id)
+                reason = "partial_exit" if partial_close_pct is not None else "explicit_exit"
+                return StrategySignal("exit", snapshot.asset, reason, candle.close, candle_id)
         return StrategySignal("hold", snapshot.asset, "position_open", candle.close, candle_id)
 
     entry = strategy.get("entry")

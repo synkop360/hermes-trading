@@ -567,6 +567,174 @@ class PositionEngineTests(unittest.TestCase):
         self.assertEqual(result.reason, "explicit_exit")
         self.assertEqual(result.closed_positions[0].status.value, "closed")
 
+    def _rsi_recovered_candle_with_atr_history(self, *, low: str, close: str, history) -> MarketSnapshot:
+        base = self._rsi_recovered_candle(low=low, close=close)
+        price = dict(base.price)
+        price["candles"] = history
+        return replace(base, price=price)
+
+    def test_trailing_activation_atr_still_lets_explicit_exit_close_a_small_move(self) -> None:
+        # ATR(14) = 4 exactly with this flat history (true range = max(4, |82-80|, |78-80|)).
+        history = tuple({"high": Decimal("82"), "low": Decimal("78"), "close": Decimal("80")} for _ in range(15))
+        strategy = entry_strategy()
+        strategy["exit"] = {
+            "indicator": "rsi", "threshold": "50", "trailing_atr": "1.5",
+            "trailing_overrides_explicit_exit": True, "trailing_activation_atr": "1.0",
+        }
+        self.engine.process_candle(self.entry_candle, strategy)
+
+        # Entry fill ~80.08; close=82 is a ~1.9 move, well under 1.0 * ATR(4) -- activation
+        # threshold not cleared, so explicit_exit should still fire normally.
+        result = self.engine.process_candle(
+            self._rsi_recovered_candle_with_atr_history(low="82", close="82", history=history), strategy,
+        )
+
+        self.assertEqual(result.reason, "explicit_exit")
+        self.assertEqual(result.closed_positions[0].status.value, "closed")
+
+    def test_trailing_activation_atr_defers_to_trailing_once_move_clears_it(self) -> None:
+        history = tuple({"high": Decimal("82"), "low": Decimal("78"), "close": Decimal("80")} for _ in range(15))
+        strategy = entry_strategy()
+        strategy["exit"] = {
+            "indicator": "rsi", "threshold": "50", "trailing_atr": "1.5",
+            "trailing_overrides_explicit_exit": True, "trailing_activation_atr": "1.0",
+        }
+        self.engine.process_candle(self.entry_candle, strategy)
+
+        # Entry fill ~80.08; close=90 is a ~9.9 move, well past 1.0 * ATR(4) -- activation
+        # clears, so explicit_exit must NOT fire even though RSI/cost conditions are met.
+        result = self.engine.process_candle(
+            self._rsi_recovered_candle_with_atr_history(low="90", close="90", history=history), strategy,
+        )
+
+        self.assertEqual(result.reason, "position_open")
+        self.assertEqual(result.closed_positions, ())
+
+    def test_trailing_activation_atr_falls_back_to_explicit_exit_without_atr_history(self) -> None:
+        strategy = entry_strategy()
+        strategy["exit"] = {
+            "indicator": "rsi", "threshold": "50", "trailing_atr": "1.5",
+            "trailing_overrides_explicit_exit": True, "trailing_activation_atr": "1.0",
+        }
+        self.engine.process_candle(self.entry_candle, strategy)
+
+        # No OHLC history supplied -> _atr() returns None -> fails closed to normal
+        # explicit_exit behavior rather than silently deferring forever.
+        result = self.engine.process_candle(self._rsi_recovered_candle(low="82", close="82"), strategy)
+
+        self.assertEqual(result.reason, "explicit_exit")
+        self.assertEqual(result.closed_positions[0].status.value, "closed")
+
+    def _rsi_recovered_candle_at(self, hours: int, *, low: str, close: str) -> MarketSnapshot:
+        base = self._rsi_recovered_candle(low=low, close=close)
+        return replace(
+            base,
+            candle=replace(
+                base.candle,
+                open_timestamp=self.entry_candle.candle.open_timestamp + timedelta(hours=hours),
+                close_timestamp=self.entry_candle.candle.close_timestamp + timedelta(hours=hours),
+            ),
+        )
+
+    def test_partial_close_pct_requires_trailing_atr(self) -> None:
+        strategy = entry_strategy()
+        strategy["exit"] = {"indicator": "rsi", "threshold": "50", "partial_close_pct": "0.5"}
+        self.engine.process_candle(self.entry_candle, strategy)
+
+        with self.assertRaises(ValueError):
+            self.engine.process_candle(self._rsi_recovered_candle(low="82", close="82"), strategy)
+
+    def test_partial_close_pct_must_be_a_fraction(self) -> None:
+        strategy = entry_strategy()
+        strategy["exit"] = {
+            "indicator": "rsi", "threshold": "50", "trailing_atr": "1.5", "partial_close_pct": "1.5",
+        }
+        self.engine.process_candle(self.entry_candle, strategy)
+
+        with self.assertRaises(ValueError):
+            self.engine.process_candle(self._rsi_recovered_candle(low="82", close="82"), strategy)
+
+    def test_partial_close_pct_banks_a_fraction_and_keeps_the_remainder_open(self) -> None:
+        strategy = entry_strategy()
+        strategy["exit"] = {
+            "indicator": "rsi", "threshold": "50", "trailing_atr": "1.5", "partial_close_pct": "0.5",
+        }
+        opened = self.engine.process_candle(self.entry_candle, strategy)
+        original_quantity = opened.position.quantity
+        original_position_id = opened.position.position_id
+
+        result = self.engine.process_candle(self._rsi_recovered_candle(low="82", close="82"), strategy)
+
+        self.assertEqual(result.reason, "partial_exit")
+        self.assertEqual(len(result.closed_positions), 1)
+        closed_leg = result.closed_positions[0]
+        self.assertEqual(closed_leg.status.value, "closed")
+        self.assertNotEqual(closed_leg.position_id, original_position_id)
+        self.assertEqual(closed_leg.quantity, original_quantity * Decimal("0.5"))
+        self.assertGreater(closed_leg.realized_pnl, Decimal("0"))
+
+        remainder = result.position
+        self.assertEqual(remainder.status.value, "open")
+        self.assertEqual(remainder.position_id, original_position_id)
+        self.assertEqual(remainder.quantity, original_quantity - closed_leg.quantity)
+        self.assertEqual(remainder.partial_exit_count, 1)
+
+    def test_partial_close_pct_splits_entry_fees_between_the_two_legs(self) -> None:
+        strategy = entry_strategy()
+        strategy["exit"] = {
+            "indicator": "rsi", "threshold": "50", "trailing_atr": "1.5", "partial_close_pct": "0.5",
+        }
+        opened = self.engine.process_candle(self.entry_candle, strategy)
+        entry_fee = opened.position.fees
+
+        result = self.engine.process_candle(self._rsi_recovered_candle(low="82", close="82"), strategy)
+
+        closed_leg = result.closed_positions[0]
+        remainder = result.position
+        # 50/50 split: the remainder keeps exactly its half of the entry fee
+        # (no exit fee charged yet -- it's still open); the closed leg keeps
+        # its half plus the exit fee it just paid, so it's strictly larger.
+        self.assertEqual(remainder.fees, entry_fee * Decimal("0.5"))
+        self.assertGreater(closed_leg.fees, entry_fee * Decimal("0.5"))
+
+    def test_partial_close_pct_disables_explicit_exit_after_the_first_partial_close(self) -> None:
+        strategy = entry_strategy()
+        strategy["exit"] = {
+            "indicator": "rsi", "threshold": "50", "trailing_atr": "1.5", "partial_close_pct": "0.5",
+        }
+        self.engine.process_candle(self.entry_candle, strategy)
+        self.engine.process_candle(self._rsi_recovered_candle_at(1, low="82", close="82"), strategy)
+
+        # A second explicit_exit-qualifying candle must NOT close the
+        # remainder -- partial_exit_count > 0 forces trailing/stop_loss/
+        # max_bars governance only, exactly like an unconditional
+        # trailing_overrides_explicit_exit, but scoped to this one position.
+        result = self.engine.process_candle(self._rsi_recovered_candle_at(2, low="83", close="83"), strategy)
+
+        self.assertEqual(result.reason, "position_open")
+        self.assertEqual(result.closed_positions, ())
+
+    def test_partial_close_pct_remainder_can_still_close_via_stop_loss(self) -> None:
+        strategy = entry_strategy()
+        strategy["exit"] = {
+            "indicator": "rsi", "threshold": "50", "trailing_atr": "1.5", "partial_close_pct": "0.5",
+        }
+        self.engine.process_candle(self.entry_candle, strategy)
+        after_partial = self.engine.process_candle(self._rsi_recovered_candle_at(1, low="82", close="82"), strategy)
+        remainder = after_partial.position
+
+        result = self.engine.process_candle(
+            candle_for(
+                "BTC/USDT", self.entry_candle.candle.close_timestamp + timedelta(hours=2),
+                open="82", low=str(remainder.stop_price - Decimal("1")), close="82",
+            ),
+            strategy,
+        )
+
+        self.assertEqual(result.reason, "stop_loss")
+        self.assertEqual(len(result.closed_positions), 1)
+        self.assertEqual(result.closed_positions[0].quantity, remainder.quantity)
+
     def test_projection_resumes_idempotently_after_each_output_step(self) -> None:
         for fail_at in range(1, 9):
             with self.subTest(fail_at=fail_at), tempfile.TemporaryDirectory() as directory:
