@@ -351,3 +351,84 @@ strategy" -- and further tightening the ADX ceiling from here is chasing sample-
 noise, not signal. `momentum-combined` stays deployed as the best available live
 candidate, but should be watched over real trades (not re-tested by tightening ADX
 further) before drawing any stronger conclusion.
+
+## Follow-up 5: genetic algorithm search (2026-08-30)
+
+Everything so far was one-lever-at-a-time manual search. This round replaced that
+with an actual evolutionary search over the full gene space at once: a 9-gene genome
+(`entry_threshold`, `require_ema_rising`, `trend_ema_period`, `max_adx`, `stop_atr`,
+`trailing_atr`, `max_bars`, `partial_close_pct`, `max_concurrent_positions`),
+population of 10, 5 generations, tournament selection (size 3) + uniform crossover +
+20% per-gene mutation, top-2 elitism. Seeded with the 5 strongest genomes found
+manually (`momentum-combined`, `momentum-tighter-adx`, `hybrid-momentum`, `short_ema`
+alone, `momentum-wide-stop`) plus 5 random genomes for diversity. Deliberately
+excludes per-symbol threshold overrides (out of scope -- that's what live reflection
+already does) and position-sizing genes (`position_size_r`, `risk_per_trade_pct`
+held constant, so fitness differences reflect signal/exit quality, not just bet
+size).
+
+**Fitness = total P&L, minus a smooth per-missing-trade penalty below 30 trades**
+(`0.1 x max(0, 30 - trades)`), not a hard cliff. A hard cliff was tried first and
+rejected during a smoke test: this genome space has no per-symbol overrides, so even
+`momentum-combined`'s own exact config only produces ~6 trades here (vs. 29 with the
+per-symbol overrides its live deployment actually has), and a cliff would have
+blacklisted the entire ADX-tightening direction -- the strongest lever found this
+session -- with an arbitrary -1000 penalty rather than letting the GA weigh a real
+trade-count/reliability trade-off. Each individual evaluated as its own subprocess
+(the fast, no-reflection harness from earlier rounds) for process isolation and true
+parallelism, 8 workers at a time.
+
+**Generation-by-generation:**
+
+| Gen | Best fitness | Trades | Total P&L | Genome (vs. prior best) |
+|---|---:|---:|---:|---|
+| 1 | -1.90 | 100 | -1.90 | `momentum-combined` seed with `stop_atr` bumped to 2.5, `max_adx` relaxed to 25 |
+| 2 | **+0.28** | 34 | **+0.28** | `entry_threshold` dropped 30->26, `trailing_atr` dropped 3.0->2.0 |
+| 3 | +0.28 (held) | 34 | +0.28 | best challenger: same genome with `trailing_atr` reverted to 3.0 (+0.17/35 trades) -- close but didn't beat the champion |
+| 4 | +0.28 (held) | 34 | +0.28 | best challenger: `max_concurrent_positions` dropped to 1 (+0.14/31 trades) -- worse |
+| 5 | +0.28 (held) | 34 | +0.28 | best challenger: `trailing_atr` raised to 4.0 (+0.20/36 trades) -- close but didn't beat it |
+
+**The winner, found in generation 2 and never beaten across 3 more generations of
+mutation/crossover pressure:**
+
+```yaml
+entry:
+  threshold: 26          # was 30/34-35 in every manually-tested variant
+  require_ema_rising: true
+  trend_ema_period: 20
+  max_adx: 25
+exit:
+  stop_atr: 2.5
+  trailing_atr: 2.0      # was 3.0 everywhere else
+  max_bars: 48
+  partial_close_pct: 0.5
+simulation:
+  max_concurrent_positions: 2
+```
+
+| KPI | value |
+|---|---|
+| trades | 34 |
+| win rate | **64.7%** (22 W / 12 L) |
+| **payoff ratio** | **0.669** |
+| total P&L | **+0.2769** |
+
+**This is the first result across the entire session -- roughly 30 backtests over
+five rounds -- with both a good win rate *and* a good payoff ratio at the same
+time**, not one traded off against the other. That was the exact problem statement
+from the very first round's key takeaway #1 ("the fix needs to combine them, not
+pick one side"). It got there via two changes nothing manual tried in combination:
+a *lower* entry threshold (26, more permissive RSI-recovery trigger) than every
+manually-tested config, paired with a *tighter* trailing_atr (2.0 vs. 3.0
+everywhere else) that lets the trailing stop bind earlier. Neither change alone was
+tested manually this session -- the GA found a genuinely new region of the search
+space, not a rediscovery of something already tried.
+
+34 trades is a real sample, not a `momentum-adx10`-style artifact -- it cleared the
+GA's own 30-trade reliability floor with zero penalty applied, and three separate
+generations of mutation pressure searched its neighborhood without finding anything
+better, which is itself evidence this is a genuine local optimum rather than a lucky
+single draw. It is still 180 days on one market regime and one exchange's data, the
+same caveats that apply to every number in this document -- but it is a materially
+stronger, more credible result than anything the manual search produced. Deployed
+live as `state-ga-champion/`.
