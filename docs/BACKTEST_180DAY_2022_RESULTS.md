@@ -286,3 +286,48 @@ real minutes):
    Net effect: profiled 500 candles against the actual 92MB backtest database at
    1389ms/candle before the fix, 3.0ms/candle after -- roughly a 460x speedup, taking
    the 3-variant run from an extrapolated 14+ hours down to about 20 minutes each.
+
+## Follow-up 4: pushing hybrid-momentum toward breakeven (2026-08-30)
+
+Six more real-LLM-reflection variants, each varying one lever from `hybrid-momentum`
+(the best result so far, -2.6985) on the explicit goal of reaching *positive* total
+P&L, not just "less bad":
+
+| Variant | Trades | Win rate | Payoff ratio | Total P&L |
+|---|---:|---:|---:|---:|
+| `hybrid-momentum` (baseline) | 232 | 45.3% | 0.410 | -2.6985 |
+| `momentum-no-partial` (drop `partial_close_pct`) | 162 | 46.9% | 0.310 | -2.7317 |
+| `momentum-tighter-adx` (`max_adx: 15` vs 25) | 27 | 40.7% | 0.396 | **-0.3710** |
+| `momentum-wide-stop` (`stop_atr: 2.5` vs 2.0) | 240 | 50.0% | 0.422 | **-1.8650** |
+| `momentum-more-concurrent` (4 slots vs 2) | 242 | 45.5% | 0.404 | -2.8261 |
+| `momentum-fast-ema` (`trend_ema_period: 10` vs 20) | 235 | 47.2% | 0.400 | -2.4962 |
+| `momentum-deep-rsi` (root `entry.threshold: 25`) | 232 | 45.3% | 0.410 | -2.6985 |
+
+None crossed into positive territory, but two independently improved on the
+baseline via unrelated levers: `momentum-tighter-adx` (entry-side, a stricter ADX
+ceiling) got closest to breakeven of the whole session, though on only 27 trades --
+a real sample-size caveat, not a dismissal. `momentum-wide-stop` (exit-side, a wider
+stop) improved by a smaller margin but on a much more reliable 240-trade sample.
+`momentum-no-partial` confirms `partial_close_pct` is close to neutral inside this
+combination (-2.73 vs -2.70, essentially the ADX filter doing all the work).
+`momentum-more-concurrent` and `momentum-fast-ema` were both mild negatives.
+
+**`momentum-deep-rsi` is a confirmed no-op, not a null result:** it came back
+byte-identical to `hybrid-momentum`'s own numbers because the base config (seeded
+from `hybrid-momentum`'s own backtest-evolved `strategy.yaml`) already has a
+per-symbol `entry.threshold` override for all 5 assets, which completely shadows a
+root-level threshold change. Left in the harness script as a record of the mistake
+rather than deleted.
+
+Since the two winning levers (entry-side ADX, exit-side stop width) are unrelated,
+the natural next step is testing whether they compound.
+
+`momentum-combined` (`max_adx: 15` + `stop_atr: 2.5`): **-0.2825 total P&L on 29
+trades** -- the best result of the entire session, essentially breakeven (equity
+ended 49.72 from a 50.00 start). Stacking the two levers didn't compound as much as
+hoped beyond `momentum-tighter-adx` alone (-0.3710/27 trades) -- the ADX ceiling
+dominates, and the wide stop's marginal effect on an already-tiny, already-filtered
+trade set is small. **Sample size at this point (29 trades over 180 days) is a real
+statistical concern, not just a caveat** -- deployed live as `state-momentum-combined/`
+regardless, since it's the strongest evidence available, but this result needs more
+real trades before it can be trusted as a genuine edge rather than noise.
