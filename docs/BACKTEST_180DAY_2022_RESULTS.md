@@ -331,3 +331,23 @@ trade set is small. **Sample size at this point (29 trades over 180 days) is a r
 statistical concern, not just a caveat** -- deployed live as `state-momentum-combined/`
 regardless, since it's the strongest evidence available, but this result needs more
 real trades before it can be trusted as a genuine edge rather than noise.
+
+**Pushed one step further to test the trend, and found where it breaks:**
+`momentum-adx10` (`max_adx: 10`, even tighter): **3 trades** over the entire 180-day
+window across all 5 assets, 0 wins, total P&L -0.1241. This is the actual stopping
+point, not a further improvement -- the "tighter ADX gets closer to breakeven" trend
+across 25 -> 15 -> 10 was real down to 15, but at 3 trades the number stops meaning
+anything at all: any small P&L is just the sum of a handful of individual trade
+outcomes, no longer evidence of an edge one way or the other. Not deployed --
+3 trades is not a tested strategy.
+
+**Honest conclusion of this multi-round search:** no variant tested this session --
+roughly 20 across four rounds -- reached positive total P&L on a sample large enough
+to trust. `momentum-combined` (-0.28/29 trades) and `momentum-tighter-adx`
+(-0.37/27 trades) are the closest credible results, both already at the edge of
+"thin but not meaningless." The honest framing is "got the loss down to near-zero
+on a genuinely hostile 180-day 2022 bear-market window," not "found a profitable
+strategy" -- and further tightening the ADX ceiling from here is chasing sample-size
+noise, not signal. `momentum-combined` stays deployed as the best available live
+candidate, but should be watched over real trades (not re-tested by tightening ADX
+further) before drawing any stronger conclusion.
