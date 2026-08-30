@@ -229,3 +229,60 @@ Fixed by explicitly clearing that flag in the config (the live `state-partial-cl
 agent's own config was correct throughout -- only the backtest harness's copy of it
 was wrong) and by making the combination a hard `ValueError` in
 `evaluate_strategy` going forward, so this can't silently no-op again.
+
+## Follow-up 3: combining the two winners, with real LLM reflection (2026-08-30)
+
+Three new strategies combining `short_ema`'s entry filter with `partial_close_pct`'s
+exit (the two winners from follow-up 2 above), backtested over the same 180-day 2022
+window but this time with **real `--hermes` LLM reflection** enabled (not the
+fast/deterministic no-reflection sweep used everywhere else in this document) -- the
+first explicit ask this session for a properly LLM-validated result, aimed at
+outright profitability rather than "less bad than baseline."
+
+| Variant | Trades | Win rate | Payoff ratio | Total P&L |
+|---|---:|---:|---:|---:|
+| `hybrid-best` (short_ema + partial_close_pct) | 1005 | 51.0% | 0.401 | -8.0161 |
+| `hybrid-tight-stop` (+ tighter `stop_atr: 1.5`) | 998 | 45.7% | 0.443 | -10.9713 |
+| `hybrid-momentum` (+ `entry.max_adx: 25`) | 232 | 45.3% | 0.410 | **-2.6985** |
+
+**`hybrid-momentum` is the best result in this entire document, by a wide margin** --
+less than half the loss of the next-best result anywhere in this document (-2.70 vs
+-7.66 for `short_ema` alone). Combining the two winners alone (`hybrid-best`) did
+*not* clearly beat `short_ema` on its own (-8.02 vs -7.66) -- the real unlock was
+adding an ADX ceiling (`entry.max_adx: 25`) on top of both, filtering out entries
+during choppy/ranging markets where an RSI-recovery bounce is more likely to be a
+false start than the beginning of a real move. Trades far less often than everything
+else (232 vs 674-1751), the natural consequence of stacking three selective filters,
+which deserves a sample-size caveat but doesn't undermine the direction of the
+result. Reflection barely engaged in any of the three (1 applied change each, at the
+same tick-60 bootstrap point every variant this session hits) -- this result is
+essentially the raw strategy edge, not a reflection effect. Deployed live as
+`state-hybrid-momentum/`, seeded from the exact post-reflection strategy.yaml this
+backtest produced.
+
+**Two more real performance bugs were caught and fixed while building this
+backtest**, both specific to compressing 180 days of real-LLM-reflection backtesting
+into a tight loop (neither matters in production, where a candle closes once per ~15
+real minutes):
+
+1. `run_hermes_reflection` re-reads and re-parses `decisions.jsonl`/`trades.jsonl`
+   from scratch on every call (~863 calls across 17270 ticks); `decisions.jsonl`
+   reached 13.7MB at only 55% through one run. Fixed with a rolling-window
+   truncation in the backtest harness (safe because decision-count eligibility is
+   always satisfied well before trade-count eligibility is, given decisions
+   accumulate every tick regardless of trade activity).
+2. `ArtifactProjector.project_candle_outcome` unconditionally calls `rebuild_all()`
+   -> `export_system_status()` -> `integrity_check()` (a full DB scan) after every
+   candle, and `append_event` re-reads the whole target file to dedupe before every
+   write -- both scale with total DB/file size and were confirmed by profiling to be
+   92% of tick-processing time. Worse: naively passing `projector=None` to skip this
+   doesn't work either -- `persist_candle_outcome` still inserts an unacknowledged
+   outbox row per candle into the `incidents` table regardless, and
+   `pending_projection_items()`'s query has no supporting index, so it scans/filters
+   the *whole* table on every single candle as the backlog grows. Fixed with a
+   minimal projector that keeps acknowledging items (bounding the backlog) but skips
+   the snapshot rebuild entirely, since nothing here reads `positions.json`/
+   `system_status.json`/`open_orders.json` -- only `decisions.jsonl`/`trades.jsonl`.
+   Net effect: profiled 500 candles against the actual 92MB backtest database at
+   1389ms/candle before the fix, 3.0ms/candle after -- roughly a 460x speedup, taking
+   the 3-variant run from an extrapolated 14+ hours down to about 20 minutes each.
