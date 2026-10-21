@@ -45,6 +45,21 @@ class ArtifactProjector:
         )
         event_key = _event_key(name, normalized)
         with _artifact_lock(path):
+            if name=='decisions.jsonl' and isinstance(normalized,dict) and (self.state_dir/'trading.db').is_file():
+                # A stale outbox reader may have loaded a quote before its
+                # retirement. Check under the SAME artifact lock as replacement.
+                import sqlite3
+                from contextlib import closing
+                from hermes_trading.archive_quote_state import quote_already_retired
+                identity=normalized.get('decision_id');candle=normalized.get('candle_id')
+                asset=normalized.get('asset');stamp=normalized.get('decided_at')
+                if all(isinstance(v,str) and v for v in (identity,candle,asset,stamp)) and candle.startswith(asset+':') and candle.endswith(':'+stamp):
+                    timeframe=candle[len(asset)+1:-(len(stamp)+1)]
+                    if timeframe.startswith('paper-position:'):
+                        with closing(sqlite3.connect((self.state_dir/'trading.db').resolve().as_uri()+'?mode=ro',uri=True,timeout=0)) as canonical:
+                            if (not canonical.execute('SELECT 1 FROM decisions WHERE decision_id=?',(identity,)).fetchone() and
+                                    quote_already_retired(canonical,asset,timeframe,stamp)):
+                                return
             if path.exists() and event_key is not None:
                 for line in path.read_text(encoding="utf-8").splitlines():
                     try:
@@ -112,7 +127,7 @@ class ArtifactProjector:
         for position in positions:
             self.append_event("positions.jsonl", position)
         for position in closed_positions:
-            self.append_event("trades.jsonl", position)
+            self.append_event("trades.jsonl", _trade_payload(position, decision))
         self.rebuild_all(repository)
 
     def reconcile(self, repository: StateRepository) -> None:
@@ -127,7 +142,7 @@ class ArtifactProjector:
         for position in records["positions"]:
             self.append_event("positions.jsonl", position)
             if position["status"] == "closed":
-                self.append_event("trades.jsonl", position)
+                self.append_event("trades.jsonl", _trade_payload(position, repository.closed_position_decision(position)))
         self.rebuild_all(repository)
 
     def project_pending_item(self, repository: StateRepository, item: ProjectionItem) -> None:
@@ -158,6 +173,17 @@ class ArtifactProjector:
 
 
 __all__ = ["ArtifactProjector"]
+
+
+def _trade_payload(position, decision):
+    from hermes_trading.operational_exits import RISK_STOP_REASONS, RECOVERY_EXIT_REASONS
+    payload=json_value(position)
+    metadata=json_value(decision) if decision is not None else {}
+    if metadata.get('reason') in RECOVERY_EXIT_REASONS:
+        classification='operational_risk_stop' if metadata['reason'] in RISK_STOP_REASONS else 'operational_recovery'
+        payload=dict(payload,evidence_classification=classification,
+                     exit_reason=metadata['reason'],exit_decision_id=metadata['decision_id'])
+    return payload
 
 
 def _event_key(name: str, payload: Any) -> str | None:

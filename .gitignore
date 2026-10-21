@@ -20,6 +20,7 @@ wheels/
 # Runtime trading state
 state/
 state-*/
+scripts/native_hermes_watch.json
 trades.jsonl
 *.sqlite
 *.sqlite-wal
@@ -37,3 +38,8 @@ market_data_cache/
 # graphify's generated knowledge-graph snapshots -- regeneratable locally via
 # `graphify update .`, large (many dated full-analysis snapshots), never commit
 graphify-out/
+
+# Isolated reproducible research outputs
+research/runs/
+.test-results*.txt
+/*.log

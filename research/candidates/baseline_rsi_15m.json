@@ -1,0 +1,72 @@
+{
+  "strategy": {
+    "entry": {
+      "fee": "taker",
+      "indicator": "rsi",
+      "threshold": "30"
+    },
+    "exit": {
+      "fee": "taker",
+      "indicator": "rsi",
+      "max_bars": 48,
+      "threshold": "55"
+    },
+    "position_size_r": "0.5",
+    "reflection": {
+      "enabled": false
+    },
+    "research": {
+      "frozen": true
+    },
+    "simulation": {
+      "maker_fee_rate": "0.004",
+      "max_concurrent_positions": 2,
+      "max_order_quote": "5",
+      "max_symbol_exposure_pct": "0.05",
+      "max_total_exposure_pct": "0.10",
+      "risk_per_trade_pct": "0.0025",
+      "slippage_rate": "0.001",
+      "taker_fee_rate": "0.008"
+    },
+    "stop_loss_pct": "2.5",
+    "symbols": {
+      "BTC/USDT": {
+        "simulation": {
+          "minimum_order_quantity": "0.00005",
+          "minimum_order_quote": "0.5",
+          "quantity_decimals": 8
+        }
+      },
+      "ETH/USDT": {
+        "simulation": {
+          "minimum_order_quantity": "0.001",
+          "minimum_order_quote": "0.5",
+          "quantity_decimals": 8
+        }
+      },
+      "LINK/USDT": {
+        "simulation": {
+          "minimum_order_quantity": "0.55",
+          "minimum_order_quote": "0.5",
+          "quantity_decimals": 8
+        }
+      },
+      "SOL/USDT": {
+        "simulation": {
+          "minimum_order_quantity": "0.06",
+          "minimum_order_quote": "0.5",
+          "quantity_decimals": 8
+        }
+      },
+      "XRP/USDT": {
+        "simulation": {
+          "minimum_order_quantity": "1.65",
+          "minimum_order_quote": "0.5",
+          "quantity_decimals": 8
+        }
+      }
+    },
+    "version": "baseline-rsi-1"
+  },
+  "timeframe": "15m"
+}

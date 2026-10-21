@@ -67,6 +67,7 @@ class MarketSnapshot:
     macro: Mapping[str, Any] | None = None
     onchain: Mapping[str, Any] | None = None
     shared_failures: Mapping[str, str] = field(default_factory=dict)
+    venue_rules: Mapping[str, Any] | None = None
 
     @property
     def candle_identity(self) -> CandleIdentity | None:
@@ -390,6 +391,10 @@ def _normalized_price(payload: Mapping[str, Any]) -> dict[str, Any]:
         field: _decimal(payload[field])
         for field in ("last", "bid", "ask")
     }
+    if payload.get("received_at") is not None:
+        values["received_at"] = payload["received_at"]
+    if payload.get("source") is not None:
+        values["source"] = payload["source"]
     if values["bid"] > values["ask"]:
         raise ValueError("ticker bid exceeds ask")
     raw_closes = payload.get("closes")

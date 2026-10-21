@@ -1,0 +1,12 @@
+assets:
+- ETH/EUR
+- XRP/EUR
+- BTC/EUR
+asset: ETH/EUR
+target_return_30d: 0.2599210498948732
+max_drawdown: 0.03
+min_sharpe: 1.0
+failure_below: -0.03
+reflection_every: 5
+one_variable_only: true
+return_target_status: aspiration_not_expectation

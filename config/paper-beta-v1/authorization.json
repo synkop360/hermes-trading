@@ -1,0 +1,13 @@
+{
+  "recorded_at": "2026-10-14T23:15:00.045412+00:00",
+  "user_reply": "Yes, no, yes",
+  "mapping": {
+    "local_candidate_implementation_and_correctness_validation": true,
+    "paid_5GB_storage_resize": false,
+    "pc_would_stay_on_continuously_without_bot": true
+  },
+  "economic_backtest_authorized": false,
+  "paid_inference_authorized": false,
+  "experiment_activation_authorized_by_this_reply": false,
+  "real_orders_authorized": false
+}

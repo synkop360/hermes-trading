@@ -1,8 +1,22 @@
 # Hermes Trading
 
+[Goal progress — dashboard and remaining milestones](docs/GOAL_PROGRESS.md)
+
+```text
+[###########---------] 55% estimated
+```
+
+Estimate of overall engineering and forward-evaluation progress; updated at milestones. Paper remains 0 days and profitability is unproven. The active goal is to launch safe paper trading promptly; archive expansion, full capacity, installed archive recovery and profitability proof are deferred.
+
+The [verified local release](research/runs/paper-launch-gate-v1/release-final-verification.json) covers 145 test modules and1,618 checks:1,614 passes,4 Windows/platform skips,0 failures/errors/ResourceWarnings. This composes the completed frozen suite with eight new standalone backup-helper checks; all 364 source/config/build hashes were rechecked. No new release or backup is installed.
+
+Six launch gates remain tracked: tested and committed `feat/live-hardening` candidate; taker execution with declared public fees (maker 0.004 / taker 0.008 / slippage 0.001); France/EUR markets with EUR200 primary and reported EUR50/100/150 skips; one writer with reviews after five unique closes, `no_change`, at most one variable, archived hypotheses and fixed control; minimal 70% / 500 MB volume alert, bounded logs and daily backup; net equity, all costs, drawdown and daily Sharpe with entry-only safety halts. The disabled 49-file candidate is locally verified; approved deployment and installed cutover checks remain. Archive/checkpoint code stays disabled and historical evidence is preserved. Deployment, paid actions, private exchange credentials and risk-limit changes require user approval; commits are authorized.
+
+[Paper beta readiness — launch gates, first results and profitability evidence](docs/PAPER_BETA_READINESS.md)
+
 Hermes Trading est un worker de trading automatique en mode simule. Il observe plusieurs paires Kraken, ecrit chaque decision dans un journal local ou Railway, et laisse Hermes proposer des ajustements progressifs de strategie.
 
-Etat courant du deploiement:
+Configuration historique documentee (a reverifier avant le nouvel essai controle):
 
 - Mode d'execution Railway: `training`, donc ordres simules uniquement.
 - Mode par defaut du code si aucune variable n'est definie: `paper`, egalement simule.
@@ -16,7 +30,8 @@ Etat courant du deploiement:
 ```text
 hermes_trading/
   run.py              # point d'entree du worker seul (demarrage local simple)
-  colocated.py        # point d'entree production (run.py + API de controle et bot Discord optionnels, utilise par le Dockerfile)
+  paper_boot.py       # nouveau point d'entree Docker, essai paper explicite et configuration validee
+  colocated.py        # ancien point d'entree Railway (worker + controle/Discord optionnels)
   loop.py             # boucle multi-actifs et decisions de trading
   reflect.py          # reflexion Hermes ou fallback local
   score.py            # scoring des performances

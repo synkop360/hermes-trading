@@ -35,6 +35,10 @@ class CostLedger:
         self.state_dir.mkdir(parents=True, exist_ok=True)
         with self.events_path.open("a", encoding="utf-8") as handle:
             handle.write(json.dumps(_event_json(event), separators=(",", ":")) + "\n")
+            handle.flush()
+            os.fsync(handle.fileno())
+        from hermes_trading.paper_publication import _sync_dir
+        _sync_dir(self.state_dir)
         self._project()
 
     def costs_between(

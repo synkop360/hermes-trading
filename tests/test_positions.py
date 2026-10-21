@@ -123,7 +123,7 @@ class PositionEngineTests(unittest.TestCase):
 
     def test_take_profit_closes_at_the_target_price(self) -> None:
         strategy = entry_strategy()
-        strategy["exit"] = {"take_profit_pct": "1.5"}
+        strategy["exit"] = {"take_profit_pct": "2.1"}
         self.engine.process_candle(self.entry_candle, strategy)
 
         result = self.engine.process_candle(
@@ -372,7 +372,7 @@ class PositionEngineTests(unittest.TestCase):
     def test_entry_compounds_off_equity_when_tracked(self) -> None:
         # stop_loss_pct=0.5 -> stop_fraction is exactly 0.5% of fill_price
         # regardless of price, so: risk_budget = 50 * 0.0025 * 0.5 = 0.0625,
-        # notional = 0.0625 / 0.005 = 12.5.
+        # Cost-inclusive sizing is capped at 5% of equity: 2.5.
         engine = PositionEngine(self.state, equity=Decimal("50"))
         strategy = entry_strategy()
         strategy["position_size_r"] = "0.5"
@@ -381,11 +381,12 @@ class PositionEngineTests(unittest.TestCase):
 
         entry_order = result.orders[0]
         self.assertAlmostEqual(
-            float(entry_order.filled_quantity * entry_order.average_fill_price), 12.5, places=6,
+            float(entry_order.filled_quantity * entry_order.average_fill_price), 2.5, places=6,
         )
 
-    def test_entry_notional_grows_with_equity(self) -> None:
+    def test_entry_notional_grows_with_equity_before_order_cap(self) -> None:
         strategy = entry_strategy()
+        strategy["simulation"] = {"max_order_quote": "100"}
         strategy["position_size_r"] = "0.5"
         small = PositionEngine(self.state, equity=Decimal("50")).process_candle(self.entry_candle, strategy)
 
@@ -518,10 +519,10 @@ class PositionEngineTests(unittest.TestCase):
         self.assertEqual(closed.status.value, "closed")
         self.assertGreater(closed.realized_pnl, Decimal("0"))
         exit_order = result.orders[0]
-        self.assertEqual(exit_order.order_type, "limit")
-        self.assertEqual(exit_order.fees, exit_order.filled_quantity * exit_order.average_fill_price * Decimal("0.0025"))
+        self.assertEqual(exit_order.order_type, "market")
+        self.assertEqual(exit_order.fees, exit_order.filled_quantity * exit_order.average_fill_price * Decimal("0.008"))
 
-    def test_explicit_exit_can_opt_back_into_taker_pricing(self) -> None:
+    def test_explicit_exit_accepts_explicit_taker_pricing(self) -> None:
         strategy = entry_strategy()
         strategy["exit"] = {"indicator": "rsi", "threshold": "50", "fee": "taker"}
         self.engine.process_candle(self.entry_candle, strategy)
@@ -531,7 +532,7 @@ class PositionEngineTests(unittest.TestCase):
         self.assertEqual(result.reason, "explicit_exit")
         exit_order = result.orders[0]
         self.assertEqual(exit_order.order_type, "market")
-        self.assertEqual(exit_order.fees, exit_order.filled_quantity * exit_order.average_fill_price * Decimal("0.004"))
+        self.assertEqual(exit_order.fees, exit_order.filled_quantity * exit_order.average_fill_price * Decimal("0.008"))
 
     def test_trailing_overrides_explicit_exit_holds_instead_of_closing_when_enabled(self) -> None:
         strategy = entry_strategy()

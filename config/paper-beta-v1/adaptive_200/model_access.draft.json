@@ -1,0 +1,9 @@
+{
+  "model": "upstage/solar-mini4:free",
+  "payment": "unverified",
+  "policy_hash": null,
+  "provenance_ref": "requires_fresh_exact_model_zero_price_and_authenticated_access_evidence",
+  "provider": "nous",
+  "schema_version": 1,
+  "valid_until": null
+}

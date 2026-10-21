@@ -4,7 +4,7 @@ import asyncio
 import json
 import os
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import UTC, datetime, timezone
 from decimal import Decimal
 from pathlib import Path
@@ -35,7 +35,8 @@ from hermes_trading.market_data import MarketDataCoordinator
 from hermes_trading.market_data import timeframe_interval
 from hermes_trading.persistence.artifacts import ArtifactProjector
 from hermes_trading.persistence.repository import StateRepository
-from hermes_trading.positions import PositionEngine, PositionProcessResult
+from hermes_trading.positions import PositionEngine, PositionProcessResult, SimulationSettings, _expected_payoff_covers_costs
+from hermes_trading.execution_policy import initial_stop_price, initial_take_profit_price, trailing_stop_price
 from hermes_trading.profitability import (
     ProfitabilityReport,
     profitability_gate_snapshot,
@@ -89,6 +90,8 @@ class TradingConfig:
 class CycleResult:
     results: tuple[PositionProcessResult, ...]
     mode: str
+    market_snapshots: Mapping[str, Any] | None = None
+    contract_errors: tuple[str, ...] = ()
 
     @property
     def decisions(self) -> tuple[object, ...]:
@@ -108,7 +111,7 @@ class CycleResult:
 
     @property
     def degraded(self) -> bool:
-        return any(result.projection_error is not None for result in self.results)
+        return bool(self.contract_errors) or any(result.projection_error is not None or result.contract_error is not None for result in self.results)
 
 
 @dataclass(frozen=True)
@@ -269,13 +272,48 @@ async def run_cycle(
     strategy: dict[str, Any],
     mode: str,
     equity: Decimal | None = None,
+    wallet_state_dir: Path | None = None,
+    wallet_valuation_snapshot: Mapping[str, Any] | None = None,
+    wallet_entries_blocked: bool = False,
+    prospective_at: Any = None,
 ) -> CycleResult:
     """Process one closed-candle batch through the canonical training engine."""
     if mode != "training":
         raise TradingModeError("run_cycle is available only in training mode")
-    engine = PositionEngine(state, projector, equity=equity)
+    engine = PositionEngine(state, projector, equity=equity, prospective_at=prospective_at)
     recovery_error = engine.recover_pending_projections()
     snapshots = await market_data.collect(assets)
+    entries_allowed = True
+    configured_wallet = wallet_state_dir is not None and any((wallet_state_dir/name).exists() for name in ("wallet_account.json", "wallet_equity.sqlite"))
+    contract_errors = []
+    if wallet_state_dir is not None:
+        from hermes_trading.wallet_observer import value_current_wallet
+        try:
+            valuation = dict(wallet_valuation_snapshot) if wallet_valuation_snapshot is not None else value_current_wallet(wallet_state_dir, state, snapshots, strategy)
+            if valuation is not None and valuation.get('status') == 'blocked':
+                raise ValueError(valuation.get('error','frozen wallet budget is unavailable'))
+            if valuation is not None:
+                configured_wallet = True
+                equity = Decimal(valuation['net_equity']) if valuation['net_equity'] is not None else Decimal('0')
+                entries_allowed = equity > 0
+                from hermes_trading.reflection_supervision import _time
+                engine.entry_not_before = _time(valuation['activated_at'])
+                engine.wallet_cash_capital = Decimal(valuation['starting_balance']) - Decimal(valuation['known_accrued_costs'])
+                engine.entry_cost_reserve = valuation.get('entry_cost_reserve')
+                engine.reserve_state_dir = wallet_state_dir
+        except Exception:
+            equity = Decimal('0'); entries_allowed = False
+    if configured_wallet:
+        from hermes_trading.entry_contracts import EntryContractResolver, EntryContractError
+        engine.entry_contract_resolver = EntryContractResolver(wallet_state_dir, strategy)
+        for position in state.active_positions():
+            try:
+                engine.entry_contract_resolver(position.asset, position.strategy_version)
+            except EntryContractError as error:
+                contract_errors.append(position.position_id + ":" + str(error))
+                entries_allowed = False
+    engine.equity = equity
+    engine.entries_allowed = entries_allowed and not wallet_entries_blocked
     results = tuple(
         engine.process_candle(
             snapshots[asset],
@@ -285,7 +323,7 @@ async def run_cycle(
         )
         for asset in assets
     )
-    return CycleResult(results=results, mode=mode)
+    return CycleResult(results=results, mode=mode, market_snapshots=snapshots, contract_errors=tuple(contract_errors))
 
 
 async def run_live_cycle(
@@ -367,7 +405,8 @@ async def run_live_cycle(
     market_blockers: list[str] = []
 
     for asset in assets:
-        if snapshots.get(asset) is not None:
+        market_snapshot = snapshots.get(asset)
+        if market_snapshot is not None and market_snapshot.candle is not None and market_snapshot.availability == "available":
             continue
         state.open_incident(
             f"live-cycle:market:{asset}",
@@ -391,15 +430,28 @@ async def run_live_cycle(
             (candidate for candidate in state.active_positions() if candidate.asset == asset),
             None,
         )
+        if position is not None and snapshot.candle.close_timestamp <= datetime.fromisoformat(position.opened_at):
+            continue  # Never apply a candle from before the entry fill to an open position.
         signal = evaluate_strategy(snapshot, asset_strategy, position)
+        if signal.action == "hold" and position is not None:
+            state.save_position(replace(position, stop_price=trailing_stop_price(snapshot, asset_strategy, position.stop_price)))
         if signal.action not in {"enter", "exit"}:
             continue
         decision = _live_decision(signal, asset_strategy, current_time)
         if signal.action == "exit":
             assert position is not None
-            execution_results.append(await execution.submit_exit(decision, position, gateway))
+            fraction = _decimal_setting(asset_strategy.get("exit", {}).get("partial_close_pct", "1"), "partial_close_pct") if signal.reason == "partial_exit" else Decimal("1")
+            execution_results.append(await execution.submit_exit(decision, position, gateway, fraction=fraction))
             break
 
+        if str(asset_strategy.get("entry", {}).get("fee", "taker")).lower() == "maker" or str(asset_strategy.get("exit", {}).get("fee", "taker")).lower() == "maker":
+            continue  # Maker simulation is legacy research, not supported live execution.
+        settings = SimulationSettings.from_strategy(asset_strategy)
+        if not _expected_payoff_covers_costs(asset_strategy, settings, snapshot):
+            continue
+        entry_stop = initial_stop_price(snapshot, asset_strategy, signal.reference_price)
+        stop_fraction = (signal.reference_price - entry_stop) / signal.reference_price
+        cost_fraction = 2 * settings.taker_fee_rate + 2 * settings.slippage_rate
         reflection_block = reflection_model_entry_block(projector.state_dir)
         if reflection_block.blocked:
             state.open_incident(
@@ -419,7 +471,7 @@ async def run_live_cycle(
             )
 
         rules = await gateway.load_rules(asset)
-        exchange_minimum = rules.min_cost
+        exchange_minimum = max(rules.min_cost or Decimal("0"), (rules.min_amount or Decimal("0")) * signal.reference_price)
         context = _risk_context(
             asset,
             snapshot.price or {},
@@ -430,7 +482,7 @@ async def run_live_cycle(
         )
         risk_decision = risk.authorize_entry(
             context=context,
-            stop_loss_pct=_strategy_fraction(asset_strategy, "stop_loss_pct"),
+            stop_loss_pct=stop_fraction + cost_fraction,
             position_size_r=_decimal_setting(
                 asset_strategy.get("position_size_r", "0.5"), "position_size_r"
             ),
@@ -440,7 +492,7 @@ async def run_live_cycle(
         if not risk_decision.allowed:
             continue
         execution_results.append(
-            await execution.submit_entry(decision, risk_decision, gateway)
+            await execution.submit_entry(decision, risk_decision, gateway, stop_price=entry_stop)
         )
         # Reconciliation and protection must complete before another asset can
         # submit with stale balances or portfolio exposure.
@@ -462,24 +514,20 @@ async def run_live_cycle(
     protection_results: list[ExecutionResult] = []
     for position in state.active_positions():
         asset_strategy = resolve_asset_strategy(strategy, position.asset)
-        stop_fraction = _strategy_fraction(asset_strategy, "stop_loss_pct")
-        desired_stop = position.entry_price * (Decimal("1") - stop_fraction)
-        if position.stop_price != desired_stop:
-            position = Position(
-                position.position_id,
-                position.asset,
-                position.status,
-                position.quantity,
-                position.entry_price,
-                desired_stop,
-                position.strategy_version,
-                position.opened_at,
-                position.closed_at,
-                position.realized_pnl,
-                position.fees,
-                take_profit_price=position.take_profit_price,
-            )
-            state.save_position(position)
+        # Initial stop is persisted in the entry intent. Never reset a ratchet
+        # from the current strategy's percentage stop on later cycles.
+        entry_order = state.entry_order_for_position(position.position_id)
+        intent = state.intent_by_client_id(entry_order.client_order_id) if entry_order else None
+        if intent is not None and intent.stop_price is not None:
+            desired_stop = position.entry_price - (intent.reference_price - intent.stop_price)
+        else:
+            desired_stop = initial_stop_price(snapshots[position.asset], asset_strategy, position.entry_price)
+        stop = max(position.stop_price, desired_stop) if (intent is not None and intent.stop_price is not None) or position.stop_price != position.entry_price else desired_stop
+        target = position.take_profit_price
+        if target is None:
+            target = initial_take_profit_price(snapshots[position.asset], asset_strategy, position.entry_price)
+        position = replace(position, stop_price=stop, take_profit_price=target)
+        state.save_position(position)
         protection_signal = Decision(
             decision_id=f"position:{position.position_id}:protective-stop",
             asset=position.asset,
@@ -815,6 +863,8 @@ async def _run_training_loop(
     pnl_summary: PnlSummaryCounter,
     env: Mapping[str, str] | None = None,
 ) -> None:
+    from hermes_trading.supervisor_sync import capture_startup_release
+    worker_release = capture_startup_release(state_dir)
     values = env if env is not None else os.environ
     state = StateRepository.open(state_dir / "trading.db")
     state.migrate()
@@ -845,7 +895,15 @@ async def _run_training_loop(
                 if funds_alert:
                     await _notify_all([funds_alert], notification_settings)
                 strategy = _load_yaml(state_dir / "strategy.yaml")
-                cycle = await run_cycle(assets, state, projector, market_data, strategy, trading.mode, equity=wallet_balance)
+                cycle = await run_cycle(assets, state, projector, market_data, strategy, trading.mode, equity=wallet_balance,
+                                        wallet_state_dir=state_dir)
+                from hermes_trading.wallet_observer import observe_wallet
+                try:
+                    wallet_report = observe_wallet(state_dir, state, cycle.market_snapshots or {}, strategy)
+                except Exception as error:
+                    wallet_report = {'status': 'measurement_blocked', 'observed_at': datetime.now(UTC).isoformat(),
+                                     'gate': {'status': 'blocked', 'basis': 'observed_wallet_metrics',
+                                              'reasons': [str(error)], 'eligible_for_real_trading': False}}
                 trades = _cycle_trades(cycle)
                 orders = _cycle_orders(cycle)
                 profitability_report = await _update_profitability_best_effort(state_dir)
@@ -855,7 +913,8 @@ async def _run_training_loop(
                         QualificationPhase.VALIDATION_READY, now=started_at
                     )
                 reflection_message = None
-                if reflection_schedule.record_cycle():
+                from hermes_trading.reflection_supervision import writer_allowed
+                if reflection_schedule.record_cycle() and writer_allowed(state_dir, "deterministic_worker"):
                     # Deterministic, pure-Python generator only -- this runs
                     # inside the worker, which has no `hermes` CLI, no local
                     # model, and typically no OpenAI key. A failure here must
@@ -864,7 +923,8 @@ async def _run_training_loop(
                     try:
                         before_version = str(strategy.get("version", "01"))
                         updated_strategy = run_hermes_reflection(
-                            state_dir, dict(values), proposal_generator=generate_deterministic_asset_proposal
+                            state_dir, dict(values), proposal_generator=generate_deterministic_asset_proposal,
+                            writer="deterministic_worker",
                         )
                         reflection_message = build_inprocess_reflection_notification(before_version, updated_strategy)
                     except Exception as error:
@@ -880,13 +940,22 @@ async def _run_training_loop(
                         "timestamp": started_at.isoformat(), "assets": assets,
                         "strategy_version": strategy.get("version", "01"), "mode": trading.mode,
                         "execution": trading.execution,
+                        "worker_release": worker_release,
                         "status": "degraded" if cycle.degraded else "ok",
                         "decision_count": len(cycle.decisions),
                         "closed_trade_count": len(trades), "order_count": len(orders),
                         "trade_closed": bool(trades), "projection_degraded": cycle.degraded,
+                        "entry_contract_errors": list(cycle.contract_errors),
                     },
                     profitability_report,
                 )
+                if wallet_report is not None:
+                    from hermes_trading.reflection_supervision import _hash
+                    heartbeat['wallet_account'] = {'status': wallet_report['status'],
+                        'net_equity': wallet_report.get('observation', {}).get('net_equity'),
+                        'currency': wallet_report.get('currency')}
+                    heartbeat['economic_gate'] = wallet_report['gate']
+                    heartbeat['wallet_report_hash'] = _hash(wallet_report) if wallet_report['status'] == 'observed' else None
                 await _write_json(state_dir / "heartbeat.json", heartbeat)
                 messages = build_cycle_notifications(trades, orders, notification_settings)
                 await _notify_worker_feature_updates(state_dir, notification_settings, started_at)

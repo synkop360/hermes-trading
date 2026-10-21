@@ -154,7 +154,11 @@ def evaluate_strategy(
         return StrategySignal("enter", snapshot.asset, "rsi_entry", candle.close, candle_id)
     if indicator == "rsi_recovery" and _rsi_recovery_matches(snapshot, entry):
         return StrategySignal("enter", snapshot.asset, "rsi_recovery", candle.close, candle_id)
-    if indicator not in {"rsi", "rsi_recovery"}:
+    if indicator == "trend_pullback":
+        from hermes_trading.trend import trend_pullback_matches
+        if trend_pullback_matches(snapshot, entry):
+            return StrategySignal("enter", snapshot.asset, "trend_pullback", candle.close, candle_id)
+    if indicator not in {"rsi", "rsi_recovery", "trend_pullback"}:
         return StrategySignal("no_trade", snapshot.asset, "entry_not_supported", candle.close, candle_id)
     return StrategySignal("no_trade", snapshot.asset, "entry_condition_not_met", candle.close, candle_id)
 
@@ -277,12 +281,13 @@ def _optional_positive_setting(value: object) -> Decimal | None:
 def _is_maker_exit(exit_rule: dict[str, Any] | None) -> bool:
     """Whether an ``explicit_exit`` (RSI recovery) close should be priced as a maker fill.
 
-    Defaults to maker: this exit fires opportunistically once RSI recovers, not
+    Defaults to taker to match market execution. Explicit maker modeling is legacy
+    research only: this exit fires opportunistically once RSI recovers, not
     urgently like a stop, so it can reasonably be routed as a limit order. Set
     ``exit.fee: taker`` to opt back into market pricing for this reason only;
     stop_loss/take_profit/max_bars always stay taker regardless of this setting.
     """
-    fee = exit_rule.get("fee", "maker") if isinstance(exit_rule, dict) else "maker"
+    fee = exit_rule.get("fee", "taker") if isinstance(exit_rule, dict) else "taker"
     return str(fee).lower() != "taker"
 
 
@@ -310,8 +315,8 @@ def _minimum_favorable_move_pct(strategy: dict[str, Any], exit_rule: dict[str, A
     """
     simulation = strategy.get("simulation")
     simulation = simulation if isinstance(simulation, dict) else {}
-    taker_fee_rate = _decimal_setting(simulation.get("taker_fee_rate", "0.004"), "taker_fee_rate")
-    maker_fee_rate = _decimal_setting(simulation.get("maker_fee_rate", "0.0025"), "maker_fee_rate")
+    taker_fee_rate = _decimal_setting(simulation.get("taker_fee_rate", "0.008"), "taker_fee_rate")
+    maker_fee_rate = _decimal_setting(simulation.get("maker_fee_rate", "0.004"), "maker_fee_rate")
     slippage_rate = _decimal_setting(simulation.get("slippage_rate", "0.001"), "slippage_rate")
     minimum_edge_pct = _decimal_setting(simulation.get("minimum_expected_edge_pct", "0.2"), "minimum_expected_edge_pct")
     entry_fee_rate = maker_fee_rate if _is_maker_entry(strategy.get("entry")) else taker_fee_rate

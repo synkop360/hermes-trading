@@ -732,7 +732,7 @@ def _payoff_gate_accessibility_proposal(
     its validated maximum.
     """
     exit_rule = effective_strategy.get("exit")
-    if not isinstance(exit_rule, dict) or "take_profit_atr" not in exit_rule:
+    if not isinstance(exit_rule, dict) or "take_profit_atr" not in exit_rule or "trailing_atr" in exit_rule:
         return None
     try:
         current = float(exit_rule["take_profit_atr"])
@@ -976,7 +976,11 @@ def generate_deterministic_asset_proposal(
         reason = "deterministic in-process reflection: realized return met target, so entry was tightened."
 
     if after == current_threshold:
-        return None, model_info
+        return None, {
+            **model_info,
+            "outcome": "no_change",
+            "reason": "deterministic review chose no change: entry threshold is already at the applicable bound",
+        }
 
     return (
         {"asset": asset, "variable": "entry.threshold", "value": after, "reason": reason},
@@ -1135,6 +1139,11 @@ def _average_winning_trade_clears_costs(trades: list[dict[str, Any]], strategy: 
 
 
 def run_fallback_reflection(state_dir: Path) -> dict[str, Any]:
+    from hermes_trading.reflection_supervision import assert_writer_owner
+    assert_writer_owner(state_dir, "deterministic_worker")
+    from hermes_trading.execution_policy import strategy_is_frozen
+    if strategy_is_frozen(_load_yaml(state_dir / "strategy.yaml")):
+        return {"status": "frozen", "changes": []}
     strategy_path = state_dir / "strategy.yaml"
     goal = _load_yaml(state_dir / "goal.yaml")
     strategy = _load_yaml(strategy_path)
@@ -1474,7 +1483,17 @@ def run_hermes_reflection(
     *,
     proposal_generator: Callable[..., tuple[dict[str, Any] | None, dict[str, Any]]] | None = None,
     market_analysis_fetcher: Callable[[str, dict[str, Any], dict[str, str]], dict[str, Any] | None] | None = None,
+    writer: str | None = None,
 ) -> dict[str, Any]:
+    from hermes_trading.reflection_supervision import assert_writer_owner
+    actor = writer or ("deterministic_worker" if proposal_generator is generate_deterministic_asset_proposal else "external_llm")
+    owner_policy = assert_writer_owner(state_dir, actor)
+    if owner_policy is not None and owner_policy["owner"] == "external_llm":
+        from hermes_trading.reflection_supervision import WriterNotAuthorized
+        raise WriterNotAuthorized("configured external supervision requires the global review coordinator")
+    from hermes_trading.execution_policy import strategy_is_frozen
+    if strategy_is_frozen(_load_yaml(state_dir / "strategy.yaml")):
+        return {"status": "frozen", "changes": []}
     generate_proposal = proposal_generator or _generate_asset_proposal
     fetch_market_analysis = market_analysis_fetcher or _fetch_market_analysis
     env = dict(os.environ if env is None else env)
@@ -1655,6 +1674,23 @@ def run_hermes_reflection(
                 policy,
             )
 
+        if proposal is None and model_info.get("outcome") == "no_change" and not model_info.get("errors"):
+            no_change = {
+                "asset": asset,
+                "status": "no_change",
+                "triggers": trigger_reasons,
+                "metrics": metrics,
+                "provider": model_info.get("provider"),
+                "model": model_info.get("model"),
+                "reason": model_info.get("reason", "review completed without a strategy change"),
+            }
+            cycle_results.append(no_change)
+            _append_hypothesis(
+                state_dir,
+                {"timestamp": now.isoformat(), "mode": "hermes_asset_no_change", **no_change},
+            )
+            continue
+
         if proposal is None:
             cycle_results.append(
                 {
@@ -1672,6 +1708,8 @@ def run_hermes_reflection(
                     "timestamp": now.isoformat(),
                     "mode": "hermes_asset_failed",
                     "asset": asset,
+                    "provider": model_info.get("provider"),
+                    "model": model_info.get("model"),
                     "triggers": trigger_reasons,
                     "metrics": metrics,
                     "errors": model_info["errors"],

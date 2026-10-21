@@ -1,0 +1,13 @@
+{
+  "alert_fraction": "0.70",
+  "capacity_bytes": 500000000,
+  "diagnostics_generations": 3,
+  "diagnostics_max_bytes": 1048576,
+  "experiment_id": "unassigned_until_activation",
+  "max_supervisor_errors": 3,
+  "max_worker_errors": 3,
+  "schema_version": 1,
+  "supervisor_health_required": true,
+  "supervisor_stale_seconds": 300,
+  "volume_root": "/app/state"
+}

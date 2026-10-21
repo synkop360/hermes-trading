@@ -47,6 +47,10 @@ def client_order_id(asset: str, side: str, candle_id: str, strategy_version: str
     return f"ht-{digest}"
 
 
+class StopFillRequiresReconciliation(RuntimeError):
+    """Stop fills changed while an exit or replacement was being prepared."""
+
+
 class ExecutionService:
     """Crash-safe order intent boundary.
 
@@ -71,6 +75,7 @@ class ExecutionService:
         signal: Decision,
         risk_decision: RiskDecision,
         gateway: ExchangeGateway,
+        *, stop_price: Decimal | None = None,
     ) -> ExecutionResult:
         if signal.action != "enter":
             raise ValueError("entry submission requires an enter decision")
@@ -86,21 +91,42 @@ class ExecutionService:
             side="buy",
             quantity=notional / reference_price,
             position_id=None,
+            stop_price=stop_price,
         )
 
     async def submit_exit(
-        self, signal: Decision, position: Position, gateway: ExchangeGateway
+        self, signal: Decision, position: Position, gateway: ExchangeGateway,
+        *, fraction: Decimal = Decimal("1"),
     ) -> ExecutionResult:
         if signal.action != "exit":
             raise ValueError("exit submission requires an exit decision")
         self._validate_position(signal, position)
         if not self._allow_submission:
             return ExecutionResult("rejected", None, "submission_disabled")
+        if not fraction.is_finite() or not 0 < fraction <= 1:
+            raise ValueError("exit fraction must be in (0, 1]")
+        quantity = position.quantity * fraction
+        load_rules = getattr(gateway, "load_rules", None)
+        if fraction < 1 and callable(load_rules):
+            rules = await load_rules(position.asset)
+            quantity = _normalize_down(quantity, rules.amount_precision)
+            remaining = position.quantity - quantity
+            minimum = rules.min_cost or Decimal("0")
+            min_amount = rules.min_amount or Decimal("0")
+            if (quantity < min_amount or remaining < min_amount
+                    or quantity * signal.reference_price < minimum
+                    or remaining * signal.reference_price < minimum):
+                # Keep dust protected instead of sending an unplaceable partial.
+                return ExecutionResult("rejected", None, "partial_below_exchange_minimum")
+        # Release the hosted stop's reservation before reducing the position.
+        # The caller reconciles and immediately protects the remainder.
+        try:
+            await self._cancel_replaced_stops(position, Decimal("0"), Decimal("0"), gateway)
+        except Exception as error:
+            return ExecutionResult("reconciliation_required", None, f"exit_stop_cancel:{type(error).__name__}")
         return await self._submit_market(
-            signal,
-            gateway,
-            side="sell",
-            quantity=_positive_decimal(position.quantity, "position quantity"),
+            signal, gateway, side="sell",
+            quantity=_positive_decimal(quantity, "exit quantity"),
             position_id=position.position_id,
         )
 
@@ -117,6 +143,8 @@ class ExecutionService:
             replacement = await self._cancel_replaced_stops(
                 position, quantity, stop_price, gateway
             )
+        except StopFillRequiresReconciliation:
+            return ExecutionResult("reconciliation_required", None, "protective_stop_fill_changed")
         except Exception as error:
             return await self.emergency_close(
                 position,
@@ -299,6 +327,12 @@ class ExecutionService:
             for order in await fetch_orders(position.asset)
             if order.client_order_id is not None
         }
+        for intent in active:
+            observed = remote_by_client_id.get(intent.client_order_id)
+            local = self.repository.order_by_client_id(intent.client_order_id)
+            if observed is not None and local is not None and observed.filled > local.filled_quantity:
+                self._record_exchange_result(intent.client_order_id, observed)
+                raise StopFillRequiresReconciliation()
         desired = [
             intent
             for intent in active
@@ -319,6 +353,8 @@ class ExecutionService:
                 raise RuntimeError("existing protective stop is not active remotely")
             cancelled = await gateway.cancel_order(remote.exchange_order_id, position.asset)
             recorded = self._record_exchange_result(intent.client_order_id, cancelled)
+            if cancelled.filled > remote.filled:
+                raise StopFillRequiresReconciliation()
             if recorded.status != "submitted" or _canonical_order_status(cancelled.status) is not OrderStatus.CANCELED:
                 raise RuntimeError("protective stop cancellation was not confirmed")
         if keep is not None:
@@ -333,6 +369,7 @@ class ExecutionService:
         side: str,
         quantity: Decimal,
         position_id: str | None,
+        stop_price: Decimal | None = None,
     ) -> ExecutionResult:
         normalized_quantity = _positive_decimal(quantity, "order quantity")
         identifier = client_order_id(signal.asset, side, signal.candle_id, signal.strategy_version)
@@ -343,7 +380,7 @@ class ExecutionService:
             order_type="market",
             quantity=normalized_quantity,
             position_id=position_id,
-            stop_price=None,
+            stop_price=stop_price,
         )
         if intent is None:
             return ExecutionResult("reconciliation_required", identifier, "existing_intent")

@@ -213,6 +213,11 @@ class StateRepository:
         )
         return tuple(self._position_from_row(row) for row in rows)
 
+    def portfolio_positions(self) -> tuple[Position, ...]:
+        """Include unsettled/error inventory so account valuation cannot hide it."""
+        rows = self._connection.execute("SELECT * FROM positions ORDER BY opened_at, position_id")
+        return tuple(self._position_from_row(row) for row in rows)
+
     def closed_positions(self) -> tuple[Position, ...]:
         rows = self._connection.execute(
             """
@@ -291,6 +296,26 @@ class StateRepository:
             (position_id, client_order_id),
         )
         return sum((Decimal(row["fees"]) for row in rows), Decimal("0"))
+
+    def exit_totals_for_position(self, position_id: str) -> tuple[Decimal, Decimal, Decimal, int]:
+        """Rebuild cumulative exit accounting, including immediate and partial fills."""
+        rows = self._connection.execute(
+            """SELECT o.filled_quantity, o.average_fill_price, o.fees, d.reason
+            FROM orders o JOIN order_intents i ON i.client_order_id = o.client_order_id
+            JOIN decisions d ON d.decision_id = i.decision_id
+            WHERE i.position_id = ? AND i.side = 'sell'""", (position_id,),
+        ).fetchall()
+        quantity = proceeds = fees = Decimal('0')
+        partial_count = 0
+        for row in rows:
+            filled = Decimal(row['filled_quantity'])
+            if filled <= 0 or row['average_fill_price'] is None:
+                continue
+            quantity += filled
+            proceeds += filled * Decimal(row['average_fill_price'])
+            fees += Decimal(row['fees'])
+            partial_count += int(row['reason'] == 'partial_exit')
+        return quantity, proceeds, fees, partial_count
 
     def persist_execution_intent(self, decision: Decision, intent: OrderIntent) -> bool:
         """Commit an execution decision and its idempotency key together.
@@ -696,6 +721,22 @@ class StateRepository:
                 (timestamp, risk_decision_id),
             )
 
+    def closed_position_decision(self, position):
+        """Recover exit provenance from the immutable committed outcome payload."""
+        row=json_value(position)
+        matches=[]
+        for outcome in self._connection.execute(
+            "SELECT p.payload FROM projection_payloads p JOIN decisions d ON d.decision_id=p.decision_id "
+            "WHERE d.asset=? AND d.decided_at=? AND d.action='exit'",
+            (row['asset'],row['closed_at']),
+        ):
+            payload=json.loads(outcome['payload'])
+            if any(item.get('position_id')==row['position_id'] for item in payload.get('closed_positions',[])):
+                matches.append(payload['decision'])
+        if len(matches)>1 and any(item!=matches[0] for item in matches[1:]):
+            raise ValueError('conflicting closed-position provenance')
+        return matches[0] if matches else None
+
     def export_canonical_tables(self) -> dict[str, list[dict[str, object]]]:
         return {
             table_name: [
@@ -708,8 +749,12 @@ class StateRepository:
         }
 
     def mark_candle_processed(self, asset: str, timeframe: str, close_timestamp: str) -> None:
+        from hermes_trading.archive_quote_state import quote_already_retired
         candle_id = f"{asset}:{timeframe}:{close_timestamp}"
         with self._connection:
+            self._connection.execute('BEGIN IMMEDIATE')
+            if quote_already_retired(self._connection,asset,timeframe,close_timestamp):
+                return
             self._connection.execute(
                 """
                 INSERT OR IGNORE INTO candles_processed (
@@ -718,6 +763,18 @@ class StateRepository:
                 """,
                 (candle_id, asset, timeframe, close_timestamp, self._utc_now()),
             )
+
+    def pending_paper_exit(self, position_id: str) -> dict | None:
+        row=self._connection.execute("SELECT reason FROM incidents WHERE incident_id=? AND status='open'",
+                                     ('paper:exit:'+position_id,)).fetchone()
+        return json.loads(row[0]) if row is not None else None
+
+    def paper_entry_signal_time(self, position_id: str) -> str:
+        row=self._connection.execute("""SELECT d.candle_id FROM order_intents i
+            JOIN decisions d ON d.decision_id=i.decision_id
+            WHERE i.position_id=? AND i.side='buy' ORDER BY i.created_at LIMIT 1""",(position_id,)).fetchone()
+        if row is None:raise RelatedRecordNotFoundError('paper entry signal is missing')
+        return row[0].split(':',2)[2]
 
     def persist_candle_outcome(
         self,
@@ -730,6 +787,9 @@ class StateRepository:
         orders: list[OrderRecord] | tuple[OrderRecord, ...] = (),
         fills: list[Fill] | tuple[Fill, ...] = (),
         positions: list[Position] | tuple[Position, ...] = (),
+        pending_paper_exit: tuple[str, dict] | None = None,
+        resolved_paper_exit: str | None = None,
+        entry_candle_reservation: tuple[str,str,str] | None = None,
     ) -> bool:
         """Atomically persist a candle's canonical decision and financial outcome.
 
@@ -737,8 +797,17 @@ class StateRepository:
         Callers must project JSONL or snapshots only after a true return.
         """
         candle_id = f"{asset}:{timeframe}:{close_timestamp}"
+        if entry_candle_reservation is not None:
+            if (type(entry_candle_reservation) is not tuple or len(entry_candle_reservation)!=3
+                    or any(not isinstance(value,str) or not value for value in entry_candle_reservation)
+                    or entry_candle_reservation[0]!=asset):
+                raise ValueError('entry candle reservation must identify the current asset signal bar')
         try:
             self._connection.execute("BEGIN IMMEDIATE")
+            from hermes_trading.archive_quote_state import quote_already_retired
+            if quote_already_retired(self._connection,asset,timeframe,close_timestamp):
+                self._connection.rollback()
+                return False
             duplicate = self._connection.execute(
                 "SELECT 1 FROM candles_processed WHERE asset = ? AND timeframe = ? AND close_timestamp = ?",
                 (asset, timeframe, close_timestamp),
@@ -746,6 +815,17 @@ class StateRepository:
             if duplicate is not None:
                 self._connection.rollback()
                 return False
+            if pending_paper_exit is not None:
+                position_id,payload=pending_paper_exit
+                self._connection.execute("""INSERT INTO incidents
+                    (incident_id,status,reason,severity,revision,opened_at,resolved_at)
+                    VALUES (?,'open',?,'warning',1,?,NULL)
+                    ON CONFLICT(incident_id) DO UPDATE SET status='open',reason=excluded.reason,
+                    revision=incidents.revision+1,resolved_at=NULL""",
+                    ('paper:exit:'+position_id,json.dumps(payload,sort_keys=True),decision.decided_at))
+            if resolved_paper_exit is not None:
+                self._connection.execute("UPDATE incidents SET status='closed',resolved_at=? WHERE incident_id=?",
+                                         (decision.decided_at,'paper:exit:'+resolved_paper_exit))
             self._connection.execute(
                 """
                 INSERT INTO decisions (
@@ -823,6 +903,13 @@ class StateRepository:
                 VALUES (?, ?, ?, ?, ?)""",
                 (candle_id, asset, timeframe, close_timestamp, self._utc_now()),
             )
+            if entry_candle_reservation is not None:
+                signal_asset,signal_timeframe,signal_closed=entry_candle_reservation
+                self._connection.execute(
+                    """INSERT OR IGNORE INTO candles_processed (candle_id,asset,timeframe,close_timestamp,processed_at)
+                    VALUES (?,?,?,?,?)""",
+                    (f'{signal_asset}:{signal_timeframe}:{signal_closed}',signal_asset,signal_timeframe,signal_closed,self._utc_now()),
+                )
             projection_item_id = self._projection_item_id(decision.decision_id)
             self._connection.execute(
                 """
@@ -1036,6 +1123,9 @@ class StateRepository:
             raise
 
     def is_candle_processed(self, asset: str, timeframe: str, close_timestamp: str) -> bool:
+        from hermes_trading.archive_quote_state import quote_already_retired
+        if quote_already_retired(self._connection,asset,timeframe,close_timestamp):
+            return True
         row = self._connection.execute(
             """
             SELECT 1 FROM candles_processed

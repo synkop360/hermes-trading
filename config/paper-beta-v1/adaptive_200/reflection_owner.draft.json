@@ -1,0 +1,14 @@
+{
+  "cadence_closed_trades": 5,
+  "experiment_id": "unassigned_until_activation",
+  "model": {
+    "name": "upstage/solar-mini4:free",
+    "provider": "nous"
+  },
+  "model_access_renewal_required": true,
+  "one_variable_only": true,
+  "owner": "external_llm",
+  "schema_version": 1,
+  "supervisor_lifecycle_required": true,
+  "wallet_required": true
+}

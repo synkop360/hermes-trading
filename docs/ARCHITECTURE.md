@@ -8,7 +8,7 @@ Hermes Trading separe trois responsabilites:
 - Decision: la boucle applique `state/strategy.yaml` a chaque actif suivi, avec des surcharges optionnelles par symbole.
 - Amelioration: Hermes ou le fallback local propose une seule modification de strategie a la fois.
 
-Le worker n'execute pas d'ordres reels. Meme si `HERMES_TRADING_MODE=live`, le code refuse de placer des ordres tant qu'un adaptateur live n'existe pas.
+Le code local comporte un adaptateurKraken live soumis aux confirmations et protections d'execution. Le service verifie le12octobre2026 fonctionne en training avec la permission de vrais ordres desactivee. Le worker apparie candidat `hermes_trading.paired_worker` utilise des cycles simules; il reste non deploye et non active. Le diagramme ci-dessous decrit la voie historique, pas encore la nouvelle experimentation. Sa supervision externe unique, ses huit comptesEUR et ses controles sont documentes dans `research/runs/paired-release-v1/RELEASE_AND_RECOVERY.md`.
 
 ## Flux principal
 

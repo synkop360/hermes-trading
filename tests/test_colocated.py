@@ -88,6 +88,8 @@ class ColocatedEntrypointTests(unittest.TestCase):
             finally:
                 service.stop.shutdown()
                 service.stop.server_close()
+                service.thread.join(timeout=5)
+                self.assertFalse(service.thread.is_alive())
 
         self.assertEqual(payload["status"], "ok")
 

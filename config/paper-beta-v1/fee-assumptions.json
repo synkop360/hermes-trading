@@ -1,0 +1,16 @@
+{
+  "actual_account_tier_known": false,
+  "basis": "account_independent_published_estimate",
+  "declared_at": "2026-10-20T20:26:46.101305+00:00",
+  "entry_execution": "taker",
+  "exit_execution": "taker",
+  "fee_sources": [
+    "https://www.kraken.com/features/fee-schedule",
+    "https://blog.kraken.com/product/pro/new-kraken-pro-fee-tiers"
+  ],
+  "maker_fee_rate": "0.004",
+  "schema_version": 1,
+  "slippage_basis": "declared_simulation_estimate_not_measured_fill",
+  "slippage_rate": "0.001",
+  "taker_fee_rate": "0.008"
+}

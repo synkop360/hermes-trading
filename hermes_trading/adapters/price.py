@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 from collections.abc import Callable, Sequence
 from decimal import Decimal, InvalidOperation
+from datetime import datetime, UTC
 import os
 from typing import Any
 
@@ -22,7 +23,10 @@ class PriceClient:
         *,
         exchange_id: str | None = None,
         exchange_factory: Callable[[dict[str, Any]], Any] | None = None,
+        quote_only_on_history_failure: bool = False,
     ) -> None:
+        if type(quote_only_on_history_failure) is not bool:raise ValueError('literal history fallback flag required')
+        self.quote_only_on_history_failure=quote_only_on_history_failure
         self.exchange_id = exchange_id or os.getenv("EXCHANGE_ID", "kraken")
         factory = exchange_factory or getattr(ccxt, self.exchange_id)
         self._exchange = factory(
@@ -70,13 +74,26 @@ class PriceClient:
         self._close_task = None
 
     async def fetch(self, asset: str, timeframe: str = "1h") -> dict[str, Any]:
-        ticker_task = asyncio.create_task(self._exchange.fetch_ticker(asset))
+        async def received_ticker():
+            ticker = await self._exchange.fetch_ticker(asset)
+            return ticker, datetime.now(UTC)
+        ticker_task = asyncio.create_task(received_ticker())
         candles_task = asyncio.create_task(
             self._exchange.fetch_ohlcv(asset, timeframe=timeframe, limit=DEFAULT_CANDLE_LIMIT)
         )
         tasks = (ticker_task, candles_task)
         try:
-            ticker, candles = await asyncio.gather(*tasks)
+            if self.quote_only_on_history_failure:
+                ticker_result,candles=await asyncio.gather(*tasks,return_exceptions=True)
+                if isinstance(ticker_result,BaseException):raise ticker_result
+                if isinstance(candles,BaseException) and not isinstance(candles,Exception):raise candles
+                ticker,received_at=ticker_result
+                try:
+                    if isinstance(candles,Exception):raise ValueError('history unavailable')
+                    return _price_payload(asset,timeframe,self.exchange_id,ticker,candles,received_at=received_at)
+                except (ValueError,TypeError,KeyError,ArithmeticError):
+                    return _received_quote_payload(asset,timeframe,self.exchange_id,ticker,received_at)
+            (ticker, received_at), candles = await asyncio.gather(*tasks)
         finally:
             await _cancel_and_await(tasks)
         return _price_payload(
@@ -85,6 +102,7 @@ class PriceClient:
             self.exchange_id,
             ticker,
             candles,
+            received_at=received_at,
         )
 
     async def fetch_many(
@@ -127,12 +145,22 @@ async def fetch(
         return await client.fetch(asset, timeframe)
 
 
+def _received_quote_payload(asset,timeframe,source,ticker,received_at):
+    if not isinstance(ticker,dict):raise ValueError('ticker response is not a mapping')
+    bid,ask=(_finite_decimal(ticker.get(key)) for key in ('bid','ask'))
+    if not 0<bid<=ask:raise ValueError('invalid received executable quote')
+    return {'schema_version':SCHEMA_VERSION,'asset':asset,'timeframe':timeframe,'source':source,
+            'bid':bid,'ask':ask,'received_at':received_at.isoformat(),'candles':[],'closes':[],
+            'history_status':'unavailable'}
+
+
 def _price_payload(
     asset: str,
     timeframe: str,
     source: str,
     ticker: Any,
     candles: Any,
+    *, received_at: datetime | None = None,
 ) -> dict[str, Any]:
     if not isinstance(ticker, dict):
         raise ValueError("ticker response is not a mapping")
@@ -165,6 +193,7 @@ def _price_payload(
         "asset": asset,
         "timeframe": timeframe,
         "source": source,
+        "received_at": (received_at or datetime.now(UTC)).isoformat(),
         "last": last,
         "bid": bid,
         "ask": ask,

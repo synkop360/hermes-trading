@@ -1,0 +1,117 @@
+{
+  "strategy": {
+    "entry": {
+      "direction": "long",
+      "fee": "taker",
+      "indicator": "rsi_recovery",
+      "max_adx": 40,
+      "require_ema_rising": true,
+      "threshold": 26,
+      "trend_ema_period": 20
+    },
+    "exit": {
+      "fee": "taker",
+      "indicator": "rsi",
+      "max_bars": 48,
+      "partial_close_pct": "0.5",
+      "stop_atr": "2.5",
+      "take_profit_atr": 4,
+      "threshold": 55,
+      "trailing_atr": "2.0"
+    },
+    "position_size_r": "0.5",
+    "reflection": {
+      "enabled": false
+    },
+    "research": {
+      "frozen": true
+    },
+    "simulation": {
+      "maker_fee_rate": "0.004",
+      "max_concurrent_positions": 2,
+      "max_order_quote": "5",
+      "max_symbol_exposure_pct": "0.05",
+      "max_total_exposure_pct": "0.10",
+      "minimum_expected_edge_pct": 0,
+      "risk_per_trade_pct": "0.0025",
+      "slippage_rate": "0.001",
+      "taker_fee_rate": "0.008"
+    },
+    "stop_loss_pct": "0.6",
+    "symbols": {
+      "BTC/USDT": {
+        "entry": {
+          "fee": "taker",
+          "threshold": 33
+        },
+        "exit": {
+          "fee": "taker",
+          "take_profit_atr": "11.0"
+        },
+        "simulation": {
+          "minimum_order_quantity": "0.00005",
+          "minimum_order_quote": "0.5",
+          "quantity_decimals": 8
+        }
+      },
+      "ETH/USDT": {
+        "entry": {
+          "fee": "taker",
+          "threshold": 33
+        },
+        "exit": {
+          "fee": "taker",
+          "take_profit_atr": "11.0"
+        },
+        "simulation": {
+          "minimum_order_quantity": "0.001",
+          "minimum_order_quote": "0.5",
+          "quantity_decimals": 8
+        }
+      },
+      "LINK/USDT": {
+        "entry": {
+          "fee": "taker",
+          "threshold": 32
+        },
+        "exit": {
+          "fee": "taker",
+          "take_profit_atr": "11.0"
+        },
+        "simulation": {
+          "minimum_order_quantity": "0.55",
+          "minimum_order_quote": "0.5",
+          "quantity_decimals": 8
+        }
+      },
+      "SOL/USDT": {
+        "entry": {
+          "fee": "taker",
+          "threshold": 35
+        },
+        "exit": {
+          "fee": "taker",
+          "take_profit_atr": "11.0"
+        },
+        "simulation": {
+          "minimum_order_quantity": "0.06",
+          "minimum_order_quote": "0.5",
+          "quantity_decimals": 8
+        }
+      },
+      "XRP/USDT": {
+        "entry": {
+          "fee": "taker",
+          "threshold": "32.5"
+        },
+        "simulation": {
+          "minimum_order_quantity": "1.65",
+          "minimum_order_quote": "0.5",
+          "quantity_decimals": 8
+        }
+      }
+    },
+    "version": "fixed-rsi-recovery-1"
+  },
+  "timeframe": "15m"
+}

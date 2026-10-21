@@ -1,6 +1,7 @@
 import json
 import tempfile
 import unittest
+from unittest.mock import patch
 from datetime import UTC, datetime
 from decimal import Decimal
 from pathlib import Path
@@ -31,6 +32,14 @@ class WorkingApi:
 
 
 class CostLedgerTests(unittest.TestCase):
+    def test_event_is_synced_before_projection(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            ledger=CostLedger(Path(temp_dir))
+            with patch('hermes_trading.costs.os.fsync') as synced:
+                def project():self.assertTrue(synced.called)
+                with patch.object(ledger,'_project',side_effect=project):
+                    ledger.record(CostEvent('hermes',Decimal('0'),'USD','actual','test',NOW))
+
     def test_unknown_railway_cost_uses_configured_monthly_fallback(self):
         source = RailwayCostSource(api=FailingApi(), fallback_monthly=Decimal("8"))
 

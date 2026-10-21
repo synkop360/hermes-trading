@@ -1,5 +1,23 @@
 # Deploiement Railway
 
+## Candidat paper du20octobre2026
+
+Le Dockerfile local lance maintenant `hermes_trading.paper_boot --root /app/state`,
+en mode `paper` avec les vrais ordres desactives. Il refuse les drafts et ne
+demarre pas le writer historique. Le service Railway observe le20octobre utilise
+encore `hermes_trading.colocated`, version327 en training; ce nouveau candidat
+n'est pas deploye. Les [six conditions de lancement](PAPER_BETA_READINESS.md) et
+le [cutover a approuver](PAPER_BETA_CUTOVER.md) gouvernent cette experimentation.
+Les instructions et preuves plus anciennes ci-dessous restent historiques;
+elles ne constituent pas une autorisation de trading reel ni des prerequis
+supplementaires d'archivage ou de preuve de profit.
+
+## Etat verifie le12octobre2026
+
+Le service actuel utilise encore le deploiement du30aout et le worker historique en training sur des pairesUSDT. Le Dockerfile du depot lance `hermes_trading.colocated`. L'experimentation adaptative apparieeEUR reste locale et non activee. Le paquet candidat, ses empreintes, controles et procedure de reprise figurent dans `research/runs/paired-release-v1/RELEASE_AND_RECOVERY.md`; son Dockerfile isole lance `hermes_trading.paired_worker`. Le buildLinux a ete verifie localement; cela ne prouve pas son deploiementRailway. Ne pas utiliser les instructions live ci-dessous pour cette experimentation: elles decrivent une voie distincte, sans autorisation de vrais ordres. Capacite, couts, supervision et rapport de qualification apparie doivent etre verifies avant activation.
+
+Verification locale ulterieure: le buildLinux du paquet candidat et149 tests cibles ont reussi (`research/runs/paired-container-v1`). Cela ne prouve ni le deploiementRailway ni l'activation ni la rentabilite.
+
 ## Projet actuel
 
 - Projet Railway: `awake-abundance`

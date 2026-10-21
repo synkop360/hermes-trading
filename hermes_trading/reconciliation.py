@@ -325,33 +325,42 @@ class ReconciliationService:
                         status=PositionStatus.OPEN,
                         quantity=remote.filled,
                         entry_price=remote.average_price,
-                        stop_price=intent.stop_price or remote.average_price,
+                        stop_price=(remote.average_price - (intent.reference_price - intent.stop_price)) if intent.stop_price is not None else remote.average_price,
                         strategy_version=self.repository.decision_strategy_version(intent.decision_id),
                         opened_at=remote.updated_at,
                         fees=remote.fee,
                     )
                 )
-        if reconstruct_position and filled_delta > 0 and remote.side == "sell" and intent.position_id is not None and remote.average_price is not None:
+        if reconstruct_position and remote.filled > 0 and remote.side == "sell" and intent.position_id is not None and remote.average_price is not None:
             previous = self.repository.position_by_id(intent.position_id)
-            if previous is not None and previous.status in {PositionStatus.OPENING, PositionStatus.OPEN, PositionStatus.CLOSING}:
-                quantity = min(previous.quantity, filled_delta)
-                remaining = previous.quantity - quantity
-                exit_fee = fee_delta
+            if previous is not None:
                 entry_order = self.repository.entry_order_for_position(intent.position_id)
-                entry_fee = entry_order.fees if entry_order is not None else previous.fees
-                entry_quantity = entry_order.filled_quantity if entry_order is not None else previous.quantity
-                remaining_entry_fee = entry_fee * (entry_quantity - previous_filled) / entry_quantity
-                allocated_entry_fee = remaining_entry_fee * quantity / previous.quantity
-                realized = previous.realized_pnl + quantity * (remote.average_price - previous.entry_price) - allocated_entry_fee - exit_fee
-                total_fees = entry_fee + self.repository.other_exit_fees(intent.position_id, intent.client_order_id) + remote.fee
+                sold, proceeds, exit_fees, partial_count = self.repository.exit_totals_for_position(intent.position_id)
+                if entry_order is None:
+                    # Legacy imported positions lack an entry order. Repeated
+                    # snapshots must not reallocate their already-booked fees.
+                    if filled_delta <= 0 or previous.status is PositionStatus.CLOSED:
+                        return
+                    entry_quantity = previous.quantity + sold - filled_delta
+                    entry_fee = previous.fees - (exit_fees - fee_delta)
+                else:
+                    entry_quantity = entry_order.filled_quantity
+                    entry_fee = entry_order.fees
+                if sold > entry_quantity or entry_quantity <= 0:
+                    self.repository.open_incident(f"reconciliation:oversold:{intent.position_id}", "Exit quantity exceeds entry quantity", severity="critical")
+                    return
+                remaining = entry_quantity - sold
+                allocated_fee = entry_fee * sold / entry_quantity
+                realized = proceeds - sold * previous.entry_price - allocated_fee - exit_fees
                 self.repository.save_position(Position(
                     previous.position_id, previous.asset,
                     PositionStatus.CLOSED if remaining == 0 else PositionStatus.OPEN,
                     remaining if remaining > 0 else entry_quantity,
                     previous.entry_price, previous.stop_price, previous.strategy_version,
-                    previous.opened_at, remote.updated_at if remaining == 0 else None,
-                    realized, total_fees,
+                    previous.opened_at, (previous.closed_at or remote.updated_at) if remaining == 0 else None,
+                    realized, entry_fee + exit_fees,
                     take_profit_price=previous.take_profit_price,
+                    partial_exit_count=partial_count,
                 ))
 
     def _persist_issues(self, issues: list[ReconciliationIssue]) -> None:

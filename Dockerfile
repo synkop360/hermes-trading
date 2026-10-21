@@ -7,6 +7,6 @@ COPY pyproject.toml uv.lock ./
 COPY hermes_trading ./hermes_trading
 COPY scripts ./scripts
 RUN uv sync
-ENV HERMES_TRADING_MODE=training
+ENV HERMES_TRADING_MODE=paper
 ENV HERMES_TRADING_ALLOW_REAL_ORDERS=false
-CMD ["uv", "run", "python", "-m", "hermes_trading.colocated"]
+CMD ["uv", "run", "--no-sync", "python", "-m", "hermes_trading.paper_boot", "--root", "/app/state"]
