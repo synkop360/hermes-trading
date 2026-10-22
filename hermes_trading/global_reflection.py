@@ -103,6 +103,8 @@ def run_global_review(state_dir, runner, *, now=None):
             'Never return a changes list. Keep risk limits and fees unchanged. '
             'A global change must affect an active asset after symbol overrides are applied. '
             'Use a configured active asset to change its override; otherwise prefer no_change. '
+            'stop_loss_pct is ineffective where exit.stop_atr is configured. '
+            'A percentage-stop change must affect an active asset using a percentage stop. '
             'position_size_r is a locked risk setting and cannot be changed. '
             'Trade P&L is not a rolling wallet return; unknown costs are not zero. '
             'The supplied trades may span entry versions. Prefer no_change when evidence is inadequate. '

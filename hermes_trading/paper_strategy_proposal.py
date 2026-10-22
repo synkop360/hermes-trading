@@ -58,7 +58,13 @@ def apply_paper_strategy_proposal(strategy, proposal, *, assets=None):
     effective_assets = [asset] if asset is not None else assets
     for symbol in effective_assets:
         before = _get_nested(_resolve_asset_strategy(strategy, symbol), path)
-        after = _get_nested(_resolve_asset_strategy(updated, symbol), path)
+        resolved = _resolve_asset_strategy(updated, symbol)
+        exit_rule = resolved.get('exit')
+        # The execution policy selects ATR stops by key presence, even when
+        # the configured multiplier is invalid; percentage stops are not a fallback.
+        if variable == 'stop_loss_pct' and isinstance(exit_rule, dict) and 'stop_atr' in exit_rule:
+            continue
+        after = _get_nested(resolved, path)
         if before is None and after is None:
             continue
         if before is None or after is None or proposal_decimal(before) != proposal_decimal(after):

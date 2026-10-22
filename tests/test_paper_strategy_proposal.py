@@ -7,6 +7,41 @@ from hermes_trading.paper_strategy_proposal import apply_paper_strategy_proposal
 
 
 class PaperStrategyProposalTests(unittest.TestCase):
+    def test_percentage_stop_changes_are_rejected_when_atr_stop_key_is_present(self):
+        for multiple in ('2.5', None, 0, False):
+            for asset in (None, 'BTC/EUR'):
+                strategy={'stop_loss_pct':2,'exit':{'stop_atr':multiple},
+                          'symbols':{'BTC/EUR':{},'ETH/EUR':{}}}
+                with self.subTest(multiple=multiple,asset=asset),self.assertRaisesRegex(ValueError,'effective'):
+                    apply_paper_strategy_proposal(strategy,
+                        {'asset':asset,'variable':'stop_loss_pct','value':2.2})
+                self.assertEqual(strategy['stop_loss_pct'],2)
+        with self.assertRaisesRegex(ValueError,'effective'):
+            apply_paper_strategy_proposal({'stop_loss_pct':2,'exit':{'stop_atr':'2'}},
+                {'variable':'stop_loss_pct','value':2.2})
+
+    def test_global_percentage_stop_change_requires_an_affected_active_percentage_asset(self):
+        strategy={'stop_loss_pct':2,'symbols':{
+            'BTC/EUR':{'exit':{'stop_atr':'2'}},'ETH/EUR':{}}}
+        proposal={'variable':'stop_loss_pct','value':2.2}
+        with self.assertRaisesRegex(ValueError,'effective'):
+            apply_paper_strategy_proposal(strategy,proposal,assets=['BTC/EUR'])
+        with self.assertRaisesRegex(ValueError,'effective'):
+            apply_paper_strategy_proposal(strategy,dict(proposal,asset='BTC/EUR'))
+        strategy['symbols']['ETH/EUR']['stop_loss_pct']=2.2
+        with self.assertRaisesRegex(ValueError,'effective'):
+            apply_paper_strategy_proposal(strategy,proposal)
+        strategy['symbols']['ETH/EUR'].clear()
+        updated,_,_=apply_paper_strategy_proposal(strategy,proposal)
+        from hermes_trading.loop import resolve_asset_strategy
+        snapshot=MarketSnapshot('ETH/EUR','1h','available','evaluate','test',
+            price={'candles':[{'high':'101','low':'99','close':'100'} for _ in range(15)]})
+        self.assertEqual(initial_stop_price(snapshot,resolve_asset_strategy(updated,'ETH/EUR'),Decimal('100')),Decimal('97.8'))
+        self.assertEqual(initial_stop_price(snapshot,resolve_asset_strategy(updated,'BTC/EUR'),Decimal('100')),Decimal('96'))
+        scoped,_,_=apply_paper_strategy_proposal(strategy,dict(proposal,asset='ETH/EUR'))
+        self.assertEqual(initial_stop_price(snapshot,resolve_asset_strategy(scoped,'ETH/EUR'),Decimal('100')),Decimal('97.8'))
+        self.assertEqual(strategy['stop_loss_pct'],2)
+
     def test_null_override_does_not_make_a_shadowed_global_change_effective(self):
         for override in ({'max_bars':None}, None):
             with self.subTest(override=override),self.assertRaisesRegex(ValueError,'effective'):

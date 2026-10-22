@@ -36,6 +36,24 @@ class PaperPublicationTests(unittest.TestCase):
     def publish(self, request):
         return publish_paper_request(self.state, request, env={"HERMES_TRADING_MODE": "training"}, now=NOW)
 
+    def test_old_pending_percentage_stop_change_under_atr_cannot_be_published(self):
+        self.strategy['exit']={'stop_atr':'2'}
+        (self.state/'strategy.yaml').write_text(yaml.safe_dump(self.strategy))
+        before=(self.state/'strategy.yaml').read_bytes()
+        candidate=yaml.safe_load(before)
+        candidate['stop_loss_pct']='2.2'
+        runner,_=self.runner({'outcome':'change','variable':'stop_loss_pct','value':2.2,
+                              'reason':'old pending ineffective stop fixture'})
+        with patch('hermes_trading.global_reflection.apply_paper_strategy_proposal',
+                   return_value=(candidate,'stop_loss_pct',None)):
+            self.assertEqual(run_global_review(self.state,runner,now=NOW)['status'],'awaiting_publication')
+        with ReviewLease(self.state) as lease:
+            request=build_publication_request(lease.pending_review(),lease.policy)
+        with self.assertRaisesRegex(ValueError,'effective'):
+            self.publish(request)
+        self.assertEqual((self.state/'strategy.yaml').read_bytes(),before)
+        self.assertFalse((self.state/'history/v0001.yaml').exists())
+
     def test_old_pending_inert_global_candidate_cannot_be_published(self):
         self.strategy['symbols']['BTC/EUR']={'entry':{'threshold':33}}
         (self.state/'strategy.yaml').write_text(yaml.safe_dump(self.strategy))

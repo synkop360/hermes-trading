@@ -24,6 +24,17 @@ class Store:
 
 
 class GlobalReviewTests(unittest.TestCase):
+    def test_percentage_stop_proposal_under_atr_stop_is_rejected_without_staging(self):
+        self.strategy['exit']={'stop_atr':'2'}
+        (self.state/'strategy.yaml').write_text(yaml.safe_dump(self.strategy))
+        before=(self.state/'strategy.yaml').read_bytes()
+        runner,command=self.runner({'outcome':'change','variable':'stop_loss_pct','value':2.2,
+                                   'reason':'controlled ineffective stop proposal'})
+        self.assertEqual(run_global_review(self.state,runner,now=NOW)['status'],'rejected')
+        self.assertEqual((self.state/'strategy.yaml').read_bytes(),before)
+        self.assertEqual(self.audit()['outcome'],'rejected')
+        self.assertEqual(command.call_count,1)
+
     def test_global_proposal_shadowed_on_active_assets_is_rejected_without_version_change(self):
         self.strategy['symbols']['BTC/EUR']={'entry':{'threshold':33}}
         (self.state/'strategy.yaml').write_text(yaml.safe_dump(self.strategy))
@@ -128,6 +139,7 @@ class GlobalReviewTests(unittest.TestCase):
         audit = self.audit()
         self.assertEqual(audit["request"]["strategy"], self.strategy)
         self.assertEqual(audit["response"]["provider"], "test")
+        self.assertIn('stop_loss_pct is ineffective',audit['request']['prompt'])
         self.assertIn("insufficient evidence", audit["response"]["output"])
         self.assertEqual(run_global_review(self.state, runner, now=NOW)["status"], "not_due")
         self.assertEqual(command.call_count, 1)
