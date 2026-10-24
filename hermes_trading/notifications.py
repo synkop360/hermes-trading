@@ -5,6 +5,7 @@ import hashlib
 import json
 import os
 import re
+import threading
 from collections import deque
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
@@ -801,13 +802,37 @@ class PaperDiscordReporter:
             self.status = "metadata_unavailable"
             return False
 
+    @staticmethod
+    def _metadata_io(function):
+        """One daemon OS operation; it cannot hold asyncio.run's executor exit.
+
+        Cancellation cannot interrupt filesystem calls. Their completion may be
+        ignored after loop shutdown, without retaining a financial lease or the
+        process. The caller admits at most one outstanding operation.
+        """
+        loop = asyncio.get_running_loop()
+        future = loop.create_future()
+        def finish(value, error):
+            if future.done():return
+            if error is None:future.set_result(value)
+            else:
+                future.set_exception(error)
+                future.exception()  # also observe errors after caller cancellation
+        def execute():
+            try:value, error = function(), None
+            except Exception as exc:value, error = None, exc
+            try:loop.call_soon_threadsafe(finish, value, error)
+            except RuntimeError:pass  # event loop already closed
+        threading.Thread(target=execute, name='paper-discord-metadata', daemon=True).start()
+        return future
+
     async def _save(self):
         if self._io_task is not None and not self._io_task.done():
             # An OS write cannot be cancelled. Never start a competing writer.
             self.enabled = False
             self.status = "metadata_io_pending"
             return False
-        self._io_task = asyncio.create_task(asyncio.to_thread(self._persist))
+        self._io_task = self._metadata_io(self._persist)
         return await asyncio.shield(self._io_task)
 
     def _consume_batches(self):
@@ -820,8 +845,9 @@ class PaperDiscordReporter:
                 self._state["new_batches"] += 1
 
     async def run(self):
-        if not self.enabled or not await asyncio.to_thread(self._load):
-            return
+        if not self.enabled:return
+        self._io_task = self._metadata_io(self._load)
+        if not await asyncio.shield(self._io_task):return
         try:
             while self.enabled:
                 try:
@@ -891,6 +917,7 @@ class PaperDiscordReporter:
         lines = self._header(self._current, ", ".join(labels))
         lines.append("current financial snapshot; period-end valuation unavailable; interval P&L/Sharpe unavailable.")
         lines.append("primary EUR200; all amounts native EUR net of recorded costs (no extra fee subtraction).")
+        lines.append("Cost quality by category; source details retained in native wallet evidence.")
         financial = self._snapshot or {}
         equities = {}
         for name in _PAPER_ACCOUNTS:
@@ -908,7 +935,15 @@ class PaperDiscordReporter:
                 if isinstance(decision, dict):
                     key = _paper_text(decision.get("action"), 30) + ":" + _paper_text(decision.get("reason"), 45)
                     reasons[key] = reasons.get(key, 0) + 1
-            lines.append(f" costs={_paper_text(obs.get('cost_provenance', 'unknown'), 64)} missing={_paper_text(obs.get('missing', 'unknown'), 80)}"
+            provenance = obs.get('cost_provenance')
+            qualities = []
+            for category in ('hosting','ai','tools','funding'):
+                source = provenance.get(category) if isinstance(provenance,dict) else None
+                quality = source.get('quality') if isinstance(source,dict) else None
+                if quality not in ('actual','estimated','missing'):quality = 'unknown'
+                if isinstance(source,dict) and source.get('amount') is None:quality = 'missing'
+                qualities.append(category + ':' + quality)
+            lines.append(f" costs={' '.join(qualities)} missing={_paper_text(obs.get('missing', 'unknown'), 80)}"
                          f" halted={_paper_text(row.get('halted'), 8)} liquidation_pending={_paper_text(row.get('liquidation_pending'), 8)}"
                          f" events={_paper_text(row.get('event_source_status', 'unavailable'), 24)} decisions={len(decisions)} reasons={_paper_text(reasons, 80)}")
         for size in (50, 100, 150, 200):

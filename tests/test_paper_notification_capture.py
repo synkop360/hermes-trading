@@ -197,6 +197,27 @@ class NotificationBootTests(unittest.IsolatedAsyncioTestCase):
 
 
 class NotificationWorkerIsolationTests(unittest.IsolatedAsyncioTestCase):
+    async def test_archive_outage_protection_emits_final_native_closes_without_replaying_on_ack(self):
+        from test_archive_protective_worker import ProtectiveWorkerTests
+        fixture = ProtectiveWorkerTests(); fixture.setUp()
+        for function,args,kwargs in fixture._cleanups:self.addCleanup(function,*args,**kwargs)
+        fixture._cleanups.clear()
+        offers = []
+        async def invoke(sleep):
+            return await paired_worker.run_worker(fixture.f.f.root,
+                collector_factory=lambda:fixture.f.f.market,clock=fixture.f.f.clock,
+                sleep=sleep,witness=fixture.client,observer=offers.append)
+        result = await invoke(fixture.outage)
+        self.assertEqual(result['completed_batches'],2)
+        settled = [e for e in offers if e['kind']=='settled' and e['completed_batches']==2]
+        self.assertEqual(len(settled),1)
+        self.assertTrue(all(len(row['closes'])==1 for row in settled[0]['accounts'].values()))
+        for name,row in settled[0]['accounts'].items():
+            self.assertEqual(Decimal(row['closes'][0]['realized_pnl_eur']),fixture.f.f.positions(name)[0].realized_pnl)
+        offers.clear(); fixture.error=None
+        await invoke(fixture.f.f.sleep)
+        self.assertFalse(any(e['kind']=='settled' for e in offers))
+
     async def test_observer_exception_does_not_become_worker_failure(self):
         from test_paired_worker import WorkerTests
         self.assertIn('observer', inspect.signature(paired_worker.run_worker).parameters)

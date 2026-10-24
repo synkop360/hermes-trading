@@ -5,6 +5,9 @@ import json
 import tempfile
 import threading
 import time
+import subprocess
+import sys
+import textwrap
 import unittest
 from dataclasses import replace
 from datetime import datetime, timedelta, timezone
@@ -516,6 +519,58 @@ class PaperNotificationTests(unittest.IsolatedAsyncioTestCase):
         await eventually(lambda: "control_200" in self.text())
         self.assertTrue(reporter.enabled)
         self.assertGreaterEqual(reporter.counters["gaps"], 3)
+
+    async def test_all_cost_categories_keep_individual_actual_estimated_missing_quality(self):
+        value = envelope()
+        for row in value['accounts'].values():
+            row['observation']['cost_provenance'] = {
+                name: {'source': 'native-' + name, 'quality': quality, 'amount': '0.2'}
+                for name,quality in (('ai','actual'),('hosting','estimated'),('tools','actual'),('funding','missing'))}
+            row['observation'].update(net_equity=None, missing=['cost:funding'])
+        reporter = self.reporter(); reporter.offer(value); await self.start(reporter)
+        await eventually(lambda: reporter.status == 'delivered')
+        text = self.text()
+        for name in NAMES:self.assertIn(name + ':', text)
+        self.assertEqual(text.count('hosting:estimated'), 8)
+        self.assertEqual(text.count('ai:actual'), 8)
+        self.assertEqual(text.count('funding:missing'), 8)
+        self.assertLessEqual(len(self.sent), 4)
+
+
+class PaperNotificationProcessShutdownTests(unittest.TestCase):
+    def test_stalled_metadata_never_keeps_asyncio_run_alive_after_cancellation(self):
+        # Native entrypoint uses asyncio.run. A cancelled task alone cannot prove
+        # terminal shutdown when default-executor threads are still running.
+        script = textwrap.dedent('''
+            import asyncio,json,sys,tempfile,time,threading
+            from pathlib import Path
+            sys.path.insert(0,str(Path('tests').resolve()))
+            from test_paper_notifications import identity,settings,envelope
+            from hermes_trading.notifications import PaperDiscordReporter
+            entered=threading.Event()
+            async def main(root,operation):
+                async def fake_post(*args):pass
+                reporter=PaperDiscordReporter(root,identity(),settings(),post_json=fake_post)
+                original=getattr(reporter,operation)
+                def stalled():
+                    entered.set();time.sleep(3)
+                    return original()
+                setattr(reporter,operation,stalled)
+                reporter.offer(envelope())
+                task=asyncio.create_task(reporter.run())
+                while not entered.is_set():await asyncio.sleep(.001)
+                task.cancel()
+                try:await task
+                except asyncio.CancelledError:pass
+            with tempfile.TemporaryDirectory() as root:
+                tick=time.monotonic();asyncio.run(main(root,sys.argv[1]))
+                print(json.dumps({'elapsed':time.monotonic()-tick}))
+        ''')
+        for operation in ('_load','_persist'):
+            with self.subTest(operation=operation):
+                result = subprocess.run([sys.executable,'-B','-X','utf8','-c',script,operation],
+                    capture_output=True,text=True,timeout=8,check=True)
+                self.assertLess(json.loads(result.stdout)['elapsed'], 2)
 
 
 if __name__ == "__main__":

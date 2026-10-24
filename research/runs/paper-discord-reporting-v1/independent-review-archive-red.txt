@@ -1,0 +1,28 @@
+{"closed": {"adaptive_100": "closed", "adaptive_150": "closed", "adaptive_200": "closed", "adaptive_50": "closed", "control_100": "closed", "control_150": "closed", "control_200": "closed", "control_50": "closed"}, "completed_batches": 2, "offers": [{"close_count": 0, "completed_batches": 0, "error": "worker_starting", "kind": "operational"}, {"close_count": 0, "completed_batches": 1, "error": null, "kind": "settled"}, {"close_count": 0, "completed_batches": 2, "error": "archive_acknowledgement_pending", "kind": "operational"}], "status": "waiting_for_archive"}
+test_archive_protection_has_settled_close_observation (__main__.archive_probe.<locals>.ArchiveProbe.test_archive_protection_has_settled_close_observation) ... Executing <Task finished name='Task-2' coro=<archive_probe.<locals>.ArchiveProbe.test_archive_protection_has_settled_close_observation() done, defined at E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\research\runs\paper-discord-reporting-v1\independent-review-repro.py:25> exception=AssertionError('False is not true : Missing settled notification for eight canonical archive-protection closes') created at C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\runners.py:100> took 3.406 seconds
+FAIL
+
+======================================================================
+FAIL: test_archive_protection_has_settled_close_observation (__main__.archive_probe.<locals>.ArchiveProbe.test_archive_protection_has_settled_close_observation)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\unittest\async_case.py", line 90, in _callTestMethod
+    if self._callMaybeAsync(method) is not None:
+       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\unittest\async_case.py", line 112, in _callMaybeAsync
+    return self._asyncioRunner.run(
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\base_events.py", line 654, in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+  File "E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\research\runs\paper-discord-reporting-v1\independent-review-repro.py", line 38, in test_archive_protection_has_settled_close_observation
+    self.assertTrue(any(e['kind'] == 'settled' and e['completed_batches'] == 2
+AssertionError: False is not true : Missing settled notification for eight canonical archive-protection closes
+
+----------------------------------------------------------------------
+Ran 1 test in 4.019s
+
+FAILED (failures=1)

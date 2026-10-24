@@ -1,0 +1,10 @@
+{"run_paper_style_cleanup_seconds": 0.422, "reporter_task_done": true}
+{"asyncio_run_total_seconds": 3.016, "promised_shutdown_bound_seconds": 2}
+Traceback (most recent call last):
+  File "E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\research\runs\paper-discord-reporting-v1\independent-review-repro.py", line 121, in <module>
+    raise SystemExit(probes[sys.argv[1]]())
+                     ^^^^^^^^^^^^^^^^^^^^^
+  File "E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\research\runs\paper-discord-reporting-v1\independent-review-repro.py", line 80, in shutdown_probe
+    assert elapsed < 2, 'asyncio.run waited for stalled metadata executor thread after reporter cancellation'
+           ^^^^^^^^^^^
+AssertionError: asyncio.run waited for stalled metadata executor thread after reporter cancellation

@@ -419,8 +419,10 @@ async def run_worker(root,*,collector_factory=None,clock=None,sleep=asyncio.slee
                     'reservation_id':token,'observed_at':current().isoformat()}
                 db.execute('UPDATE lifecycle SET state=? WHERE id=1',(_json(state),));db.commit()
                 if collector is None:collector=(collector_factory or (lambda:PublicQuoteCollector(manifest['timeframe'])))()
-                await run_paired_cycle(root,collector,now=clock,entries_blocked=True,not_after=_time(state['deadline']),
-                    packet_preflight=archive_preflight,operational_stop='paired_archive_stop',reservation_id=token)
+                cycle_result=await run_paired_cycle(root,collector,now=clock,entries_blocked=True,not_after=_time(state['deadline']),
+                    packet_preflight=archive_preflight,operational_stop='paired_archive_stop',reservation_id=token,
+                    **({'notification_capture':True} if observer is not None else {}))
+                if observer is not None:notification_pending['capture']=cycle_result.get('notification')
                 stats=_stats(primary);state['completed_batches']=stats['complete']
                 counts=_active_storage_positions(profiles)
                 state['archive_protection'].update(status='positions_pending' if any(counts.values()) else 'flat',active_positions=counts)
