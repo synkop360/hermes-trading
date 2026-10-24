@@ -1,0 +1,12 @@
+{
+  "code_candidate": "49c851315b98bb33b1eb78180fb789afe2a49f3d",
+  "source_pins": 371,
+  "source_pins_unchanged": true,
+  "export_pins": 522,
+  "export_pins_unchanged": true,
+  "cutover_links_valid": true,
+  "full_run_status": "failed_with_existing_disabled_archive_deadline_reproduced_on_approved_base",
+  "independent_review_complete": true,
+  "actual_successor_deployment": false,
+  "goal_complete": false
+}

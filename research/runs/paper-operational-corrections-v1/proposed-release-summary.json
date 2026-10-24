@@ -1,0 +1,19 @@
+{
+  "authority": "proposal only; no frozen live-state transition, migration or deployment authorized",
+  "candidate_commit": "49c851315b98bb33b1eb78180fb789afe2a49f3d",
+  "export_files_checked_against_commit": 522,
+  "export_raw_pins_sha256": "0a8674efe450b5ad87e6a1f7d1d82b59ab064eafb3d53853ad70a9103212e4e0",
+  "identity_sha256": "cb47dab731855a6f924ff71040204e15aa8e532edb74339250f7b95f092e6060",
+  "native_launcher_sha256": "d1426320536bd8c369163d8fd6221f151fcb4f01e76ceb3033d945b8f96bd073",
+  "new_runtime_hash": "2577bc1ce7c64adccd92a211cf60e25cce6f1e392bb63cfdb516802c1df17fcc",
+  "new_supervisor_release_hash": "f5cae59278c4e99fc3fa3a33da4bf55890276b29370a28260e9cf3400729edfd",
+  "observed_at": "2026-10-24T10:20:26.923843+00:00",
+  "old_runtime_hash": "c013977db0bd446ddc36005352b38a2b0ba2783a77b4547f11682feb104c8450",
+  "old_supervisor_release_hash": "ae9cd5c4fbdeb829ccc1c9f72b27a8b2a9de4ace6a1f8a85c3035753233c9e90",
+  "release_plan_sha256": "3ef8dc9bb000a8ba3209aaa2bc31708638439001f17f0debc981998cb5b3bce4",
+  "runtime_delta": [
+    "archive_snapshot.py"
+  ],
+  "runtime_files": 129,
+  "watcher_sha256": "118d3170daa2bd816c205a66ec12cbaa829aceae01d456e1aa9f8d842f4e36e2"
+}

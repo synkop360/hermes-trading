@@ -1,0 +1,11 @@
+{
+  "captured_at": "2026-10-24T10:22:23.437809+00:00",
+  "name": "state-2026-10-24-8025deae7648",
+  "off_host_verified": false,
+  "path": "C:\\Users\\thoma\\AppData\\Local\\Temp\\synthetic-release-transition-0wd9rdr0\\daily\\state-2026-10-24-8025deae7648",
+  "purpose": "paper_daily_state_backup_v1",
+  "schema_version": 1,
+  "sha256": "4f78bd860a248d13f078933dd2af97b47bfee9f84b5f0a4508b98dde120fb212",
+  "source_identity": "8025deae7648d7325e8b41f6e614489a9a62f2cb7d806f17dad962e956c3c0ba",
+  "status": "completed"
+}

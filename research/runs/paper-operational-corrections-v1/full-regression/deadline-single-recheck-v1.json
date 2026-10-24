@@ -1,0 +1,14 @@
+{
+  "tests": 1,
+  "failures": [],
+  "errors": [
+    [
+      "test_terminal_floor_deletion_requires_raw_originals_before_initial_and_resumed_transition (test_quote_checkpoint.QuoteCheckpointTests.test_terminal_floor_deletion_requires_raw_originals_before_initial_and_resumed_transition)",
+      "Traceback (most recent call last):\n  File \"E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\tests\\test_quote_checkpoint.py\", line 620, in test_terminal_floor_deletion_requires_raw_originals_before_initial_and_resumed_transition\n    q4 = retain_quote_outcomes(worker, archive_root=self.archive,\n         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\hermes_trading\\archive_quote_retention.py\", line 348, in retain_quote_outcomes\n    state.assert_quote_cohort(root,db=db,manifest=manifest,check=budget.check);hit('after_cohort_complete',None)\n                                                                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\hermes_trading\\archive_quote_retention.py\", line 290, in hit\n    else:lease.check()\n         ^^^^^^^^^^^^^\n  File \"E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\hermes_trading\\archive_capacity.py\", line 400, in check\n    report = self._domain._measure(self._deadline)\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\hermes_trading\\archive_capacity.py\", line 190, in _measure\n    deadline.check()\n  File \"E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\hermes_trading\\archive_capacity.py\", line 76, in check\n    raise CapacityUnavailable('capacity admission deadline/clock unavailable')\nhermes_trading.archive_capacity.CapacityUnavailable: capacity admission deadline/clock unavailable\n"
+    ]
+  ],
+  "resource_warnings": [],
+  "elapsed_seconds": 437.98400000005495,
+  "changed_sources": false,
+  "scope": "isolated exact test without deadline changes; not replacement of original full failure"
+}
