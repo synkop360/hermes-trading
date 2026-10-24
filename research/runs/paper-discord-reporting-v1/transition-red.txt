@@ -1,0 +1,47 @@
+test_exact_both_host_transition_preserves_original_state_and_retries (test_paper_discord_transition.ReportingClosedCopyTests.test_exact_both_host_transition_preserves_original_state_and_retries) ... Executing <Task finished name='Task-2' coro=<ReportingClosedCopyTests.test_exact_both_host_transition_preserves_original_state_and_retries() done, defined at E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\tests\test_paper_discord_transition.py:61> exception=ValueError('correction must retain approved base commit') created at C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\runners.py:100> took 5.000 seconds
+ERROR
+test_exact_reporting_delta_is_admitted_from_installed_successor_only (test_paper_discord_transition.ReportingReleaseValidationTests.test_exact_reporting_delta_is_admitted_from_installed_successor_only) ... ERROR
+test_reporting_admission_does_not_expand_backup_or_other_runtime_permission (test_paper_discord_transition.ReportingReleaseValidationTests.test_reporting_admission_does_not_expand_backup_or_other_runtime_permission) ... ok
+
+======================================================================
+ERROR: test_exact_both_host_transition_preserves_original_state_and_retries (test_paper_discord_transition.ReportingClosedCopyTests.test_exact_both_host_transition_preserves_original_state_and_retries)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\unittest\async_case.py", line 90, in _callTestMethod
+    if self._callMaybeAsync(method) is not None:
+       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\unittest\async_case.py", line 112, in _callMaybeAsync
+    return self._asyncioRunner.run(
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\base_events.py", line 654, in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+  File "E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\tests\test_paper_discord_transition.py", line 65, in test_exact_both_host_transition_preserves_original_state_and_retries
+    plan = module.prepare_plan(f.worker_root,f.supervisor_root,f.launch_file,
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\scripts\paper_release_transition.py", line 58, in call
+    try: return function(*args, **kwargs)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\scripts\paper_release_transition.py", line 379, in prepare_plan
+    validate_release_plan(release_plan)
+  File "E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\scripts\paper_release_transition.py", line 759, in validate_release_plan
+    raise ValueError('correction must retain approved base commit')
+ValueError: correction must retain approved base commit
+
+======================================================================
+ERROR: test_exact_reporting_delta_is_admitted_from_installed_successor_only (test_paper_discord_transition.ReportingReleaseValidationTests.test_exact_reporting_delta_is_admitted_from_installed_successor_only)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\tests\test_paper_discord_transition.py", line 28, in test_exact_reporting_delta_is_admitted_from_installed_successor_only
+    api().validate_release_plan(plan)
+  File "E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\scripts\paper_release_transition.py", line 759, in validate_release_plan
+    raise ValueError('correction must retain approved base commit')
+ValueError: correction must retain approved base commit
+
+----------------------------------------------------------------------
+Ran 3 tests in 5.274s
+
+FAILED (errors=2)

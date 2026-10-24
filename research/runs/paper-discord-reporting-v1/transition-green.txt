@@ -1,0 +1,9 @@
+test_exact_both_host_transition_preserves_original_state_and_retries (test_paper_discord_transition.ReportingClosedCopyTests.test_exact_both_host_transition_preserves_original_state_and_retries) ... Executing <Task finished name='Task-2' coro=<ReportingClosedCopyTests.test_exact_both_host_transition_preserves_original_state_and_retries() done, defined at E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\tests\test_paper_discord_transition.py:59> result=None created at C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\runners.py:100> took 10.063 seconds
+ok
+test_exact_reporting_delta_is_admitted_from_installed_successor_only (test_paper_discord_transition.ReportingReleaseValidationTests.test_exact_reporting_delta_is_admitted_from_installed_successor_only) ... ok
+test_reporting_admission_does_not_expand_backup_or_other_runtime_permission (test_paper_discord_transition.ReportingReleaseValidationTests.test_reporting_admission_does_not_expand_backup_or_other_runtime_permission) ... ok
+
+----------------------------------------------------------------------
+Ran 3 tests in 10.376s
+
+OK

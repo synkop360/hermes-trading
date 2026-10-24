@@ -1,6 +1,7 @@
 """Explicit operator correction on supplied closed copies; never starts a writer.
 
-The only supported runtime delta is the approved snapshot-name correction.
+Supported deltas are the reviewed snapshot correction from its original base,
+or the four-module paper reporting correction from the installed successor.
 No transport, provider, scheduling, deployment or experiment initialization is
 performed here. Inspection is the default; apply requires an explicit flag and
 approval reference. Live use still requires separate exact operator approval.
@@ -28,10 +29,13 @@ from hermes_trading.reflection_supervision import _hash, _json, _time, load_owne
 from hermes_trading.paper_publication import _temporary, _sync_dir
 
 BASE_COMMIT = '6c9d520da5f8473b51c912d1eb0e269ee94d4b1b'
+REPORTING_BASE_COMMIT = '49c851315b98bb33b1eb78180fb789afe2a49f3d'
+REPORTING_MODULES = {'notifications.py','paired_paper.py','paired_worker.py','paper_boot.py'}
 TARGET = dict(project='f78f42d9-20ec-44f6-ae3f-f8bb79ee7000',
               service='8b94cbc9-293e-4222-a8a7-698b656985f7',
               environment='fdcc71a3-00a9-410c-8d6f-59af9bc98d36')
 PURPOSE = 'paper_backup_plus_release_transition_v1'
+REPORTING_PURPOSE = 'paper_discord_release_transition_v1'
 NAMES = {f'{arm}_{wallet}' for arm in ('adaptive', 'control') for wallet in (50, 100, 150, 200)}
 COMPONENTS = (
     ('worker_renewal', 'worker', 'adaptive_200/model_access_refresh.sqlite', 'binding'),
@@ -385,7 +389,7 @@ def prepare_plan(worker_root, supervisor_root, launch_file, *, release_plan, exp
         raise ValueError('original opening/manifest/accounts/owner identity differs')
     _static_supervisor(layout,release_plan)
     protected = _protected(layout)
-    body = dict(schema_version=1, purpose=PURPOSE, release_plan=deepcopy(release_plan), identity=actual,
+    body = dict(schema_version=1, purpose=_purpose(release_plan), release_plan=deepcopy(release_plan), identity=actual,
                 components=_component_specs(layout, release_plan), protected=protected)
     if _protected(layout) != protected: raise ValueError('source changed during plan inspection')
     return dict(body, transition_id=_hash(body))
@@ -394,9 +398,9 @@ def prepare_plan(worker_root, supervisor_root, launch_file, *, release_plan, exp
 def _validate_plan(plan, layout):
     if not isinstance(plan, dict) or set(plan) != {'schema_version','purpose','release_plan','identity','components','protected','transition_id'}:
         raise ValueError('exact frozen transition plan required')
-    if type(plan['schema_version']) is not int or plan['schema_version'] != 1 or plan['purpose'] != PURPOSE:
-        raise ValueError('transition schema/purpose differs')
     validate_release_plan(plan['release_plan'])
+    if type(plan['schema_version']) is not int or plan['schema_version'] != 1 or plan['purpose'] != _purpose(plan['release_plan']):
+        raise ValueError('transition schema/purpose differs')
     if plan['transition_id'] != _hash({k:v for k,v in plan.items() if k!='transition_id'}):
         raise ValueError('transition plan hash differs')
     if _identity(layout) != plan['identity']: raise ValueError('original experiment identity changed')
@@ -752,13 +756,17 @@ def _digest(value, length=64):
         raise ValueError('exact lowercase source digest required')
 
 
+def _purpose(plan):
+    return REPORTING_PURPOSE if plan['old_commit']==REPORTING_BASE_COMMIT else PURPOSE
+
+
 def validate_release_plan(plan):
     if not isinstance(plan, dict) or set(plan) != {'old_commit', 'new_commit', 'target', 'old', 'new'}:
         raise ValueError('exact correction release plan required')
-    if plan['old_commit'] != BASE_COMMIT:
+    if plan['old_commit'] not in {BASE_COMMIT,REPORTING_BASE_COMMIT}:
         raise ValueError('correction must retain approved base commit')
     _digest(plan['new_commit'], 40)
-    if plan['new_commit'] == BASE_COMMIT:
+    if plan['new_commit'] == plan['old_commit']:
         raise ValueError('successor must be a different reviewed commit')
     target = plan['target']
     if not isinstance(target, dict) or set(target) != set(TARGET) | {'experiment_id'}:
@@ -784,8 +792,9 @@ def validate_release_plan(plan):
         raise ValueError('watcher and native launcher must remain unchanged')
     if set(old['runtime']) != set(new['runtime']):
         raise ValueError('runtime source inventory changed')
-    if {name for name in old['runtime'] if old['runtime'][name] != new['runtime'][name]} != {'archive_snapshot.py'}:
-        raise ValueError('only the snapshot-name runtime digest may change')
+    allowed = REPORTING_MODULES if plan['old_commit']==REPORTING_BASE_COMMIT else {'archive_snapshot.py'}
+    if {name for name in old['runtime'] if old['runtime'][name] != new['runtime'][name]} != allowed:
+        raise ValueError('exact reviewed runtime delta required for the selected base')
 
 
 if __name__ == '__main__':
