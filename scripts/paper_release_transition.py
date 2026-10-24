@@ -9,12 +9,12 @@ import argparse
 from contextlib import ExitStack, closing, contextmanager
 from contextvars import ContextVar
 from copy import deepcopy
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from functools import wraps
 import hashlib
 import json
 import os
-from pathlib import Path
+from pathlib import Path, PureWindowsPath, PurePosixPath
 import re
 import sqlite3
 import sys
@@ -23,8 +23,8 @@ import time
 
 from hermes_trading.archive_snapshot import _safe_root
 from hermes_trading.paired_inception import read_paired_inception
-from hermes_trading.paired_primary import resolve_primary
-from hermes_trading.reflection_supervision import _hash, _json, load_owner_policy
+from hermes_trading.paired_primary import resolve_primary, validate_primary_limits
+from hermes_trading.reflection_supervision import _hash, _json, _time, load_owner_policy
 from hermes_trading.paper_publication import _temporary, _sync_dir
 
 BASE_COMMIT = '6c9d520da5f8473b51c912d1eb0e269ee94d4b1b'
@@ -284,6 +284,62 @@ def _identity(layout, *, check_economics=False):
                 opening_hash=_hash(opening), policy_hash=_hash(policy), account_hashes=accounts)
 
 
+def _importer_schema(db, name):
+    # Use the exact native CREATE statements, including SQLite's own indexes.
+    # Table names alone admit extensions that break positional native inserts.
+    statements = ['CREATE TABLE binding (id INTEGER PRIMARY KEY,payload TEXT)']
+    if name == 'worker_renewal':
+        statements += ['CREATE TABLE renewals (at TEXT PRIMARY KEY,access_hash TEXT,receipt TEXT)']
+    else:
+        statements += ['CREATE TABLE events (event_id TEXT PRIMARY KEY,payload TEXT)',
+                       'CREATE TABLE snapshots (at TEXT PRIMARY KEY,source_hash TEXT,receipt TEXT)']
+    query = 'SELECT type,name,tbl_name,sql FROM sqlite_master ORDER BY type,name'
+    with closing(sqlite3.connect(':memory:')) as expected:
+        for statement in statements: expected.execute(statement)
+        if list(db.execute(query)) != list(expected.execute(query)):
+            raise ValueError('importer schema differs from original native ledger')
+
+
+def _static_supervisor(layout, release_plan, originals=None):
+    """Check retained identity without resolving a foreign host's path strings."""
+    from hermes_trading.supervisor_launch import launch_primary
+    manifest = _read(layout['worker']/'manifest.json'); primary = resolve_primary(manifest)
+    policy = _read(layout['supervisor']/'reflection_owner.json')
+    account = _read(layout['supervisor']/'wallet_account.json')
+    limits = originals['pc_limits'] if originals else _read(layout['supervisor']/'supervisor_limits.json')
+    worker_limits = originals['worker_limits'] if originals else _read(layout['worker']/'adaptive_200/supervisor_limits.json')
+    if worker_limits != limits: raise ValueError('original supervisor limit copies differ')
+    if (limits.get('experiment_id') != policy['experiment_id'] or limits.get('policy_hash') != _hash(policy)
+            or limits.get('release_hash') != _hash(release_plan['old'])):
+        raise ValueError('supervisor limit identity differs')
+    validate_primary_limits(limits,primary,_hash(account))
+    seconds = limits.get('max_runtime_seconds')
+    if type(seconds) is not int or not 1 <= seconds <= 180*86400:
+        raise ValueError('finite original supervisor lifetime required')
+    if _time(limits.get('activated_at')) != _time(account['activated_at']):
+        raise ValueError('original supervisor activation differs')
+    launch = originals['pc_launch'] if originals else _read(layout['launch'])
+    if (launch.get('status') != 'activated' or launch.get('enabled') is not True or launch_primary(launch) != primary
+            or launch.get('experiment_id') != policy['experiment_id'] or launch.get('account_hash') != _hash(account)
+            or launch.get('policy_hash') != _hash(policy) or launch.get('release_hash') != _hash(release_plan['old'])):
+        raise ValueError('original launch identity differs')
+    if _time(launch.get('expires_at')) != _time(account['activated_at'])+timedelta(seconds=seconds):
+        raise ValueError('original launch deadline differs')
+    # Reference copies retain original host paths; enforce their structural
+    # relationships with pure paths, never treating them as local authorities.
+    def foreign_path(key):
+        value=launch.get(key)
+        if not isinstance(value,str):raise ValueError('absolute original launch path required')
+        path = PureWindowsPath(value) if '\\' in value or re.match(r'^[A-Za-z]:',value) else PurePosixPath(value)
+        if not path.is_absolute() or '..' in path.parts:raise ValueError('absolute original launch path required')
+        return path
+    base=foreign_path('project_dir')/'state/paired-supervisor'/policy['experiment_id']
+    if (foreign_path('local_state_dir') != base/primary.profile_key('adaptive') or
+            foreign_path('mirror_dir') != base/'mirror' or
+            launch.get('remote_state_dir') != '/app/state/'+primary.profile_key('adaptive')):
+        raise ValueError('original launch targets differ')
+
+
 def _component_specs(layout, release_plan):
     old, new = release_plan['old'], release_plan['new']
     policy = _read(layout['supervisor']/'reflection_owner.json')
@@ -296,10 +352,7 @@ def _component_specs(layout, release_plan):
         path = _path(layout, component)
         if component['kind'] == 'database':
             with _database(path) as db:
-                tables = {r[0] for r in db.execute("SELECT name FROM sqlite_master WHERE type='table'")}
-                expected_tables = {'binding','renewals'} if name=='worker_renewal' else {'binding','events','snapshots'}
-                if tables != expected_tables or db.execute("SELECT 1 FROM sqlite_master WHERE type IN ('trigger','view') LIMIT 1").fetchone():
-                    raise ValueError('importer schema differs from original native ledger')
+                _importer_schema(db,name)
                 rows = db.execute('SELECT id,payload FROM binding').fetchall()
             if len(rows) != 1 or rows[0][0] != 1: raise ValueError('existing single importer binding required')
             before = rows[0][1]; body = _decode(before)
@@ -330,6 +383,7 @@ def prepare_plan(worker_root, supervisor_root, launch_file, *, release_plan, exp
     actual = _identity(layout,check_economics=True)
     if actual != expected_identity or actual['experiment_id'] != release_plan['target']['experiment_id']:
         raise ValueError('original opening/manifest/accounts/owner identity differs')
+    _static_supervisor(layout,release_plan)
     protected = _protected(layout)
     body = dict(schema_version=1, purpose=PURPOSE, release_plan=deepcopy(release_plan), identity=actual,
                 components=_component_specs(layout, release_plan), protected=protected)
@@ -366,6 +420,7 @@ def _validate_plan(plan, layout):
         if {k:v for k,v in before.items() if k!=binding_field} != {k:v for k,v in after.items() if k!=binding_field}:
             raise ValueError('transition attempts to change non-release state')
         if kind == 'database':
+            with _database(_path(layout,component)) as db: _importer_schema(db,name)
             expected_before, expected_after = _hash(old['runtime']), _hash(new['runtime'])
             if before.get('account') != plan['identity']['account_hashes']['adaptive_200'] or before.get('policy') != _hash(policy):
                 raise ValueError('original importer owner/account differs')
@@ -376,6 +431,7 @@ def _validate_plan(plan, layout):
             expected_before, expected_after = _hash(old), _hash(new)
         if before.get(binding_field) != expected_before or after.get(binding_field) != expected_after:
             raise ValueError('component does not implement exact old/new release')
+    _static_supervisor(layout,plan['release_plan'],{c['name']:_decode(c['before']) for c in components})
 
 
 def _component_state(layout, component, connections=None):
@@ -521,18 +577,52 @@ def _approval(value):
         raise ValueError('explicit exact-transition approval reference required')
 
 
+def _validate_component_receipt(value,plan,layout,component,reverse):
+    if value.get('transition_id') != plan['transition_id'] or value.get('name') != component['name']:
+        raise ValueError('component receipt conflicts with exact transition')
+    if (value.get('before_hash'), value.get('after_hash')) != (component['before_hash'],component['after_hash']):
+        raise ValueError('component receipt hash differs')
+    if value.get('root_binding') != _root_binding(layout) or value.get('reverse') is not reverse:
+        raise ValueError('component receipt target/direction differs')
+
+
+def _preflight(plan,layout,connections=None,*,reverse=False):
+    states={c['name']:_component_state(layout,c,connections) for c in plan['components']}
+    if 'conflict' in states.values():raise ValueError('component set conflicts before any checked write')
+    components={c['name']:c for c in plan['components']}
+    for direction,folder in ((False,'components'),(True,'rollback-components')):
+        directory=layout['audit']/folder
+        if directory.exists():
+            for path in directory.iterdir():
+                _check()
+                if path.name not in {name+'.json' for name in components}:
+                    raise ValueError('unknown transition component receipt')
+                component=components[path.stem]
+                _validate_component_receipt(_read(path),plan,layout,component,direction)
+                if direction and not reverse:raise ValueError('reverse work requires rollback reconciliation')
+                if direction == reverse and states[path.stem] != ('before' if reverse else 'after'):
+                    raise ValueError('component receipt contradicts retained state')
+    for direction,filename,status in ((False,'receipt.json','completed'),(True,'rollback-receipt.json','rolled_back')):
+        path=layout['audit']/filename
+        if not path.exists():continue
+        receipt=_read(path)
+        if (receipt.get('transition_id') != plan['transition_id'] or receipt.get('root_binding') != _root_binding(layout)
+                or receipt.get('status') != status):raise ValueError('completion receipt differs')
+        rows=receipt.get('components')
+        names=list(components); expected=list(reversed(names)) if direction else names
+        if not isinstance(rows,list) or [r.get('name') for r in rows] != expected:
+            raise ValueError('completion component inventory differs')
+        for row in rows:_validate_component_receipt(row,plan,layout,components[row['name']],direction)
+        if direction and not reverse:raise ValueError('completed rollback requires a new transition audit')
+
+
 def _component_receipt(plan, layout, component, *, recovered=False, reverse=False):
     folder = layout['audit']/('rollback-components' if reverse else 'components')
     folder.mkdir(exist_ok=True)
     path = folder/(component['name']+'.json')
     if path.exists():
         value = _read(path)
-        if value.get('transition_id') != plan['transition_id'] or value.get('name') != component['name']:
-            raise ValueError('component receipt conflicts with exact transition')
-        if (value.get('before_hash'), value.get('after_hash')) != (component['before_hash'],component['after_hash']):
-            raise ValueError('component receipt hash differs')
-        if value.get('root_binding') != _root_binding(layout) or value.get('reverse') is not reverse:
-            raise ValueError('component receipt target/direction differs')
+        _validate_component_receipt(value,plan,layout,component,reverse)
         return value
     value = dict(transition_id=plan['transition_id'], name=component['name'], reverse=reverse,
                  root_binding=_root_binding(layout),
@@ -556,6 +646,7 @@ def apply_transition(plan, *, worker_root, supervisor_root, launch_file, audit_d
         _intent(plan,layout)
         complete = layout['audit']/'receipt.json'
         if complete.exists():
+            _preflight(plan,layout)
             receipt = _read(complete)
             if receipt.get('transition_id') != plan['transition_id'] or receipt.get('status') != 'completed':
                 raise ValueError('completed receipt differs')
@@ -576,6 +667,7 @@ def apply_transition(plan, *, worker_root, supervisor_root, launch_file, audit_d
             _prepare_audit(plan,layout,connections,approval_ref)
             if fault: fault('intent',None)
         else: _verify_rollback(plan,layout)
+        _preflight(plan,layout,connections)
         receipts = []
         for component in plan['components']:
             changed = _change(layout,component,connections)
@@ -608,6 +700,7 @@ def rollback_transition(plan, *, worker_root, supervisor_root, launch_file, audi
         _pending(layout,connections)
         if _protected(layout,connections) != plan['protected']:
             raise ValueError('state changed before rollback')
+        _preflight(plan,layout,connections,reverse=True)
         receipt_path = layout['audit']/'rollback-receipt.json'
         if receipt_path.exists():
             receipt = _read(receipt_path)

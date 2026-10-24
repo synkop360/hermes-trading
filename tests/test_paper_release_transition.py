@@ -193,6 +193,66 @@ class ClosedCopyTransitionTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(len(self.histories()['renewals']),1)
         self.assertFalse(f.audit_dir.exists())
 
+    async def test_extended_native_importer_tables_are_refused_before_plan(self):
+        f = self.fixture
+        for filename,tables in (('model_access_refresh.sqlite',('binding','renewals')),
+                                ('supervisor_usage_feed.sqlite',('events','snapshots'))):
+            path=f.primary/filename; original=path.read_bytes()
+            for table in tables:
+                try:
+                    with closing(sqlite3.connect(path)) as db:
+                        db.execute('ALTER TABLE '+table+' ADD COLUMN unknown_extension TEXT');db.commit()
+                    with self.subTest(table=table),self.assertRaises(ValueError):self.plan()
+                finally:path.write_bytes(original)
+        self.assertFalse(f.audit_dir.exists())
+
+    async def test_preplan_launcher_identity_and_primary_limits_are_checked(self):
+        f=self.fixture
+        for key,value in (('account_hash','0'*64),('policy_hash','0'*64),
+                          ('experiment_id','different-experiment'),('enabled',False),
+                          ('primary_wallet_eur',100),('primary_selection_sha256','0'*64),
+                          ('remote_state_dir','/app/state/adaptive_100'),('expires_at',f.account['activated_at'])):
+            original=f.launch_file.read_bytes()
+            try:
+                body=json.loads(original);body[key]=value;f.launch_file.write_text(json.dumps(body))
+                with self.subTest(field=key),self.assertRaises(ValueError):self.plan()
+            finally:f.launch_file.write_bytes(original)
+        path=f.primary/'supervisor_limits.json';original=path.read_bytes()
+        try:
+            body=json.loads(original);body['account_hash']='0'*64;path.write_text(json.dumps(body))
+            with self.assertRaises(ValueError):self.plan()
+        finally:path.write_bytes(original)
+        self.assertFalse(f.audit_dir.exists())
+
+    async def test_reconcile_and_rollback_preflight_all_states_and_receipts(self):
+        from release_transition_fixtures import NativeTransitionFixture
+        for reverse in (False,True):
+            for conflict in ('binding','receipt'):
+                with self.subTest(reverse=reverse,conflict=conflict):
+                    f=await NativeTransitionFixture.create(self);plan=self.plan(f);options=self.options(f)
+                    def interrupt(point,name):
+                        if point=='component_commit' and name=='worker_renewal':raise OSError('synthetic interruption')
+                    with self.assertRaises(OSError):
+                        self.module.apply_transition(plan,**options,apply=True,approval_ref='synthetic',fault=interrupt)
+                    if conflict=='binding':
+                        target=plan['components'][0 if reverse else -1]
+                        path=f.primary/'model_access_refresh.sqlite' if reverse else f.launch_file
+                        if reverse:
+                            with closing(sqlite3.connect(path)) as db:
+                                body=json.loads(db.execute('SELECT payload FROM binding WHERE id=1').fetchone()[0])
+                                body['release']='0'*64;db.execute('UPDATE binding SET payload=?',(json.dumps(body),));db.commit()
+                        else:
+                            body=json.loads(path.read_text());body['release_hash']='0'*64;path.write_text(json.dumps(body))
+                    else:
+                        folder=f.audit_dir/('rollback-components' if reverse else 'components');folder.mkdir(exist_ok=True)
+                        (folder/('worker_renewal.json' if reverse else 'pc_launch.json')).write_text('{"wrong":"receipt"}')
+                    layout=self.module._layout(**options)
+                    before=[self.module._component_state(layout,c) for c in plan['components']]
+                    action=self.module.rollback_transition if reverse else self.module.apply_transition
+                    extra={} if reverse else {'reconcile':True}
+                    with self.assertRaises(ValueError):action(plan,**options,apply=True,approval_ref='synthetic',**extra)
+                    self.assertEqual(before,[self.module._component_state(layout,c) for c in plan['components']])
+
     async def test_cli_defaults_to_inspection_and_bounded_reads_do_not_write(self):
         from itertools import count
         from unittest.mock import patch
