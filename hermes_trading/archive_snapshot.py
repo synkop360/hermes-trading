@@ -81,7 +81,7 @@ def _inventory(root, check):
         for path in directory.iterdir():
             check(); info = path.lstat(); _regular_or_directory(info)
             # Portable object names; reject rather than normalize collisions.
-            if re.fullmatch('[A-Za-z0-9_.-]+', path.name) is None or path.name.endswith('.'):
+            if re.fullmatch('[A-Za-z0-9_.+-]+', path.name) is None or path.name.endswith('.'):
                 raise ValueError('nonportable snapshot evidence name')
             if stat.S_ISDIR(info.st_mode):
                 stack.append(path)
