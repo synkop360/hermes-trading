@@ -1,0 +1,27 @@
+{"confirmed_messages": 5, "confirmed_groups": {"ecc0266c2caada31aa490631": 2, "6ea3653449e814940a7fb661": 3}, "failed_attempts": 3, "abandoned": ["summary:0ab7442e640e179758b352f5:events:2410a9252f0df9a875ff914a"], "event_markers": 0, "cycle_marker": "1"}
+test_combined_partial_failure_keeps_one_delivery_intent (__main__.FailureProbe.test_combined_partial_failure_keeps_one_delivery_intent) ... FAIL
+
+======================================================================
+FAIL: test_combined_partial_failure_keeps_one_delivery_intent (__main__.FailureProbe.test_combined_partial_failure_keeps_one_delivery_intent)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\unittest\async_case.py", line 90, in _callTestMethod
+    if self._callMaybeAsync(method) is not None:
+       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\unittest\async_case.py", line 112, in _callMaybeAsync
+    return self._asyncioRunner.run(
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\base_events.py", line 654, in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+  File "E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\research\runs\paper-discord-reporting-v1\combined-failure-repro.py", line 48, in test_combined_partial_failure_keeps_one_delivery_intent
+    self.assertLessEqual(len(groups), 1,
+AssertionError: 2 not less than or equal to 1 : Failed combined input was redispatched as a second summary-only intent
+
+----------------------------------------------------------------------
+Ran 1 test in 0.980s
+
+FAILED (failures=1)

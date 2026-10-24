@@ -360,7 +360,7 @@ class PaperNotificationTests(unittest.IsolatedAsyncioTestCase):
         value = envelope()
         value["accounts"]["adaptive_200"]["closes"] = [close(f"p{i}@everyone") for i in range(120)]
         reporter = self.reporter(); reporter.offer(value); await self.start(reporter)
-        await eventually(lambda: "control_200" in self.text()); await asyncio.sleep(.025)
+        await eventually(lambda: reporter.status == 'delivered')
         groups = {}
         for _, payload in self.sent:
             content = payload["content"]
@@ -535,6 +535,76 @@ class PaperNotificationTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(text.count('ai:actual'), 8)
         self.assertEqual(text.count('funding:missing'), 8)
         self.assertLessEqual(len(self.sent), 4)
+
+    async def test_eight_closes_and_due_five_batch_summary_share_one_four_part_envelope(self):
+        reporter = self.reporter(); await self.start(reporter); reporter.offer(envelope())
+        await eventually(lambda: reporter._state.get('startup') is True)
+        for number in (2,3,4):
+            reporter.offer(envelope(number))
+            await eventually(lambda: reporter._state.get('last_completed') == number)
+        self.sent.clear(); value = envelope(5)
+        for name,row in value['accounts'].items():
+            event = close('native-risk-close-' + name); event['account'] = name
+            row['closes'] = [event]
+        reporter.offer(value)
+        await eventually(lambda: reporter._state['cadences'].get('cycle') == '1')
+        self.assertLessEqual(len(self.sent), 4)
+        self.assertTrue(all(len(payload['content']) <= 1900 for _,payload in self.sent))
+        for name in NAMES:
+            self.assertIn(name + ':', self.text())
+            self.assertIn('native-risk-close-' + name, self.text())
+
+    async def test_new_envelopes_arriving_during_delivery_keep_their_own_combined_part_bound(self):
+        entered = asyncio.Event(); release = asyncio.Event()
+        async def blocked(url,payload):
+            await self.poster(url,payload)
+            if len(self.sent) == 1:entered.set(); await release.wait()
+        reporter = self.reporter(post_json=blocked); await self.start(reporter)
+        stamps = {}
+        def offer(number):
+            at = NOW + timedelta(minutes=number); stamps[number] = at.isoformat()
+            value = envelope(number,at)
+            for name,row in value['accounts'].items():
+                event = close(f'position-{number}-{name}'); event.update(account=name,closed_at=at.isoformat())
+                row['closes'] = [event]
+            reporter.offer(value)
+        offer(1); await asyncio.wait_for(entered.wait(), 1)
+        for number in (2,3,4,5):offer(number)
+        release.set()
+        await eventually(lambda: reporter._state['cadences'].get('cycle') == '1')
+        for stamp in stamps.values():
+            parts = [payload['content'] for _,payload in self.sent if stamp in payload['content'].splitlines()[0]]
+            self.assertGreater(len(parts), 0)
+            self.assertLessEqual(len(parts), 4)
+        self.assertIn('position-5-adaptive_200', self.text())
+
+    async def test_abandoned_combined_envelope_never_falls_back_to_a_second_summary_intent(self):
+        async def poster(url,payload):
+            if 'Canonical event outcomes:' in payload['content']:
+                response = httpx.Response(500,request=httpx.Request('POST',url))
+                response.raise_for_status()
+            await self.poster(url,payload)
+        async def no_wait(delay):await asyncio.sleep(0)
+        reporter = self.reporter(post_json=poster,sleep=no_wait)
+        await self.start(reporter); reporter.offer(envelope())
+        await eventually(lambda: reporter._state.get('startup') is True)
+        for number in (2,3,4):
+            reporter.offer(envelope(number))
+            await eventually(lambda: reporter._state.get('last_completed') == number)
+        self.sent.clear(); value = envelope(5)
+        for name,row in value['accounts'].items():
+            event = close('abandoned-' + name); event['account'] = name; row['closes'] = [event]
+        reporter.offer(value)
+        await eventually(lambda: bool(reporter._state.get('abandoned')))
+        await asyncio.sleep(.6)
+        self.assertEqual(len({p['content'].split('[paper:')[-1].split(' part:')[0] for _,p in self.sent}),1)
+        self.assertLessEqual(len(self.sent),4)
+        self.assertNotIn('cycle',reporter._state['cadences'])
+        self.assertEqual(reporter._state['events'],[])
+        # A later input is a new bounded observation, so transient failures must
+        # not suppress every future financial summary for this cadence.
+        reporter.offer(envelope(6,NOW+timedelta(minutes=1)))
+        await eventually(lambda: reporter._state['cadences'].get('cycle') == '1')
 
 
 class PaperNotificationProcessShutdownTests(unittest.TestCase):

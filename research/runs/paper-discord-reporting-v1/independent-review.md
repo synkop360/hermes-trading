@@ -65,3 +65,17 @@ $env:PYTHONPATH='tests;.'
 All three intentionally exit 1 against the reviewed candidate. Both real HTTP transport methods are patched to reject access. The archive fixture uses its in-process disposable signed receiver, with no external network.
 
 No further material issue was established in the reviewed release-admission changes or the inspected accounting/transport boundaries. That statement is limited to this scoped review and these reproductions; it is not blanket approval from existing test counts. The root's full Windows run and known baseline archive-capacity deadline error were not independently rerun here. The three findings have been sent to the implementer; no fixes or follow-up verification are included in this report.
+
+## Follow-up: all three findings corrected
+
+Independently inspected the implementer's fixes and reran the original saved probes against corrected commit `8f315b35cf6a40267cc07be1bac2c9be126006c7` on October 24, 2026. No runtime or test source was edited by the reviewer. The reviewed raw source SHA256 values are `ab0c8cb59202ffb94f91e8500e319f9fcba854660e76d54b02de0148044beaff` for `notifications.py` and `73a020fb29c505938e24c151b349fb9835bdab0fd52d837fe550ee2a7f8dd569` for `paired_worker.py`.
+
+| Finding | Inspected change and fresh independent result |
+| --- | --- |
+| Archive-outage close capture | Alternate protective invocation now requests the same optional ephemeral capture and retains it for the existing heartbeat handoff. The original native probe now receives exactly one settled batch-2 envelope containing eight canonical closes while the receiver acknowledgement is pending. One test passed in 3.963 seconds. [Output](independent-review-archive-followup.txt). |
+| Process shutdown with stalled metadata | Metadata operations now use a single outstanding daemon thread and a loop-safe future, without the default executor. The original three-second fake write probe now completes both reporter cancellation and `asyncio.run` in 0.407 seconds. [Output](independent-review-shutdown-followup.txt). The added subprocess regression for both stalled `_load` and `_persist` also passed independently: one test, two operation subcases, 3.038 seconds total. [Output](independent-review-process-followup.txt). |
+| Hidden estimated cost quality | Each native cost category now has its own bounded quality label before other detail. The original native mixed-cost probe now renders `hosting:estimated ai:actual tools:actual funding:actual`. One test passed in 1.128 seconds. [Output](independent-review-costs-followup.txt). |
+
+Both real HTTP transport methods remained blocked for the saved probes; the subprocess regression injects its own fake poster. Source inspection also confirms that disabled reporters return before starting metadata IO, no default-executor metadata call remains, and the correction does not alter settlement, protection admission, or release-transition permissions. The implementer's added native archive test also exercises acknowledgement recovery without replaying a settled close envelope, and the mixed-quality rendering test asserts all eight rows remain within four parts.
+
+All three original findings are resolved by the inspected fixes and fresh independent reproductions. No additional material finding was established during this focused follow-up. This closes the scoped independent review; full regression/release verification remains the root's separate evidence and is not represented by these targeted results.

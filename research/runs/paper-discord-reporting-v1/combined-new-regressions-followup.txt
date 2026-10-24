@@ -1,0 +1,7 @@
+test_eight_closes_and_due_five_batch_summary_share_one_four_part_envelope (test_paper_notifications.PaperNotificationTests.test_eight_closes_and_due_five_batch_summary_share_one_four_part_envelope) ... ok
+test_new_envelopes_arriving_during_delivery_keep_their_own_combined_part_bound (test_paper_notifications.PaperNotificationTests.test_new_envelopes_arriving_during_delivery_keep_their_own_combined_part_bound) ... ok
+
+----------------------------------------------------------------------
+Ran 2 tests in 0.602s
+
+OK

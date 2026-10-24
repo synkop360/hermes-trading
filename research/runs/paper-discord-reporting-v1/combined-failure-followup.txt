@@ -1,0 +1,7 @@
+{"confirmed_messages": 2, "confirmed_groups": {"8402397d7b0f004f711c7de9": 2}, "failed_attempts": 3, "abandoned": ["summary:03e99f886649cb3c90c3fe0e:events:2410a9252f0df9a875ff914a"], "event_markers": 0, "cycle_marker": null}
+test_combined_partial_failure_keeps_one_delivery_intent (__main__.FailureProbe.test_combined_partial_failure_keeps_one_delivery_intent) ... ok
+
+----------------------------------------------------------------------
+Ran 1 test in 0.982s
+
+OK

@@ -610,6 +610,7 @@ class PaperDiscordReporter:
         self._sleep = sleep
         self._timeout = min(10.0, max(.001, float(attempt_timeout)))
         self._events = deque()
+        self._event_sequence = 0
         self._pending_batches = deque()
         self._offered_batches = deque(maxlen=128)
         self._batch_fingerprints = {}
@@ -688,7 +689,8 @@ class PaperDiscordReporter:
                     self._events.popleft()
                     self.counters["dropped"] += 1
                     self.counters["gaps"] += 1
-                self._events.append(value)
+                self._event_sequence += 1
+                self._events.append((self._event_sequence,value))
             elif state == self._offered_state:
                 self.counters["repeated_states"] += 1
             self._offered_state = state
@@ -862,10 +864,16 @@ class PaperDiscordReporter:
                     if self._settled_latest is not None:
                         self._snapshot = self._settled_latest
                     self._consume_batches()
-                while self.enabled and self._events:
-                    value = self._events.popleft()
-                    await self._deliver_events(value)
-                if self.enabled and self._current is not None:
+                # Freeze this dispatch. Offers arriving during awaited delivery
+                # stay queued until their own latest snapshot/cadences are read.
+                cutoff = self._event_sequence
+                summary_handled = False
+                while self.enabled and self._events and self._events[0][0] <= cutoff:
+                    _,value = self._events.popleft()
+                    combined = value is self._current
+                    handled = await self._deliver_events(value,with_summary=combined)
+                    summary_handled = summary_handled or handled
+                if self.enabled and self._current is not None and not summary_handled:
                     await self._due_summary()
                 if self.enabled and latest is not None:
                     self._state["last_observed_at"] = self._current.get("at")
@@ -954,7 +962,7 @@ class PaperDiscordReporter:
             lines.append("Worker error present; details withheld.")
         return lines
 
-    async def _due_summary(self):
+    async def _due_summary(self, event_payload=None):
         now = _ensure_utc(self._clock())
         reasons, changes = [], {}
         cadence = self._state["cadences"]
@@ -984,21 +992,34 @@ class PaperDiscordReporter:
             elif "heartbeat" not in cadence:
                 cadence["heartbeat"] = period
         if not reasons:
-            return
-        startup_identity = [self._current.get(k) for k in ("kind", "batch_id", "input_hash", "at")]
-        key = "summary:" + ("startup:" + self._tag(startup_identity) if not self._state["startup"] else self._tag(changes))
-        if await self._deliver(key, self._summary(reasons)):
+            return False
+        identity = [self._current.get(k) for k in ("kind", "batch_id", "input_hash", "at")]
+        key = 'summary:' + self._tag([identity,changes,not self._state['startup']])
+        # A failed combined intent remains the attempt for this input/cadence,
+        # including later polling passes and restarts. Do not redispatch its
+        # financial half under a second key. A new input gets its own identity.
+        if any(marker.startswith(key + ':events:') for marker in self._state['abandoned']):
+            return True
+        lines = self._summary(reasons)
+        if event_payload is not None and event_payload[0]:
+            lines.extend(['Canonical event outcomes:',*event_payload[0]])
+            key += ':events:' + self._tag(event_payload[1])
+        if await self._deliver(key, lines):
             self._state["startup"] = True
             cadence.update(changes)
             self._state["last_observed_at"] = self._current.get("at")
             self._state["state_signature"] = self._state_signature(self._current)
+            if event_payload is not None:self._state['events'].extend(event_payload[1])
             await self._save()
+        # An attempted combined envelope must not fall through into a second
+        # event/summary dispatch on failure. Success markers remain confirmation-only.
+        return True
 
     @staticmethod
     def _tag(value):
         return hashlib.sha256(json.dumps(value, sort_keys=True, ensure_ascii=True).encode()).hexdigest()[:24]
 
-    async def _deliver_events(self, value):
+    async def _deliver_events(self, value, *, with_summary=False):
         entries, identities = [], []
         include_closes = self.settings.notify_trades and self.settings.mode in {"pnl_only", "verbose"}
         include_orders = self.settings.notify_orders and self.settings.mode in {"orders_only", "verbose"}
@@ -1041,6 +1062,8 @@ class PaperDiscordReporter:
             if not value.get("error") or self.settings.notify_errors:
                 entries.insert(0, "Operational state change; " + " ".join(self._header(value, "status change")[3:6]))
                 identities.append("state:" + self._tag(signature))
+        if with_summary and await self._due_summary((entries,identities)):
+            return True
         if not entries:
             return
         key = "events:" + self._tag(identities)
