@@ -1,0 +1,123 @@
+test_emission_after_settlement_and_native_order_id_are_supported (tests.test_paper_notifications.PaperNotificationTests.test_emission_after_settlement_and_native_order_id_are_supported) ... ERROR
+test_error_details_are_never_stored_or_sent_and_interval_is_explicit (tests.test_paper_notifications.PaperNotificationTests.test_error_details_are_never_stored_or_sent_and_interval_is_explicit) ... FAIL
+test_conflicting_replay_is_rejected_without_replacing_snapshot (tests.test_paper_notifications.PaperNotificationTests.test_conflicting_replay_is_rejected_without_replacing_snapshot) ... FAIL
+test_corrupt_metadata_schedule_type_disables_instead_of_sending (tests.test_paper_notifications.PaperNotificationTests.test_corrupt_metadata_schedule_type_disables_instead_of_sending) ... ERROR
+
+======================================================================
+ERROR: test_emission_after_settlement_and_native_order_id_are_supported (tests.test_paper_notifications.PaperNotificationTests.test_emission_after_settlement_and_native_order_id_are_supported)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\tasks.py", line 500, in wait_for
+    return fut.result()
+           ^^^^^^^^^^^^
+  File "E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\tests\test_paper_notifications.py", line 63, in spin
+    await asyncio.sleep(0.001)
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\tasks.py", line 649, in sleep
+    return await future
+           ^^^^^^^^^^^^
+asyncio.exceptions.CancelledError
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\unittest\async_case.py", line 90, in _callTestMethod
+    if self._callMaybeAsync(method) is not None:
+       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\unittest\async_case.py", line 112, in _callMaybeAsync
+    return self._asyncioRunner.run(
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\base_events.py", line 654, in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+  File "E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\tests\test_paper_notifications.py", line 433, in test_emission_after_settlement_and_native_order_id_are_supported
+    await eventually(lambda: "Order simulated" in self.text())
+  File "E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\tests\test_paper_notifications.py", line 64, in eventually
+    await asyncio.wait_for(spin(), timeout)
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\tasks.py", line 502, in wait_for
+    raise exceptions.TimeoutError() from exc
+TimeoutError
+
+======================================================================
+ERROR: test_corrupt_metadata_schedule_type_disables_instead_of_sending (tests.test_paper_notifications.PaperNotificationTests.test_corrupt_metadata_schedule_type_disables_instead_of_sending)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\tasks.py", line 500, in wait_for
+    return fut.result()
+           ^^^^^^^^^^^^
+  File "E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\tests\test_paper_notifications.py", line 63, in spin
+    await asyncio.sleep(0.001)
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\tasks.py", line 649, in sleep
+    return await future
+           ^^^^^^^^^^^^
+asyncio.exceptions.CancelledError
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\unittest\async_case.py", line 90, in _callTestMethod
+    if self._callMaybeAsync(method) is not None:
+       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\unittest\async_case.py", line 112, in _callMaybeAsync
+    return self._asyncioRunner.run(
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\base_events.py", line 654, in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+  File "E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\tests\test_paper_notifications.py", line 473, in test_corrupt_metadata_schedule_type_disables_instead_of_sending
+    await eventually(task.done)
+  File "E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\tests\test_paper_notifications.py", line 64, in eventually
+    await asyncio.wait_for(spin(), timeout)
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\tasks.py", line 502, in wait_for
+    raise exceptions.TimeoutError() from exc
+TimeoutError
+
+======================================================================
+FAIL: test_error_details_are_never_stored_or_sent_and_interval_is_explicit (tests.test_paper_notifications.PaperNotificationTests.test_error_details_are_never_stored_or_sent_and_interval_is_explicit)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\unittest\async_case.py", line 90, in _callTestMethod
+    if self._callMaybeAsync(method) is not None:
+       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\unittest\async_case.py", line 112, in _callMaybeAsync
+    return self._asyncioRunner.run(
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\base_events.py", line 654, in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+  File "E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\tests\test_paper_notifications.py", line 444, in test_error_details_are_never_stored_or_sent_and_interval_is_explicit
+    self.assertNotIn("secret-token", data)
+AssertionError: 'secret-token' unexpectedly found in '{"abandoned": [], "cadences": {"financial:1d": "2026-10-24T00:00:00+00:00", "financial:1w": "2026-10-19T00:00:00+00:00", "operational:12h": "2026-10-24T00:00:00+00:00"}, "counters": {"coalesced": 0, "delivery_unknown": 0, "dropped": 0, "gaps": 0, "invalid": 0, "omitted_events": 0, "oversized": 0, "repeated_states": 0, "restarts": 0}, "delivered": ["2aa0c2e0b5b839bb5a70ca8f:0", "2aa0c2e0b5b839bb5a70ca8f:1"], "events": [], "identity": {"account_hashes": {"adaptive_100": "hash-adaptive_100", "adaptive_150": "hash-adaptive_150", "adaptive_200": "hash-adaptive_200", "adaptive_50": "hash-adaptive_50", "control_100": "hash-control_100", "control_150": "hash-control_150", "control_200": "hash-control_200", "control_50": "hash-control_50"}, "experiment_id": "synthetic-paper", "manifest_hash": "manifest", "opening_at": "2026-10-24T10:00:00+00:00", "opening_hash": "opening", "primary_wallet_eur": 200}, "last_completed": 1, "last_observed_at": "2026-10-24T10:00:00+00:00", "new_batches": 1, "pending": null, "schema_version": 1, "startup": true, "state_signature": "[\\"healthy\\", \\"enabled\\", {\\"status\\": \\"not_due\\", \\"success\\": true}, \\"v1\\", \\"secret-token-DO-NOT-RETAIN\\"]"}'
+
+======================================================================
+FAIL: test_conflicting_replay_is_rejected_without_replacing_snapshot (tests.test_paper_notifications.PaperNotificationTests.test_conflicting_replay_is_rejected_without_replacing_snapshot)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\unittest\async_case.py", line 90, in _callTestMethod
+    if self._callMaybeAsync(method) is not None:
+       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\unittest\async_case.py", line 112, in _callMaybeAsync
+    return self._asyncioRunner.run(
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\base_events.py", line 654, in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+  File "E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\tests\test_paper_notifications.py", line 460, in test_conflicting_replay_is_rejected_without_replacing_snapshot
+    self.assertIn("net_equity=EUR 202", self.text())
+AssertionError: 'net_equity=EUR 202' not found in 'Hermes paper/simulated | Observed at: 2026-10-24T12:00:00+00:00\nHermes paper/simulated | operational 12h\nObserved at: 2026-10-24T12:00:00+00:00\nLast settled: 2026-10-24T10:00:00+00:00\nstatus=healthy entry_admission=enabled\nsupervision={"success": true, "status": "not_due"}; review audit unavailable\nstrategy_version=v1\nCoverage unknown; gaps=0 coalesced=1 dropped=0 delivery_unknown=0 repeats=2\nRetries may duplicate; stable tags identify parts/events.\ncurrent financial snapshot; period-end valuation unavailable; interval P&L/Sharpe unavailable.\nprimary EUR200; all amounts native EUR net of recorded costs (no extra fee subtraction).\nadaptive_50: net_equity=EUR 52 closed_net_pnl=EUR 1.25 open_basis=EUR 20 open_liquidation_value=EUR 20.75 open_entry_fees=EUR 0.10 known_accrued_costs=EUR 0.20\n costs=actual missing=[] halted=False liquidation_pending=False events=observed decisions=1 reasons={"no_trade:threshold": 1}\ncontrol_50: net_equity=EUR 50 closed_net_pnl=EUR 1.25 open_basis=EUR 20 open_liquidation_value=EUR 20.75 open_entry_fees=EUR 0.10 known_accrued_costs=EUR 0.20\n costs=actual missing=[] halted=False liquidation_pending=False events=observed decisions=1 reasons={"no_trade:threshold": 1}\nadaptive_100: net_equity=EUR 102 closed_net_pnl=EUR 1.25 open_basis=EUR 20 open_liquidation_value=EUR 20.75 open_entry_fees=EUR 0.10 known_accrued_costs=EUR 0.20\n costs=actual missing=[] halted=False liquidation_pending=False events=observed decisions=1 reasons={"no_trade:threshold": 1}\ncontrol_100: net_equity=EUR 100 closed_net_pnl=EUR 1.25 open_basis=EUR 20 open_liquidation_value=EUR 20.75 open_entry_fees=EUR 0.10 known_accrued_costs=EUR 0.20\n costs=actual missing=[] halted=False liquidation_pending=False events=observed decisions=1 reasons={"no_trade:threshold": 1}\n[paper:ec8ff3f0cd6f81b9e446d0ce part:1/2]'
+
+----------------------------------------------------------------------
+Ran 4 tests in 2.462s
+
+FAILED (failures=2, errors=2)

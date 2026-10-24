@@ -1,0 +1,258 @@
+test_default_http_confirmation_preserves_thread_and_disables_mentions (tests.test_paper_notifications.PaperNotificationTests.test_default_http_confirmation_preserves_thread_and_disables_mentions) ... FAIL
+test_delivery_markers_require_confirmation_and_restart_suppresses_replay (tests.test_paper_notifications.PaperNotificationTests.test_delivery_markers_require_confirmation_and_restart_suppresses_replay) ... FAIL
+test_five_new_batches_only_and_utc_schedules_are_current_snapshots (tests.test_paper_notifications.PaperNotificationTests.test_five_new_batches_only_and_utc_schedules_are_current_snapshots) ... FAIL
+test_heartbeat_fallback_and_state_changes_do_not_count_financial_batches (tests.test_paper_notifications.PaperNotificationTests.test_heartbeat_fallback_and_state_changes_do_not_count_financial_batches) ... FAIL
+test_identity_and_row_mismatches_never_present_unrelated_money (tests.test_paper_notifications.PaperNotificationTests.test_identity_and_row_mismatches_never_present_unrelated_money) ... FAIL
+test_invalid_or_oversized_input_is_isolated (tests.test_paper_notifications.PaperNotificationTests.test_invalid_or_oversized_input_is_isolated) ... FAIL
+test_missing_costs_and_null_observation_remain_unknown (tests.test_paper_notifications.PaperNotificationTests.test_missing_costs_and_null_observation_remain_unknown) ... FAIL
+test_modes_use_canonical_close_money_and_suppress_duplicate_events (tests.test_paper_notifications.PaperNotificationTests.test_modes_use_canonical_close_money_and_suppress_duplicate_events) ... 
+  test_modes_use_canonical_close_money_and_suppress_duplicate_events (tests.test_paper_notifications.PaperNotificationTests.test_modes_use_canonical_close_money_and_suppress_duplicate_events) (mode='pnl_only') ... FAIL
+  test_modes_use_canonical_close_money_and_suppress_duplicate_events (tests.test_paper_notifications.PaperNotificationTests.test_modes_use_canonical_close_money_and_suppress_duplicate_events) (mode='orders_only') ... FAIL
+  test_modes_use_canonical_close_money_and_suppress_duplicate_events (tests.test_paper_notifications.PaperNotificationTests.test_modes_use_canonical_close_money_and_suppress_duplicate_events) (mode='verbose') ... FAIL
+test_offer_has_no_io_and_disabled_or_invalid_config_has_no_delivery (tests.test_paper_notifications.PaperNotificationTests.test_offer_has_no_io_and_disabled_or_invalid_config_has_no_delivery) ... FAIL
+test_startup_uses_eight_native_eur_rows_and_all_four_cohort_differences (tests.test_paper_notifications.PaperNotificationTests.test_startup_uses_eight_native_eur_rows_and_all_four_cohort_differences) ... FAIL
+
+======================================================================
+FAIL: test_default_http_confirmation_preserves_thread_and_disables_mentions (tests.test_paper_notifications.PaperNotificationTests.test_default_http_confirmation_preserves_thread_and_disables_mentions)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\unittest\async_case.py", line 90, in _callTestMethod
+    if self._callMaybeAsync(method) is not None:
+       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\unittest\async_case.py", line 112, in _callMaybeAsync
+    return self._asyncioRunner.run(
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\base_events.py", line 654, in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+  File "E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\tests\test_paper_notifications.py", line 223, in test_default_http_confirmation_preserves_thread_and_disables_mentions
+    reporter = self.reporter(settings(webhook_url="https://discord.com/api/webhooks/1/fake?thread_id=42&wait=false"))
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\tests\test_paper_notifications.py", line 85, in reporter
+    self.assertIsNotNone(cls, "native paper reporter is missing")
+AssertionError: unexpectedly None : native paper reporter is missing
+
+======================================================================
+FAIL: test_delivery_markers_require_confirmation_and_restart_suppresses_replay (tests.test_paper_notifications.PaperNotificationTests.test_delivery_markers_require_confirmation_and_restart_suppresses_replay)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\unittest\async_case.py", line 90, in _callTestMethod
+    if self._callMaybeAsync(method) is not None:
+       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\unittest\async_case.py", line 112, in _callMaybeAsync
+    return self._asyncioRunner.run(
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\base_events.py", line 654, in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+  File "E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\tests\test_paper_notifications.py", line 235, in test_delivery_markers_require_confirmation_and_restart_suppresses_replay
+    reporter = self.reporter(); reporter.offer(envelope()); task = await self.start(reporter)
+               ^^^^^^^^^^^^^^^
+  File "E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\tests\test_paper_notifications.py", line 85, in reporter
+    self.assertIsNotNone(cls, "native paper reporter is missing")
+AssertionError: unexpectedly None : native paper reporter is missing
+
+======================================================================
+FAIL: test_five_new_batches_only_and_utc_schedules_are_current_snapshots (tests.test_paper_notifications.PaperNotificationTests.test_five_new_batches_only_and_utc_schedules_are_current_snapshots)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\unittest\async_case.py", line 90, in _callTestMethod
+    if self._callMaybeAsync(method) is not None:
+       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\unittest\async_case.py", line 112, in _callMaybeAsync
+    return self._asyncioRunner.run(
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\base_events.py", line 654, in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+  File "E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\tests\test_paper_notifications.py", line 183, in test_five_new_batches_only_and_utc_schedules_are_current_snapshots
+    reporter = self.reporter(); await self.start(reporter)
+               ^^^^^^^^^^^^^^^
+  File "E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\tests\test_paper_notifications.py", line 85, in reporter
+    self.assertIsNotNone(cls, "native paper reporter is missing")
+AssertionError: unexpectedly None : native paper reporter is missing
+
+======================================================================
+FAIL: test_heartbeat_fallback_and_state_changes_do_not_count_financial_batches (tests.test_paper_notifications.PaperNotificationTests.test_heartbeat_fallback_and_state_changes_do_not_count_financial_batches)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\unittest\async_case.py", line 90, in _callTestMethod
+    if self._callMaybeAsync(method) is not None:
+       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\unittest\async_case.py", line 112, in _callMaybeAsync
+    return self._asyncioRunner.run(
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\base_events.py", line 654, in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+  File "E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\tests\test_paper_notifications.py", line 201, in test_heartbeat_fallback_and_state_changes_do_not_count_financial_batches
+    reporter = self.reporter(settings(summary_every_cycles=0, summary_frequencies=(), profitability_frequencies=()))
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\tests\test_paper_notifications.py", line 85, in reporter
+    self.assertIsNotNone(cls, "native paper reporter is missing")
+AssertionError: unexpectedly None : native paper reporter is missing
+
+======================================================================
+FAIL: test_identity_and_row_mismatches_never_present_unrelated_money (tests.test_paper_notifications.PaperNotificationTests.test_identity_and_row_mismatches_never_present_unrelated_money)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\unittest\async_case.py", line 90, in _callTestMethod
+    if self._callMaybeAsync(method) is not None:
+       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\unittest\async_case.py", line 112, in _callMaybeAsync
+    return self._asyncioRunner.run(
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\base_events.py", line 654, in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+  File "E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\tests\test_paper_notifications.py", line 132, in test_identity_and_row_mismatches_never_present_unrelated_money
+    reporter = self.reporter()
+               ^^^^^^^^^^^^^^^
+  File "E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\tests\test_paper_notifications.py", line 85, in reporter
+    self.assertIsNotNone(cls, "native paper reporter is missing")
+AssertionError: unexpectedly None : native paper reporter is missing
+
+======================================================================
+FAIL: test_invalid_or_oversized_input_is_isolated (tests.test_paper_notifications.PaperNotificationTests.test_invalid_or_oversized_input_is_isolated)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\unittest\async_case.py", line 90, in _callTestMethod
+    if self._callMaybeAsync(method) is not None:
+       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\unittest\async_case.py", line 112, in _callMaybeAsync
+    return self._asyncioRunner.run(
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\base_events.py", line 654, in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+  File "E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\tests\test_paper_notifications.py", line 250, in test_invalid_or_oversized_input_is_isolated
+    reporter = self.reporter(); await self.start(reporter)
+               ^^^^^^^^^^^^^^^
+  File "E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\tests\test_paper_notifications.py", line 85, in reporter
+    self.assertIsNotNone(cls, "native paper reporter is missing")
+AssertionError: unexpectedly None : native paper reporter is missing
+
+======================================================================
+FAIL: test_missing_costs_and_null_observation_remain_unknown (tests.test_paper_notifications.PaperNotificationTests.test_missing_costs_and_null_observation_remain_unknown)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\unittest\async_case.py", line 90, in _callTestMethod
+    if self._callMaybeAsync(method) is not None:
+       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\unittest\async_case.py", line 112, in _callMaybeAsync
+    return self._asyncioRunner.run(
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\base_events.py", line 654, in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+  File "E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\tests\test_paper_notifications.py", line 153, in test_missing_costs_and_null_observation_remain_unknown
+    reporter = self.reporter(); reporter.offer(value); await self.start(reporter)
+               ^^^^^^^^^^^^^^^
+  File "E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\tests\test_paper_notifications.py", line 85, in reporter
+    self.assertIsNotNone(cls, "native paper reporter is missing")
+AssertionError: unexpectedly None : native paper reporter is missing
+
+======================================================================
+FAIL: test_modes_use_canonical_close_money_and_suppress_duplicate_events (tests.test_paper_notifications.PaperNotificationTests.test_modes_use_canonical_close_money_and_suppress_duplicate_events) (mode='pnl_only')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\tests\test_paper_notifications.py", line 166, in test_modes_use_canonical_close_money_and_suppress_duplicate_events
+    reporter = self.reporter(settings(mode=mode))
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\tests\test_paper_notifications.py", line 85, in reporter
+    self.assertIsNotNone(cls, "native paper reporter is missing")
+AssertionError: unexpectedly None : native paper reporter is missing
+
+======================================================================
+FAIL: test_modes_use_canonical_close_money_and_suppress_duplicate_events (tests.test_paper_notifications.PaperNotificationTests.test_modes_use_canonical_close_money_and_suppress_duplicate_events) (mode='orders_only')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\tests\test_paper_notifications.py", line 166, in test_modes_use_canonical_close_money_and_suppress_duplicate_events
+    reporter = self.reporter(settings(mode=mode))
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\tests\test_paper_notifications.py", line 85, in reporter
+    self.assertIsNotNone(cls, "native paper reporter is missing")
+AssertionError: unexpectedly None : native paper reporter is missing
+
+======================================================================
+FAIL: test_modes_use_canonical_close_money_and_suppress_duplicate_events (tests.test_paper_notifications.PaperNotificationTests.test_modes_use_canonical_close_money_and_suppress_duplicate_events) (mode='verbose')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\tests\test_paper_notifications.py", line 166, in test_modes_use_canonical_close_money_and_suppress_duplicate_events
+    reporter = self.reporter(settings(mode=mode))
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\tests\test_paper_notifications.py", line 85, in reporter
+    self.assertIsNotNone(cls, "native paper reporter is missing")
+AssertionError: unexpectedly None : native paper reporter is missing
+
+======================================================================
+FAIL: test_offer_has_no_io_and_disabled_or_invalid_config_has_no_delivery (tests.test_paper_notifications.PaperNotificationTests.test_offer_has_no_io_and_disabled_or_invalid_config_has_no_delivery)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\unittest\async_case.py", line 90, in _callTestMethod
+    if self._callMaybeAsync(method) is not None:
+       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\unittest\async_case.py", line 112, in _callMaybeAsync
+    return self._asyncioRunner.run(
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\base_events.py", line 654, in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+  File "E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\tests\test_paper_notifications.py", line 106, in test_offer_has_no_io_and_disabled_or_invalid_config_has_no_delivery
+    reporter = self.reporter(cfg)
+               ^^^^^^^^^^^^^^^^^^
+  File "E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\tests\test_paper_notifications.py", line 85, in reporter
+    self.assertIsNotNone(cls, "native paper reporter is missing")
+AssertionError: unexpectedly None : native paper reporter is missing
+
+======================================================================
+FAIL: test_startup_uses_eight_native_eur_rows_and_all_four_cohort_differences (tests.test_paper_notifications.PaperNotificationTests.test_startup_uses_eight_native_eur_rows_and_all_four_cohort_differences)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\unittest\async_case.py", line 90, in _callTestMethod
+    if self._callMaybeAsync(method) is not None:
+       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\unittest\async_case.py", line 112, in _callMaybeAsync
+    return self._asyncioRunner.run(
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\base_events.py", line 654, in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+  File "E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\tests\test_paper_notifications.py", line 114, in test_startup_uses_eight_native_eur_rows_and_all_four_cohort_differences
+    reporter = self.reporter()
+               ^^^^^^^^^^^^^^^
+  File "E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\tests\test_paper_notifications.py", line 85, in reporter
+    self.assertIsNotNone(cls, "native paper reporter is missing")
+AssertionError: unexpectedly None : native paper reporter is missing
+
+----------------------------------------------------------------------
+Ran 10 tests in 0.253s
+
+FAILED (failures=12)
