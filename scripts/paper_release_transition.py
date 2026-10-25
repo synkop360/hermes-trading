@@ -1,7 +1,7 @@
 """Explicit operator correction on supplied closed copies; never starts a writer.
 
-Supported deltas are the reviewed snapshot correction from its original base,
-or the four-module paper reporting correction from the installed successor.
+Supported deltas are the reviewed backup correction, paper reporting correction,
+or snapshot BUSY retry from their respective pinned predecessors.
 No transport, provider, scheduling, deployment or experiment initialization is
 performed here. Inspection is the default; apply requires an explicit flag and
 approval reference. Live use still requires separate exact operator approval.
@@ -31,11 +31,15 @@ from hermes_trading.paper_publication import _temporary, _sync_dir
 BASE_COMMIT = '6c9d520da5f8473b51c912d1eb0e269ee94d4b1b'
 REPORTING_BASE_COMMIT = '49c851315b98bb33b1eb78180fb789afe2a49f3d'
 REPORTING_MODULES = {'notifications.py','paired_paper.py','paired_worker.py','paper_boot.py'}
+SNAPSHOT_BASE_COMMIT = 'ed439e897a4dd388fdcf6425e7e8b6171d5a88a9'
+SNAPSHOT_BASE_RELEASE = 'fb67c1a204c1448af5b9e6e0ca7ec41aeb95eadaba62075bcce80af6dd8dd844'
+SNAPSHOT_BASE_RUNTIME = '0a76f3a95733fdc7f0ce951b7f55f5a6040be0ae49387be4cf70563c6489165c'
 TARGET = dict(project='f78f42d9-20ec-44f6-ae3f-f8bb79ee7000',
               service='8b94cbc9-293e-4222-a8a7-698b656985f7',
               environment='fdcc71a3-00a9-410c-8d6f-59af9bc98d36')
 PURPOSE = 'paper_backup_plus_release_transition_v1'
 REPORTING_PURPOSE = 'paper_discord_release_transition_v1'
+SNAPSHOT_PURPOSE = 'paper_snapshot_busy_release_transition_v1'
 NAMES = {f'{arm}_{wallet}' for arm in ('adaptive', 'control') for wallet in (50, 100, 150, 200)}
 COMPONENTS = (
     ('worker_renewal', 'worker', 'adaptive_200/model_access_refresh.sqlite', 'binding'),
@@ -757,13 +761,15 @@ def _digest(value, length=64):
 
 
 def _purpose(plan):
+    if plan['old_commit'] == SNAPSHOT_BASE_COMMIT:
+        return SNAPSHOT_PURPOSE
     return REPORTING_PURPOSE if plan['old_commit']==REPORTING_BASE_COMMIT else PURPOSE
 
 
 def validate_release_plan(plan):
     if not isinstance(plan, dict) or set(plan) != {'old_commit', 'new_commit', 'target', 'old', 'new'}:
         raise ValueError('exact correction release plan required')
-    if plan['old_commit'] not in {BASE_COMMIT,REPORTING_BASE_COMMIT}:
+    if plan['old_commit'] not in {BASE_COMMIT,REPORTING_BASE_COMMIT,SNAPSHOT_BASE_COMMIT}:
         raise ValueError('correction must retain approved base commit')
     _digest(plan['new_commit'], 40)
     if plan['new_commit'] == plan['old_commit']:
@@ -792,7 +798,12 @@ def validate_release_plan(plan):
         raise ValueError('watcher and native launcher must remain unchanged')
     if set(old['runtime']) != set(new['runtime']):
         raise ValueError('runtime source inventory changed')
-    allowed = REPORTING_MODULES if plan['old_commit']==REPORTING_BASE_COMMIT else {'archive_snapshot.py'}
+    if plan['old_commit'] == SNAPSHOT_BASE_COMMIT:
+        if _hash(old) != SNAPSHOT_BASE_RELEASE or _hash(old['runtime']) != SNAPSHOT_BASE_RUNTIME:
+            raise ValueError('snapshot retry predecessor differs from the deployed release')
+        allowed = {'supervisor_sync.py'}
+    else:
+        allowed = REPORTING_MODULES if plan['old_commit']==REPORTING_BASE_COMMIT else {'archive_snapshot.py'}
     if {name for name in old['runtime'] if old['runtime'][name] != new['runtime'][name]} != allowed:
         raise ValueError('exact reviewed runtime delta required for the selected base')
 
