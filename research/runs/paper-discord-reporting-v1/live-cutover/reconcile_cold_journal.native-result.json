@@ -1,0 +1,7 @@
+{
+  "observed_at": "2026-10-25T11:58:01.980428+00:00",
+  "instance": "b45705e2-e89a-49fe-89c5-f2f81bbac862",
+  "native_exit_code": 0,
+  "stdout": "{\"observed_at\": \"2026-10-25T11:58:01.485165+00:00\", \"status\": \"published_native_original_snapshot_verified_after_cold_journal_reconciliation\", \"native_inventory_sha256\": \"34d636f7a8713f9a5f294156c3c045e70e8269110dd61aadf8c5f4e768c36dee\", \"files\": 525, \"snapshot_bytes\": 166387250, \"opening_hash\": \"50fd92318969675f72e7450148e77e5bb1d4f60d9d1963ec90cab3061e27c349\", \"manifest_sha256\": \"43ec91c55d05f6f04f7a227dd9adc23a2283dd0d788a2255903cb63ee60cbb64\", \"batch_counts\": {\"complete\": 1741}, \"directories\": 18, \"worker_remains_stopped\": true, \"source_sidecar_free\": true, \"worker_runtime_logical_hash\": \"b7e960be2bc5c2cb9387ff5e6b9c793152ab0fb3b3ad6d974793b6a8121ef421\", \"user_version_unchanged\": 0, \"schema_version_unchanged\": 1, \"journal_removed_by_sqlite_commit\": true, \"bundle\": \"/tmp/hermes-discord-ed439e8/worker-original-bundle\"}\n",
+  "stderr": "Using SSH key from file C:\\Users\\thoma\\.ssh\\id_ed25519_hermes_trading.pub: hermes-trading-railway\n"
+}

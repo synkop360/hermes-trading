@@ -1,0 +1,32 @@
+{
+  "observed_at": "2026-10-25T11:45:20.609280+00:00",
+  "pc_reference": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\d439\\p",
+  "launch_reference": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\d439\\l.json",
+  "actual_supervisor": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-trading\\state\\paired-supervisor\\paper-beta-v1-20261021-6c9d520\\adaptive_200",
+  "actual_launch": "C:\\Users\\thoma\\AppData\\Local\\hermes\\scripts\\hermes_trading_paper_6c9d520_native.json",
+  "files": 19,
+  "file_sha256": {
+    "goal.yaml": "1ae46687ad02b2e80fa2134325cf841e38503dfad0c77a384969ed82c866b520",
+    "heartbeat.json": "7439402c342cbfafe7038b8af138a9b5046fdfacd98f37d92be51182a08aec78",
+    "llm_review_state.sqlite": "9c41e19302ec81654816cf093f72cea05db229528e450c7fcd66a346f283c67a",
+    "model_access.json": "780a773dbb2076e0fc3b9238d05827a98d792f0ea900506980df56f372b1bc80",
+    "model_access_import_receipt.json": "f2ed71225ab24b2278094734633469e8e2b5001d79608e13e94b743898eb8d36",
+    "model_access_refresh.sqlite": "a17cb8c9eb263b9a675b2cc916fec858acba7a1e67a952f92434c7fda1ce7f3c",
+    "paper_supervisor_health_pending.json.lock": "6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d",
+    "reflection_owner.json": "f74490133763b2e82ec4a8b84a328bc4e034bfe6845bad6684bc236d0163c84c",
+    "strategy.yaml": "4122e49676b1918738cd9e8a6ff45d221b8be6067c7235d36089515210a5ae99",
+    "supervisor_lifecycle.json": "f7c6d34ec89a861057856310c95404cb69025b15e5dee54f08d6147f4d392781",
+    "supervisor_limits.json": "bc94bf2f29fe1d0999d2692085dc91e4685f4b3d1997e32d851162c00e806791",
+    "supervisor_status.json": "791d4caf3b34335c5b7e9ee7fac5880693491d69651e37000a4942babc8a3ffd",
+    "supervisor_usage_import_receipt.json": "04fc0924470af1dff5acf0baaacdc4aac71489c51ad079b0923e70d751a8632b",
+    "supervisor_usage_snapshot.json": "69f8343f360f4bb7e4f3e89fbdedb2b9cc35d1f33c90164eb76e28bf09d66926",
+    "trades.jsonl": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "wallet_account.json": "6d4f37a11acbeeb44acc458886fa60b374fcb41132860b4e792821520ee1ca12",
+    "wallet_cost_sources.json": "c282db98036c33b00362d50320cc6b1aa36f2c68604d093d3917a7b15c039b2a",
+    "wallet_metrics.json": "c44a34c208854d9c4cd8719d0d99115f20806b3f65f0caa874c3603d83941149",
+    "watcher_cycle.sqlite": "058d63a3eb713a632b367aed3be7dc86f478b29e0bcb6160287fe9e1f5ef2c70"
+  },
+  "launch_sha256": "f4831db48751a93fa04048ead28db85020f3845791a3fdc31ad41b14bfc06edf",
+  "sidecar_free": true,
+  "source_unchanged": true
+}

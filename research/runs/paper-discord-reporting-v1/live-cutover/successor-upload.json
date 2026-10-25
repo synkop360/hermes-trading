@@ -1,0 +1,8 @@
+{
+  "observed_at": "2026-10-25T11:49:07.260892+00:00",
+  "native_exit_code": 0,
+  "stdout": "Indexing...\nUploading...\n  Build Logs: https://railway.com/project/f78f42d9-20ec-44f6-ae3f-f8bb79ee7000/service/8b94cbc9-293e-4222-a8a7-698b656985f7?id=3cf55164-902f-4493-9a8a-6c97d394c0b8&\n",
+  "stderr": "",
+  "source_commit": "ed439e897a4dd388fdcf6425e7e8b6171d5a88a9",
+  "readiness_withheld": true
+}

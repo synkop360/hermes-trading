@@ -1,0 +1,7 @@
+{
+  "observed_at": "2026-10-25T11:48:29.183499+00:00",
+  "instance": "ab1dd228-dc00-420b-bc85-f8e9e0c55068",
+  "native_exit_code": 1,
+  "stdout": "\nYour service's container is not running (status: exited).\nDeploy or restart your service, then try again.\n\n",
+  "stderr": "Using SSH key from file C:\\Users\\thoma\\.ssh\\id_ed25519_hermes_trading.pub: hermes-trading-railway\n"
+}

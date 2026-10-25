@@ -1,0 +1,32 @@
+{
+  "observed_at": "2026-10-25T12:30:25.832319+00:00",
+  "status": "paper_discord_deployed_and_first_cadence_confirmed",
+  "source_candidate": "ed439e897a4dd388fdcf6425e7e8b6171d5a88a9",
+  "deployment_id": "3cf55164-902f-4493-9a8a-6c97d394c0b8",
+  "instance_id": "b45705e2-e89a-49fe-89c5-f2f81bbac862",
+  "runtime_verified": 129,
+  "startup_confirmation": true,
+  "five_new_batch_summary_confirmation": true,
+  "confirmation_basis": "successful validated webhook responses recorded as local confirmed part markers; remote IDs and message bodies not retained",
+  "original_opening_hash": "50fd92318969675f72e7450148e77e5bb1d4f60d9d1963ec90cab3061e27c349",
+  "original_manifest_sha256": "43ec91c55d05f6f04f7a227dd9adc23a2283dd0d788a2255903cb63ee60cbb64",
+  "entry_halt_retained": true,
+  "all_eight_zero_orders_positions": true,
+  "all_eight_strategy_and_cost_t0_unchanged": true,
+  "model_attempts_reserved": 0,
+  "primary_equity": "199.6146531729122685185185185",
+  "primary_observed_at": "2026-10-25T12:26:05.843471+00:00",
+  "no_paid_calls_or_real_orders_introduced": true,
+  "qualification": false,
+  "goal_status": "active",
+  "overall_progress_estimate": 65,
+  "tests": {
+    "affected_windows_passed": 164,
+    "qualified_linux_passed": 52,
+    "full_windows_passed": 1657,
+    "full_windows_skipped": 5,
+    "full_fixture_errors": 2,
+    "unrun_catalog_cases": 30,
+    "full_suite_pass": false
+  }
+}

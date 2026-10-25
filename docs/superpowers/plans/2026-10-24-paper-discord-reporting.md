@@ -67,7 +67,7 @@ Envelope v1 has `schema_version=1`, `kind` (`settled` or `operational`), the fou
 - [x] Run both new modules and existing notifications/paired-worker/paper-boot tests, then appropriate frozen full discovery. Preserve the known disabled-archive baseline deadline limitation; restore exact historical fixtures where necessary rather than relaxing guards or assertions.
 - [x] Obtain independent source/patch review; reproduce and fix material findings with failing-then-passing checks.
 - [x] Update graph AST-only, verify unchanged runtime-map key set and raw bytes outside the four allowed files, commit a concrete candidate and prepare checked both-host transition plus bounded message-activation acceptance.
-- [ ] Only after the candidate is concrete and verified ask separately for exact deployment/notification activation. No actual send during local work.
+- [x] Complete candidate verification before deployment. The owner explicitly requested the Discord-enabled deployment on October25, so no redundant confirmation was requested. Local verification made no send; the subsequent approved cutover and real delivery acceptance are recorded separately.
 
 ## Execution ruling
 
@@ -79,3 +79,8 @@ The owner has explicitly authorized independent work and this local implementati
 Source candidate `ed439e8` is frozen:47 new checks and 164 exact-export Windows checks pass, with 603 raw pins unchanged. Independent review verified archive capture, native process shutdown, cost quality and combined four-part/failure/restart corrections. Selected 52-case Linux evidence passes with an explicitly qualified test startup allowance; the native shutdown assertion and product source remain unchanged. The final AST-only graph update has 6,339 nodes / 21,946 edges, with no API call. No dependencies were installed.
 
 Full Windows v3 is terminal: 1,657 passes, five Windows skips, two archive class-fixture capacity deadline errors and 30 unrun catalog cases; all 374 pins unchanged and no ResourceWarnings. Its raw passed=1,655 arithmetic subtracts two error holders outside testsRun; the independent classification preserves the original receipt and corrects the count. All 47 new cases pass. This is not a passing full suite, and the setup-q3/setup-q2 locations differ from the predecessor's individual q4 error. Earlier interrupted attempts and harness failures are preserved. The full-discovery task is checked as executed/assessed, not as all passing. Local implementation approval does not authorize deployment, requests or changes to the newly observed sticky supervisor entry halt. The exact proposed installation is in docs/PAPER_DISCORD_REPORTING_CUTOVER.md. No live deployment/message, risk/trading change, market backtest, training or paid call occurred.
+
+
+## Subsequent owner-approved deployment
+
+On October25 the owner explicitly instructed “deploy a discord enabled version as soon as possible.” The reviewed source ed439e8 is now installed on both hosts. Both native checked transitions, source validation and original identity/clock preservation pass. Startup and first five-new-batch summary delivery are confirmed; all eight accounts remain flat and the supervisor entry halt is preserved. Existing schedules are restored. Full-suite/archive and message-retention limitations remain in the actual result. No paid call, real order or strategy/risk change was introduced. See research/runs/paper-discord-reporting-v1/LIVE_CUTOVER_RESULT.md.

@@ -1,0 +1,23 @@
+{
+  "observed_at": "2026-10-25T11:50:52.032914+00:00",
+  "status": "raw_reviewed_runtime_installed_while_supervisor_paused",
+  "source_candidate": "ed439e897a4dd388fdcf6425e7e8b6171d5a88a9",
+  "changed": [
+    "hermes_trading/notifications.py",
+    "hermes_trading/paired_paper.py",
+    "hermes_trading/paired_worker.py",
+    "hermes_trading/paper_boot.py",
+    "scripts/paper_release_transition.py"
+  ],
+  "before_sha256": {
+    "hermes_trading/notifications.py": "1b85255ce7027ccec9b29599f6de9d05a7f608c3fb32f8c288656189636013bf",
+    "hermes_trading/paired_paper.py": "243cb8bcfe7c9ab025e43a26399038dae84806b49c4e02796d9371dcaa51fb85",
+    "hermes_trading/paired_worker.py": "e04f13f3c4d6ee469a62da047d8d3b0042cb45fcb20c9cff02cd801b018b4292",
+    "hermes_trading/paper_boot.py": "e9bca90c4d59f32abac8661b799193ad82fa6f4e9224933c5c820014c7691d96",
+    "scripts/paper_release_transition.py": null
+  },
+  "runtime_files_verified": 129,
+  "watcher_unchanged": true,
+  "release_guards_not_yet_changed": true,
+  "initial_backup_probe": "operator helper previously absent; first probe wrote backup copies only, no runtime changes"
+}

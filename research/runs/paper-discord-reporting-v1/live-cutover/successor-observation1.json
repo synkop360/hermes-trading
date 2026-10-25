@@ -1,0 +1,6 @@
+{
+  "observed_at": "2026-10-25T11:51:12.548076+00:00",
+  "native_exit_code": 0,
+  "stdout": "{\"data\":{\"deployment\":{\"id\":\"3cf55164-902f-4493-9a8a-6c97d394c0b8\",\"instances\":[{\"id\":\"b45705e2-e89a-49fe-89c5-f2f81bbac862\",\"status\":\"INITIALIZING\"}],\"status\":\"DEPLOYING\"}}}\n",
+  "stderr": ""
+}

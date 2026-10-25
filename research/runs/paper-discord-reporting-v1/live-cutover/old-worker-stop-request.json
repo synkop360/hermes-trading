@@ -1,0 +1,6 @@
+{
+  "observed_at": "2026-10-25T11:45:46.592277+00:00",
+  "native_exit_code": 0,
+  "stdout": "{\"data\":{\"deploymentStop\":true}}\n",
+  "stderr": ""
+}

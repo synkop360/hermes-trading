@@ -1,0 +1,6 @@
+{
+  "observed_at": "2026-10-25T11:49:05.062171+00:00",
+  "native_exit_code": 0,
+  "stdout": "{\"data\":{\"serviceInstanceUpdate\":true}}\n",
+  "stderr": ""
+}

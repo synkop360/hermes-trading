@@ -1,0 +1,7 @@
+{
+  "observed_at": "2026-10-25T12:16:36.547007+00:00",
+  "instance": "b45705e2-e89a-49fe-89c5-f2f81bbac862",
+  "native_exit_code": 0,
+  "stdout": "{\"status\": \"original_experiment_successor_readiness_released\", \"transition_id\": \"84fa276f399f1e0070e6eaca57cdab923262479d92437cb5ce0c63dfaea93981\", \"source_candidate\": \"ed439e897a4dd388fdcf6425e7e8b6171d5a88a9\", \"pc_native_validation_sha256\": \"045f965bcd98a84aefc932f88ee302dddfd196f64ed71cad261295668d003772\", \"ready_at\": \"2026-10-25T12:16:36.052072+00:00\", \"original_opening_hash\": \"50fd92318969675f72e7450148e77e5bb1d4f60d9d1963ec90cab3061e27c349\"}\n",
+  "stderr": "Using SSH key from file C:\\Users\\thoma\\.ssh\\id_ed25519_hermes_trading.pub: hermes-trading-railway\n"
+}

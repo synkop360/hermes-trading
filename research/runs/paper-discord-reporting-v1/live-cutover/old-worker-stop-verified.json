@@ -1,0 +1,8 @@
+{
+  "observed_at": "2026-10-25T11:48:29.183499+00:00",
+  "instance": "ab1dd228-dc00-420b-bc85-f8e9e0c55068",
+  "status": "container_exited",
+  "project_metadata_stale_or_not_authoritative_for_process": true,
+  "source": "native SSH refusal reports actual instance exited",
+  "receipt": "observe_stop_reconciliation.native-result.json"
+}
