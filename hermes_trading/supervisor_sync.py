@@ -4,6 +4,8 @@ import base64
 import json
 import os
 from pathlib import Path
+import sqlite3
+from time import monotonic, sleep
 import uuid
 
 import yaml
@@ -164,11 +166,47 @@ def make_snapshot(state_dir, *, now=None):
     return snapshot
 
 
+def _snapshot_busy(error):
+    """Only a typed SQLite BUSY cause permits recollecting a rejected snapshot."""
+    seen = set()
+    for _ in range(8):
+        if error is None or id(error) in seen:
+            return False
+        seen.add(id(error))
+        code = getattr(error, 'sqlite_errorcode', None)
+        if isinstance(error, sqlite3.OperationalError) and type(code) is int and code & 255 == sqlite3.SQLITE_BUSY:
+            return True
+        error = error.__cause__
+    return False
+
+
+def make_snapshot_with_retry(state_dir, *, now=None):
+    """Recollect from scratch after BUSY, within the existing CLI process budget.
+
+    Two seconds bounds waiting and admission, not an in-flight filesystem read.
+    The caller's existing subprocess deadline remains the hard process boundary.
+    """
+    deadline = monotonic() + 2.0
+    waits = (0.2, 0.5)
+    for attempt in range(3):
+        try:
+            return make_snapshot(state_dir, now=now)
+        except Exception as error:
+            if attempt == 2 or not _snapshot_busy(error):
+                raise
+            remaining = deadline - monotonic()
+            if remaining <= 0:
+                raise
+            sleep(min(waits[attempt], remaining))
+            if monotonic() >= deadline:
+                raise
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--state-dir', required=True)
     args = parser.parse_args()
-    print(json.dumps(make_snapshot(Path(args.state_dir)), separators=(',', ':')))
+    print(json.dumps(make_snapshot_with_retry(Path(args.state_dir)), separators=(',', ':')))
 
 
 if __name__ == '__main__': main()
