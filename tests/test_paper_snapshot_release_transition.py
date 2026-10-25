@@ -81,7 +81,8 @@ class SnapshotTransitionFixture(NativeTransitionFixture):
         if not cls.seed_latch:
             return fixture
         from hermes_trading.paper_safety import record_supervisor_result
-        with fixture.release_context(fixture.old_release):
+        with fixture.release_context(fixture.old_release), \
+                patch('hermes_trading.paper_safety._utc_now',side_effect=lambda:fixture.at):
             for index in range(3):
                 fixture.at += timedelta(seconds=1)
                 record_supervisor_result(fixture.worker_root, success=False, error_kind='supervisor_exception',
