@@ -1,0 +1,23 @@
+test_exact_deployed_predecessor_and_one_snapshot_delta_is_admitted (test_paper_snapshot_release_transition.SnapshotReleaseValidationTests.test_exact_deployed_predecessor_and_one_snapshot_delta_is_admitted) ... FAIL
+
+======================================================================
+FAIL: test_exact_deployed_predecessor_and_one_snapshot_delta_is_admitted (test_paper_snapshot_release_transition.SnapshotReleaseValidationTests.test_exact_deployed_predecessor_and_one_snapshot_delta_is_admitted)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\tests\test_paper_snapshot_release_transition.py", line 31, in test_exact_deployed_predecessor_and_one_snapshot_delta_is_admitted
+    api().validate_release_plan(plan)
+  File "E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\scripts\paper_release_transition.py", line 767, in validate_release_plan
+    raise ValueError('correction must retain approved base commit')
+ValueError: correction must retain approved base commit
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\tests\test_paper_snapshot_release_transition.py", line 33, in test_exact_deployed_predecessor_and_one_snapshot_delta_is_admitted
+    self.fail(f'approved snapshot predecessor is not admitted: {error}')
+AssertionError: approved snapshot predecessor is not admitted: correction must retain approved base commit
+
+----------------------------------------------------------------------
+Ran 1 test in 0.003s
+
+FAILED (failures=1)

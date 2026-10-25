@@ -1,0 +1,22 @@
+{
+  "observed_at": "2026-10-25T19:51:16.949655+00:00",
+  "command": [
+    "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-trading\\.venv\\Scripts\\python.exe",
+    "-B",
+    "-X",
+    "utf8",
+    "-m",
+    "unittest",
+    "discover",
+    "-s",
+    "tests",
+    "-p",
+    "test_supervisor_snapshot_retry.py",
+    "-k",
+    "real_busy_then_release",
+    "-v"
+  ],
+  "exit_code": 1,
+  "expected": "failure because CLI-facing BUSY retry wrapper is absent",
+  "native_or_provider_actions": false
+}

@@ -1,0 +1,31 @@
+{
+  "candidate_commit": "cda896788891094ebea6b50ccd5afd5cc3c48f6a",
+  "export": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-snapshot-cda8967",
+  "export_files": 608,
+  "predecessor_export_files_verified": 603,
+  "runtime_files": 129,
+  "runtime_delta": [
+    "supervisor_sync.py"
+  ],
+  "watcher_and_native_unchanged": true,
+  "source_matches_commit_after_newline_normalization": true,
+  "other_updated_paths": [
+    "docs/superpowers/plans/2026-10-24-paper-discord-reporting.md",
+    "docs/superpowers/plans/2026-10-25-supervisor-snapshot-contention.md",
+    "docs/superpowers/specs/2026-10-25-supervisor-snapshot-contention-design.md",
+    "hermes_trading/supervisor_sync.py",
+    "research/runs/paper-discord-reporting-v1/combined-followup-review.md",
+    "research/runs/paper-discord-reporting-v1/cutover-review.md",
+    "research/runs/paper-discord-reporting-v1/live-cutover/frozen-live-transition-plan.json",
+    "scripts/paper_release_transition.py",
+    "tests/test_paper_snapshot_release_transition.py",
+    "tests/test_supervisor_snapshot_retry.py"
+  ],
+  "new_release_hash": "b3f89fa5028578f3c29734ccca1dca855fa652d20f75345e7765ca3635ac64c7",
+  "new_runtime_map_hash": "38fe4175e5ea53c72a26923e173374e0d9355e90477dd21d53c0c62607a9c0e2",
+  "transition_purpose": "paper_snapshot_busy_release_transition_v1",
+  "windows_extended_paths_used": true,
+  "deployed": false,
+  "actual_guards_changed": false,
+  "supersedes": "candidate-package-verification.json: source delta valid, but long test-fixture path and missing new-test input made its test package incomplete"
+}

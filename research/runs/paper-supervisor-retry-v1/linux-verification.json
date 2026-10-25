@@ -1,0 +1,26 @@
+{
+  "started_at": "2026-10-25T20:12:15.366581+00:00",
+  "finished_at": "2026-10-25T20:12:50.171283+00:00",
+  "exit_code": 1,
+  "image": "hermes-paired-cost-reserve:20261015",
+  "cached_image_id": "13054ce2ae8c",
+  "network": "none",
+  "source_mount": "read_only",
+  "user": "65534:65534",
+  "log_sha256": "121a11d30ec571aebe004530f733d48f4eca8acd06d2683a674f2c611a4644b4",
+  "structured_stdout": [
+    {
+      "runtime_files": 129,
+      "runtime_map_hash": "38fe4175e5ea53c72a26923e173374e0d9355e90477dd21d53c0c62607a9c0e2",
+      "python": "3.11.17"
+    },
+    {
+      "tests": 21,
+      "skipped": 0,
+      "failures": 0,
+      "errors": 1
+    }
+  ],
+  "product_or_host_state_installed": false,
+  "paid_calls": 0
+}

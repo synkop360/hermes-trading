@@ -1,0 +1,32 @@
+{
+  "checked_at": "2026-10-25T20:19:39.910884+00:00",
+  "candidate": "a79fb936fd970eb9b25a23edf6522a2e34f6e17f",
+  "affected_windows": {
+    "executed": 140,
+    "passed": 139,
+    "platform_skips": 1,
+    "production_bytes_unchanged_since_run": true
+  },
+  "exact_final_windows_passed": 20,
+  "exact_final_linux_passed": 21,
+  "package_files_verified": 608,
+  "runtime_files": 129,
+  "runtime_delta": [
+    "supervisor_sync.py"
+  ],
+  "watcher_native_unchanged": true,
+  "independent_product_review_hashes_unchanged": true,
+  "test_only_followup": "explicit receiver clock binding; first Linux failure retained",
+  "full_catalog_cases": 1712,
+  "full_regression_status": "running_nonterminal",
+  "live_exec_session": 42772,
+  "local_links_checked": 15,
+  "deployed": false,
+  "actual_pc_runtime_installed": false,
+  "actual_guards_changed": false,
+  "entry_halt_cleared": false,
+  "market_backtest": false,
+  "training": false,
+  "paid_calls": 0,
+  "profitability_proven": false
+}

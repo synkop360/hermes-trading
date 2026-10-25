@@ -1,0 +1,31 @@
+{
+  "scope": "affected",
+  "started_at": "2026-10-25T20:02:04.448006+00:00",
+  "finished_at": "2026-10-25T20:08:10.877264+00:00",
+  "elapsed_seconds": 366.43799999996554,
+  "catalog_cases": 140,
+  "tests_run": 140,
+  "passed": 139,
+  "expected_failures": 0,
+  "unexpected_successes": 0,
+  "skipped": [
+    [
+      "test_volume_symlink_is_not_followed_and_reports_unknown (test_paper_safety.PaperSafetyTests.test_volume_symlink_is_not_followed_and_reports_unknown)",
+      "symbolic links unavailable for this Windows user"
+    ]
+  ],
+  "failures": [],
+  "errors": [],
+  "unrun_cases": [],
+  "resource_warnings": [],
+  "source_files": 376,
+  "changed_sources": [],
+  "log_sha256": "9a0c4b2d3ec17a52b8e640821cac5adb1f4cc4551fc85c7f4cc3b2cf7c822bfa",
+  "runner_sha256": "c5beca58ab8cb435c1420c601ba4b8d494e8065fb40104b581b1c5113b82f437",
+  "deployed": false,
+  "activated": false,
+  "market_backtest": false,
+  "training": false,
+  "paid_calls": 0,
+  "status": "passed_local_only"
+}

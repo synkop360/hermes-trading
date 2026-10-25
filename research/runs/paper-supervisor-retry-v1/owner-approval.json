@@ -1,0 +1,21 @@
+{
+  "recorded_at": "2026-10-25T20:03:11.672658+00:00",
+  "owner_answer": "Approve design and disabled local implementation",
+  "question_tool_call": "call_fb3cd7aaad9440529b05e110dbb0765c",
+  "approved_scope": [
+    "reviewed design",
+    "disabled local implementation",
+    "synthetic correctness checks"
+  ],
+  "excluded_scope": [
+    "deployment",
+    "actual PC runtime installation",
+    "live release-guard transition",
+    "restart",
+    "entry halt reset",
+    "paid calls",
+    "market backtests",
+    "training",
+    "real orders"
+  ]
+}
