@@ -1,0 +1,8 @@
+{"native_provenance": {"ai": {"amount": "0", "quality": "actual", "source": "explicit_test_zero"}, "funding": {"amount": "0", "quality": "actual", "source": "explicit_test_zero"}, "hosting": {"amount": "0", "quality": "estimated", "source": "explicit_test_zero"}, "tools": {"amount": "0", "quality": "actual", "source": "explicit_test_zero"}}, "rendered_cost_line": " costs=hosting:estimated ai:actual tools:actual funding:actual missing=[] halted=False liquidation_pending=False events=observed decisions=1 reasons={\"enter:rsi_entry\": 1}"}
+test_estimated_native_cost_quality_survives_rendering (__main__.costs_probe.<locals>.CostsProbe.test_estimated_native_cost_quality_survives_rendering) ... Executing <Task finished name='Task-2' coro=<costs_probe.<locals>.CostsProbe.test_estimated_native_cost_quality_survives_rendering() done, defined at E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\research\runs\paper-discord-reporting-v1\independent-review-repro.py:90> result=None created at C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\runners.py:100> took 1.031 seconds
+ok
+
+----------------------------------------------------------------------
+Ran 1 test in 1.128s
+
+OK

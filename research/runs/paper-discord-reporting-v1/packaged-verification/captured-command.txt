@@ -1,0 +1,11 @@
+Working directory:
+E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\research\runs\paper-discord-reporting-v1\release-upload-8f315b3-v2
+
+PowerShell invocation used:
+$env:HERMES_PACKAGED_VERIFY_EXPORT = 'E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\research\runs\paper-discord-reporting-v1\release-upload-8f315b3-v2'
+$env:HERMES_PACKAGED_VERIFY_OUTPUT = 'E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\research\runs\paper-discord-reporting-v1\packaged-verification'
+$env:PYTHONPATH = $env:HERMES_PACKAGED_VERIFY_OUTPUT
+$env:PYTHONDONTWRITEBYTECODE = '1'
+& 'E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-trading\.venv\Scripts\python.exe' -B -X utf8 'E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\research\runs\paper-discord-reporting-v1\packaged-verification\run_packaged_verification.py'
+
+Exit code: 0

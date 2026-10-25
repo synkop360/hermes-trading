@@ -1,0 +1,13 @@
+{
+  "observed_at": "2026-10-25T10:51:05.232277+00:00",
+  "artifact": "watcher_cycle.sqlite",
+  "mode": "ro",
+  "query_only": true,
+  "connection_timeout_seconds": 0.2,
+  "attempt_count": 1,
+  "immutable": false,
+  "status": "read",
+  "schema_objects": [],
+  "schema_object_count": 0,
+  "elapsed_seconds": 0.0
+}

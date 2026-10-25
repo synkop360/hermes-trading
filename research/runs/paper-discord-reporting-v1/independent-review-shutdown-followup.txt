@@ -1,0 +1,2 @@
+{"run_paper_style_cleanup_seconds": 0.407, "reporter_task_done": true}
+{"asyncio_run_total_seconds": 0.407, "promised_shutdown_bound_seconds": 2}

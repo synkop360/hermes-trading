@@ -1,0 +1,70 @@
+{
+  "activity_window": {
+    "end_exclusive": "2026-10-25T00:00:26.323709+00:00",
+    "start": "2026-10-23T20:13:56.622959+00:00"
+  },
+  "all_eight_observed": true,
+  "canonical_read_only_counts": {
+    "adaptive_100": {
+      "closed_positions": 0,
+      "orders": 0,
+      "positions": 0
+    },
+    "adaptive_150": {
+      "closed_positions": 0,
+      "orders": 0,
+      "positions": 0
+    },
+    "adaptive_200": {
+      "closed_positions": 0,
+      "orders": 0,
+      "positions": 0
+    },
+    "adaptive_50": {
+      "closed_positions": 0,
+      "orders": 0,
+      "positions": 0
+    },
+    "control_100": {
+      "closed_positions": 0,
+      "orders": 0,
+      "positions": 0
+    },
+    "control_150": {
+      "closed_positions": 0,
+      "orders": 0,
+      "positions": 0
+    },
+    "control_200": {
+      "closed_positions": 0,
+      "orders": 0,
+      "positions": 0
+    },
+    "control_50": {
+      "closed_positions": 0,
+      "orders": 0,
+      "positions": 0
+    }
+  },
+  "cli_exit_codes": {
+    "json": 0,
+    "markdown": 0
+  },
+  "cli_stderr_empty": true,
+  "cohort_status": "verified_completed_batch",
+  "helper_sha256": "2e69b8b224dc3997cf8239873079e3e0dcd3048e743c0fd1960cd0aa6fac8535",
+  "market_replay": false,
+  "model_or_provider_calls": 0,
+  "network_requests": 0,
+  "observed_at": "2026-10-25T10:34:02.953832+00:00",
+  "outputs": {
+    "operator-report.json": "baba439a590a5e94a15c3c3792b174f9ec0e859509ef666f7648f803fcf28d11",
+    "operator-report.md": "7ab0839088380efafe6302a57b893d3213f6df1192be8e0e0aee38db7e03d9de"
+  },
+  "qualification": false,
+  "query_mode": "mode=ro&immutable=1, query_only, trusted_schema=OFF; SELECT counts only; no migration or initialization",
+  "sidecars_after_counts": false,
+  "snapshot_generation": "state-2026-10-25-73a6a6a8ab53",
+  "snapshot_writes": false,
+  "source": "Verified completed October25 E: copy only"
+}

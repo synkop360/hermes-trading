@@ -1,0 +1,54 @@
+{
+  "scope": "full Windows correctness discovery: disabled paper Discord reporting and native composition",
+  "started_at": "2026-10-25T09:56:06.712796+00:00",
+  "observed_at": "2026-10-25T11:14:29.711022+00:00",
+  "elapsed_seconds": 4702.984000000055,
+  "tests": 1662,
+  "passed": 1655,
+  "failures": [],
+  "errors": [
+    [
+      "setUpClass (test_quote_checkpoint.QuoteCheckpointTests)",
+      "Traceback (most recent call last):\n  File \"E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\tests\\test_quote_checkpoint.py\", line 155, in setUpClass\n    asyncio.run(build())\n  File \"C:\\Program Files\\WindowsApps\\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\\Lib\\asyncio\\runners.py\", line 190, in run\n    return runner.run(main)\n           ^^^^^^^^^^^^^^^^\n  File \"C:\\Program Files\\WindowsApps\\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\\Lib\\asyncio\\runners.py\", line 118, in run\n    return self._loop.run_until_complete(task)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"C:\\Program Files\\WindowsApps\\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\\Lib\\asyncio\\base_events.py\", line 654, in run_until_complete\n    return future.result()\n           ^^^^^^^^^^^^^^^\n  File \"E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\tests\\test_quote_checkpoint.py\", line 140, in build\n    q3 = retain(a, operation_id=operation_id(_hash(f.manifest), 3))\n         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\tests\\test_quote_checkpoint.py\", line 110, in retain\n    return retain_quote_outcomes(f.root, archive_root=archive,\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\hermes_trading\\archive_quote_retention.py\", line 344, in retain_quote_outcomes\n    _artifact(db,root,plan,progress,name,original,budget,lease,hit)\n  File \"E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\hermes_trading\\archive_quote_retention.py\", line 197, in _artifact\n    stage=_stage(db,root,plan,progress,name,lease,hit)\n          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\hermes_trading\\archive_quote_retention.py\", line 187, in _stage\n    hit('after_empty_stage',name)\n  File \"E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\hermes_trading\\archive_quote_retention.py\", line 290, in hit\n    else:lease.check()\n         ^^^^^^^^^^^^^\n  File \"E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\hermes_trading\\archive_capacity.py\", line 400, in check\n    report = self._domain._measure(self._deadline)\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\hermes_trading\\archive_capacity.py\", line 190, in _measure\n    deadline.check()\n  File \"E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\hermes_trading\\archive_capacity.py\", line 76, in check\n    raise CapacityUnavailable('capacity admission deadline/clock unavailable')\nhermes_trading.archive_capacity.CapacityUnavailable: capacity admission deadline/clock unavailable\n"
+    ],
+    [
+      "setUpClass (test_quote_control_segment.QuoteControlSegmentTests)",
+      "Traceback (most recent call last):\n  File \"E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\tests\\test_quote_control_segment.py\", line 149, in setUpClass\n    asyncio.run(build())\n  File \"C:\\Program Files\\WindowsApps\\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\\Lib\\asyncio\\runners.py\", line 190, in run\n    return runner.run(main)\n           ^^^^^^^^^^^^^^^^\n  File \"C:\\Program Files\\WindowsApps\\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\\Lib\\asyncio\\runners.py\", line 118, in run\n    return self._loop.run_until_complete(task)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"C:\\Program Files\\WindowsApps\\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\\Lib\\asyncio\\base_events.py\", line 654, in run_until_complete\n    return future.result()\n           ^^^^^^^^^^^^^^^\n  File \"E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\tests\\test_quote_control_segment.py\", line 140, in build\n    q2 = retain_quote_outcomes(f.root, archive_root=archive,\n         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\hermes_trading\\archive_quote_retention.py\", line 343, in retain_quote_outcomes\n    _retire_account(root,plan,name,budget,hit)\n  File \"E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\hermes_trading\\archive_quote_retention.py\", line 158, in _retire_account\n    hit('before_account_commit',name);db.commit()\n    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\hermes_trading\\archive_quote_retention.py\", line 290, in hit\n    else:lease.check()\n         ^^^^^^^^^^^^^\n  File \"E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\hermes_trading\\archive_capacity.py\", line 400, in check\n    report = self._domain._measure(self._deadline)\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\hermes_trading\\archive_capacity.py\", line 190, in _measure\n    deadline.check()\n  File \"E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\hermes_trading\\archive_capacity.py\", line 76, in check\n    raise CapacityUnavailable('capacity admission deadline/clock unavailable')\nhermes_trading.archive_capacity.CapacityUnavailable: capacity admission deadline/clock unavailable\n"
+    ]
+  ],
+  "skipped": [
+    [
+      "test_added_symlink_or_reparse_storage_blocks_before_stage (test_archive_capacity.CapacityTests.test_added_symlink_or_reparse_storage_blocks_before_stage)",
+      "symlink creation unavailable: [WinError 1314] Le client ne dispose pas d\u2019un privil\u00e8ge n\u00e9cessaire: 'C:\\\\Users\\\\thoma\\\\AppData\\\\Local\\\\Temp\\\\tmpkmvpgm15\\\\outside' -> 'C:\\\\Users\\\\thoma\\\\AppData\\\\Local\\\\Temp\\\\tmpkmvpgm15\\\\state\\\\linked'"
+    ],
+    [
+      "test_fifo_at_object_or_manifest_is_rejected_without_blocking (test_archive_store.ArchiveTests.test_fifo_at_object_or_manifest_is_rejected_without_blocking)",
+      "POSIX FIFO regression"
+    ],
+    [
+      "test_source_or_destination_symlink_not_followed (test_archive_store.ArchiveTests.test_source_or_destination_symlink_not_followed)",
+      "host does not allow unprivileged symlinks; Linux verification required"
+    ],
+    [
+      "test_volume_symlink_is_not_followed_and_reports_unknown (test_paper_safety.PaperSafetyTests.test_volume_symlink_is_not_followed_and_reports_unknown)",
+      "symbolic links unavailable for this Windows user"
+    ],
+    [
+      "test_trailing_dot_guard_remains_on_filesystems_that_preserve_it (test_snapshot_plus_names.SnapshotPlusNameTests.test_trailing_dot_guard_remains_on_filesystems_that_preserve_it)",
+      "Windows normalizes trailing dots in path names"
+    ]
+  ],
+  "resource_warnings": [],
+  "source_files": 374,
+  "source_pins_unchanged": true,
+  "changed_sources": [],
+  "source_pins": "discord-full-windows-v3.source-sha256.json",
+  "log_sha256": "2611087f421686c4e6d6fa6e571cde4bf2c5c185a888cf84183a44a7f153538c",
+  "runner_sha256": "bf0d509885311aa1d34145ecee71fa8cebab2d3c681c316bd0c407d6d8232904",
+  "deployed": false,
+  "activated": false,
+  "paid_calls": 0,
+  "market_backtest": false,
+  "profitability_qualified": false,
+  "status": "failed"
+}

@@ -1,0 +1,37 @@
+{
+  "test_groups": [
+    "test_paper_notifications",
+    "test_paper_notification_capture",
+    "test_paper_discord_transition",
+    "test_archive_capacity.CapacityTests.test_added_symlink_or_reparse_storage_blocks_before_stage",
+    "test_archive_store.ArchiveTests.test_fifo_at_object_or_manifest_is_rejected_without_blocking",
+    "test_archive_store.ArchiveTests.test_source_or_destination_symlink_not_followed",
+    "test_paper_safety.PaperSafetyTests.test_volume_symlink_is_not_followed_and_reports_unknown",
+    "test_snapshot_plus_names.SnapshotPlusNameTests.test_trailing_dot_guard_remains_on_filesystems_that_preserve_it"
+  ],
+  "tests": 52,
+  "passed": 51,
+  "failures": [],
+  "errors": [
+    [
+      "test_stalled_metadata_never_keeps_asyncio_run_alive_after_cancellation (test_paper_notifications.PaperNotificationProcessShutdownTests.test_stalled_metadata_never_keeps_asyncio_run_alive_after_cancellation) (operation='_persist')",
+      "Traceback (most recent call last):\n  File \"/workspace/tests/test_paper_notifications.py\", line 641, in test_stalled_metadata_never_keeps_asyncio_run_alive_after_cancellation\n    result = subprocess.run([sys.executable,'-B','-X','utf8','-c',script,operation],\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.11/subprocess.py\", line 550, in run\n    stdout, stderr = process.communicate(input, timeout=timeout)\n                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.11/subprocess.py\", line 1209, in communicate\n    stdout, stderr = self._communicate(input, endtime, timeout)\n                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.11/subprocess.py\", line 2116, in _communicate\n    self._check_timeout(endtime, orig_timeout, stdout, stderr)\n  File \"/usr/local/lib/python3.11/subprocess.py\", line 1253, in _check_timeout\n    raise TimeoutExpired(\nsubprocess.TimeoutExpired: Command '['/app/.venv/bin/python', '-B', '-X', 'utf8', '-c', \"\\nimport asyncio,json,sys,tempfile,time,threading\\nfrom pathlib import Path\\nsys.path.insert(0,str(Path('tests').resolve()))\\nfrom test_paper_notifications import identity,settings,envelope\\nfrom hermes_trading.notifications import PaperDiscordReporter\\nentered=threading.Event()\\nasync def main(root,operation):\\n    async def fake_post(*args):pass\\n    reporter=PaperDiscordReporter(root,identity(),settings(),post_json=fake_post)\\n    original=getattr(reporter,operation)\\n    def stalled():\\n        entered.set();time.sleep(3)\\n        return original()\\n    setattr(reporter,operation,stalled)\\n    reporter.offer(envelope())\\n    task=asyncio.create_task(reporter.run())\\n    while not entered.is_set():await asyncio.sleep(.001)\\n    task.cancel()\\n    try:await task\\n    except asyncio.CancelledError:pass\\nwith tempfile.TemporaryDirectory() as root:\\n    tick=time.monotonic();asyncio.run(main(root,sys.argv[1]))\\n    print(json.dumps({'elapsed':time.monotonic()-tick}))\\n\", '_persist']' timed out after 8 seconds\n"
+    ]
+  ],
+  "skipped": [],
+  "resource_warnings": [],
+  "source_files": 603,
+  "source_pins_unchanged": true,
+  "foreign_imports": [],
+  "elapsed_seconds": 102.93866501003504,
+  "python": "3.11.17 (main, Oct  6 2026, 02:02:21) [GCC 14.2.0]",
+  "platform": "linux",
+  "uid": 65534,
+  "scope": "52 affected reporting/native composition plus POSIX cases only; not full Linux qualification",
+  "network": "none",
+  "deployed": false,
+  "discord_requests": 0,
+  "exit_code": 1,
+  "observed_at": "2026-10-25T10:00:29.720612+00:00",
+  "owned_container_absent": true
+}

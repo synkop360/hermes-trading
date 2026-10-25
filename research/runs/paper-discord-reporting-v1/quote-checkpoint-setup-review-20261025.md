@@ -1,0 +1,30 @@
+# Quote checkpoint setup failure: static review, 2026-10-25
+
+The frozen full Windows v3 log records `setUpClass (test_quote_checkpoint.QuoteCheckpointTests) ... ERROR`. The terminal traceback was not yet present at this observation. The failed stage, exception and cause remain unknown. A deadline or filesystem explanation is only a candidate until that trace arrives.
+
+Static AST extraction identifies **13 class cases unrun**. Their exact IDs and unchanged-source comparisons are in `quote-checkpoint-setup-review-20261025.json`. The separate availability case passed. A setup error is an error holder, not an executed class case; reconcile the final runner count against the 1,692-case catalog and these missing IDs rather than subtracting this setup error from executed cases as though it were an individual failure.
+
+Setup (`tests/test_quote_checkpoint.py:40`) advances a mocked native worker to complete cuts 5, 7 and 9 under a maximum of 12 cycles, captures three archive cohorts (90 s each), performs q1/q2/q3 retentions (120 s each), and creates two checkpoints (120 s each). The storage ownership acquisition has its existing default 10 s bound; each operation has a separate fresh admission deadline. Finite work does not establish which guard failed.
+
+The test, its four native fixture helpers and the five inspected archive modules are byte-identical in the 49c and ed439 committed blobs; their raw Windows hashes also match the two full-run pin receipts. The live working bytes still match v3 pins. `WorkerTests.invoke` passes no observer (`tests/test_paired_worker.py:34`), leaving `run_worker(observer=None)` and `run_paired_cycle(notification_capture=False)`. No reporter is created or delivery attempted, and the notification deepcopy/capture builder remains inside the explicit true branch (`hermes_trading/paired_paper.py:475`). The changed worker still computes a small notification identity and calls its heartbeat wrapper, whose observer branch is inactive; this does not prove the elapsed outcome is unaffected, but no background reporting/capture workload is invoked.
+
+The prior 49c full run executed this class and failed **inside one individual case**, at q4 retention's final capacity lease check with `CapacityUnavailable`. That is different evidence from the current class setup error and cannot be labeled the same failure before seeing the terminal trace. No tests, guards, source, configuration, processes or retained fixtures were changed or rerun.
+
+## Second setup error observed
+
+The same full run now records `setUpClass (test_quote_control_segment.QuoteControlSegmentTests) ... ERROR`. Static AST extraction adds **17 unrun cases**, giving **30 unrun catalog cases across the two classes**. If there are no further absent cases, the 1,692-case catalog implies 1,662 executed cases; this is conditional until terminal reconciliation. Both error holders must be recorded separately from executed case outcomes. All 17 segment cases passed in the prior 49c full log.
+
+The second nested setup build (`tests/test_quote_control_segment.py:69`) advances the same native fixture to complete cuts 5 and 7 under max_cycles 8, captures two cohorts (90 s each), and performs two quote retentions (120 s each), using existing storage ownership admission. The test and archive segment module have identical raw Windows pins and committed blobs between baseline and candidate. Their current bytes match v3 pins. The same observer=None / notification_capture=False path applies. Neither class contains a `_make_fixture` function; these are nested `build` functions using `native.fresh_selected`. The exact second failed stage and exception also remain unknown pending its terminal trace.
+
+## Terminal classification and catalog reconciliation
+
+The full run finished at 2026-10-25 11:14:29 UTC with **failed** status: 1,662 executed cases, **1,657 passed**, five skips, zero individual-case failures/errors, and **two class setup error holders**. Both guards raised `hermes_trading.archive_capacity.CapacityUnavailable` with the classification `capacity admission deadline/clock unavailable` at `archive_capacity.py:76` during `lease.check -> _measure -> _Deadline.check`.
+
+* Checkpoint setup failed at **q3**, `test_quote_checkpoint.py:140`: retention `_artifact -> _stage`, at the `after_empty_stage` hook (`archive_quote_retention.py:187`).
+* Segment setup failed at **q2**, `test_quote_control_segment.py:140`: retention `_retire_account`, at the `before_account_commit` hook (`archive_quote_retention.py:158`).
+
+These are newly observed setup failure points in unchanged archive code, with the same deadline/clock guard family as the older individual q4 failure. They are not the same exact failed test or transition. The traces do not establish environmental causation, a measured elapsed value at the guard, or timing equivalence for changed default-off worker code. No background reporter or notification capture is invoked by either fixture.
+
+The 1,692-case catalog reconciles exactly: **1,657 pass + five skip + 30 unrun = 1,692**. The 30 statically listed class IDs do not occur as executed case headers. The runner's retained raw `passed=1655` subtracts the two setup error holders from `testsRun` even though they did not increment that count; the independent completed-log parse counts 1,657 passed cases. The original receipt is preserved unchanged. All **47 new cases** terminate `ok` in the full log (32 reporter + 12 native capture/composition + three transition); exact IDs and statuses are saved in `full-regression/discord-full-windows-v3.new-case-statuses-independent.json`.
+
+All 374 frozen source/test/script/config/build pins remained unchanged and the receipt reports no ResourceWarnings. Test execution took 4,695.410 s; receipt elapsed time is 4,702.984 s. This is a failed full regression with a stated archive-fixture coverage gap, not a green full suite. No reruns, deadline changes, source/test changes, process actions or archive activation were performed for this review.

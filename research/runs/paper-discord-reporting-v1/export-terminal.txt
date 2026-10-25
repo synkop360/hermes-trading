@@ -1,0 +1,11 @@
+Traceback (most recent call last):
+  File "E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\research\runs\paper-discord-reporting-v1\prepare_export.py", line 58, in <module>
+    path=destination/name;path.parent.mkdir(parents=True,exist_ok=True);path.write_bytes(raw)
+                                                                        ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\pathlib.py", line 1067, in write_bytes
+    with self.open(mode='wb') as f:
+         ^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\pathlib.py", line 1044, in open
+    return io.open(self, mode, buffering, encoding, errors, newline)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: 'E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-discord-reporting-v1\\release-upload-8f315b3\\research\\runs\\paper-operational-corrections-v1\\full-regression\\operational-full-windows-v1.source-sha256.json'

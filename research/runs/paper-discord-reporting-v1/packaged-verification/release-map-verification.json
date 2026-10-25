@@ -1,0 +1,21 @@
+{
+  "native_launcher_sha256": "d1426320536bd8c369163d8fd6221f151fcb4f01e76ceb3033d945b8f96bd073",
+  "new_runtime_map": "61c0cd1055148b6261b6a828bbf04f97ce7d9496a529b81c157f0bb44df6748e",
+  "new_supervisor_release": "aa06920c43908fddea535a337cd91f43cd7866ce91e40bb01e5f9eff4d13418d",
+  "old_runtime_map": "2577bc1ce7c64adccd92a211cf60e25cce6f1e392bb63cfdb516802c1df17fcc",
+  "old_supervisor_release": "f5cae59278c4e99fc3fa3a33da4bf55890276b29370a28260e9cf3400729edfd",
+  "release_plan_sha256": "a71cb8210718b6c43eeb38c9f824f002cb30a3b1946274989da8c0fc2d35e132",
+  "release_plan_validated": true,
+  "runtime_delta": [
+    "notifications.py",
+    "paired_paper.py",
+    "paired_worker.py",
+    "paper_boot.py"
+  ],
+  "runtime_keyset_unchanged": true,
+  "runtime_modules": 129,
+  "source_commit": "8f315b35cf6a40267cc07be1bac2c9be126006c7",
+  "unchanged_runtime_modules": 125,
+  "watcher_and_native_launcher_unchanged": true,
+  "watcher_sha256": "118d3170daa2bd816c205a66ec12cbaa829aceae01d456e1aa9f8d842f4e36e2"
+}

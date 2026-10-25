@@ -1,0 +1,10 @@
+{
+  "expected_files": 603,
+  "manifest_sha256": "f4f5ce336e1be6f955dff901f9ea345e98584c80cebfd7dc50df871ca70c7d99",
+  "mismatches": [],
+  "missing_files": [],
+  "observed_at": "2026-10-25T10:11:24.578153+00:00",
+  "observed_files": 603,
+  "phase": "after",
+  "unexpected_files": []
+}

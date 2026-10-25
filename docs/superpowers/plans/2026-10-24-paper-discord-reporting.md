@@ -41,11 +41,11 @@ Envelope v1 has `schema_version=1`, `kind` (`settled` or `operational`), the fou
 
 **Interfaces:** Consumes the identity/envelope contract above; produces `PaperDiscordReporter` and its nonblocking `offer`/async `run`. Keep legacy helpers unchanged; reuse settings, period calculations and transport injection but not legacy percentage P&L or marker-before-send code.
 
-- [ ] Write meaningful failing tests for disabled/invalid/cohort/missing-cost inputs, EUR accounting, mode filters, startup/5-batch/12h/day/week/heartbeat schedules and duplicate batches.
-- [ ] Run `python -B -X utf8 -W error::ResourceWarning -m unittest tests.test_paper_notifications -v`; watch intended missing-feature failures.
-- [ ] Implement bounded queue/latest slot, compact rendering, confirmed transport, per-part delivery markers, backoff/uncertainty, corruption isolation and cancellation.
-- [ ] Add and run failure-focused tests: stalled delivery,429/permanent failure/timeout, marker failure, overflow/restart, split/mention bounds and healthy-but-not-due semantics. Expect zero failures/errors/ResourceWarnings; all transports fake.
-- [ ] Commit only reporter/test files and evidence summaries; report exact constructor/envelope mapping to root.
+- [x] Write meaningful failing tests for disabled/invalid/cohort/missing-cost inputs, EUR accounting, mode filters, startup/5-batch/12h/day/week/heartbeat schedules and duplicate batches.
+- [x] Run `python -B -X utf8 -W error::ResourceWarning -m unittest tests.test_paper_notifications -v`; watch intended missing-feature failures.
+- [x] Implement bounded queue/latest slot, compact rendering, confirmed transport, per-part delivery markers, backoff/uncertainty, corruption isolation and cancellation.
+- [x] Add and run failure-focused tests: stalled delivery,429/permanent failure/timeout, marker failure, overflow/restart, split/mention bounds and healthy-but-not-due semantics. Expect zero failures/errors/ResourceWarnings; all transports fake.
+- [x] Commit only reporter/test files and evidence summaries; report exact constructor/envelope mapping to root.
 
 ## Task2: Native settlement and worker lifecycle integration
 
@@ -53,22 +53,29 @@ Envelope v1 has `schema_version=1`, `kind` (`settled` or `operational`), the fou
 
 **Interfaces:** Native `run_worker(..., observer=None)` and `run_paired_cycle(..., notification_capture=False)` default to old behavior. Capture returns an ephemeral `notification` member when requested, containing final measurements and canonical exact-batch events. No notification-only member is persisted in completed packets or financial journals. Heartbeat generation returns its existing dict for a pure copied envelope. Reporter code owns no database handle.
 
-- [ ] Write failing synthetic capture tests using existing native paired fixtures, including unknown cost, partial close and subsequent halt sweep; assert old persisted packets/opening/controls/history unchanged.
-- [ ] Run the new module; observe intended absent-hook failures before production edits.
-- [ ] Implement bounded event capture under existing account ownership and ephemeral final-observation handoff after full commit/connection close; isolate all capture/observer errors from worker health and admission.
-- [ ] Write failing boot/task tests for disabled and malformed config, failed/stalled sender, continued worker/protective processing, and bounded cancellation; integrate optional reporter without legacy services.
-- [ ] Run new capture module and affected paired/worker/bootstrap tests; expect actual terminals and preserved ResourceWarning discipline. Commit only owned source/tests.
+- [x] Write failing synthetic capture tests using existing native paired fixtures, including unknown cost, partial close and subsequent halt sweep; assert old persisted packets/opening/controls/history unchanged.
+- [x] Run the new module; observe intended absent-hook failures before production edits.
+- [x] Implement bounded event capture under existing account ownership and ephemeral final-observation handoff after full commit/connection close; isolate all capture/observer errors from worker health and admission.
+- [x] Write failing boot/task tests for disabled and malformed config, failed/stalled sender, continued worker/protective processing, and bounded cancellation; integrate optional reporter without legacy services.
+- [x] Run new capture module and affected paired/worker/bootstrap tests; expect actual terminals and preserved ResourceWarning discipline. Commit only owned source/tests.
 
 ## Task3: Composition, review and release candidate
 
 **Files:** Add integration cases to the new modules and a dated verification/cutover document; do not change live state.
 
-- [ ] Compose real native fixture, worker and fake reporter; verify eight settled rows, native cost/close data, deliberate sender stalls/errors, replay/identity checks and no extra writer or clock reset.
-- [ ] Run both new modules and existing notifications/paired-worker/paper-boot tests, then appropriate frozen full discovery. Preserve the known disabled-archive baseline deadline limitation; restore exact historical fixtures where necessary rather than relaxing guards or assertions.
-- [ ] Obtain independent source/patch review; reproduce and fix material findings with failing-then-passing checks.
-- [ ] Update graph AST-only, verify unchanged runtime-map key set and raw bytes outside the four allowed files, commit a concrete candidate and prepare checked both-host transition plus bounded message-activation acceptance.
+- [x] Compose real native fixture, worker and fake reporter; verify eight settled rows, native cost/close data, deliberate sender stalls/errors, replay/identity checks and no extra writer or clock reset.
+- [x] Run both new modules and existing notifications/paired-worker/paper-boot tests, then appropriate frozen full discovery. Preserve the known disabled-archive baseline deadline limitation; restore exact historical fixtures where necessary rather than relaxing guards or assertions.
+- [x] Obtain independent source/patch review; reproduce and fix material findings with failing-then-passing checks.
+- [x] Update graph AST-only, verify unchanged runtime-map key set and raw bytes outside the four allowed files, commit a concrete candidate and prepare checked both-host transition plus bounded message-activation acceptance.
 - [ ] Only after the candidate is concrete and verified ask separately for exact deployment/notification activation. No actual send during local work.
 
 ## Execution ruling
 
 The owner has explicitly authorized independent work and this local implementation. No execution-method question is needed: delegate Task1 while root implements Task2 against the fixed interface, then perform Task3 and independent review. The existing linked worktree is already isolated from the actual PC runtime; reuse it on a new branch, preserving preexisting uncommitted cutover documentation. Shared interpreter is the main project's venv; no install or broad baseline rerun before the relevant existing baseline checks. Preserve all evidence and do not delete the plan workspace.
+
+
+## Dated execution evidence — October 25
+
+Source candidate `ed439e8` is frozen:47 new checks and 164 exact-export Windows checks pass, with 603 raw pins unchanged. Independent review verified archive capture, native process shutdown, cost quality and combined four-part/failure/restart corrections. Selected 52-case Linux evidence passes with an explicitly qualified test startup allowance; the native shutdown assertion and product source remain unchanged. The final AST-only graph update has 6,339 nodes / 21,946 edges, with no API call. No dependencies were installed.
+
+Full Windows v3 is terminal: 1,657 passes, five Windows skips, two archive class-fixture capacity deadline errors and 30 unrun catalog cases; all 374 pins unchanged and no ResourceWarnings. Its raw passed=1,655 arithmetic subtracts two error holders outside testsRun; the independent classification preserves the original receipt and corrects the count. All 47 new cases pass. This is not a passing full suite, and the setup-q3/setup-q2 locations differ from the predecessor's individual q4 error. Earlier interrupted attempts and harness failures are preserved. The full-discovery task is checked as executed/assessed, not as all passing. Local implementation approval does not authorize deployment, requests or changes to the newly observed sticky supervisor entry halt. The exact proposed installation is in docs/PAPER_DISCORD_REPORTING_CUTOVER.md. No live deployment/message, risk/trading change, market backtest, training or paid call occurred.

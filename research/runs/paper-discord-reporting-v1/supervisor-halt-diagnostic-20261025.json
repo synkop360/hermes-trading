@@ -1,0 +1,859 @@
+{
+  "actions": {
+    "configuration_changed": false,
+    "latch_cleared": false,
+    "network_inspected": false,
+    "provider_or_model_executed": false,
+    "watcher_executed": false
+  },
+  "execution_count": 372,
+  "failed_executions": [
+    {
+      "cron_exit_code": 1,
+      "duration_seconds": 14.092035,
+      "finished_at": "2026-10-25T00:14:55.191879+02:00",
+      "id": "41cc118a800548ad8b958e693c6ba907",
+      "native_launcher_status": null,
+      "output_file": null,
+      "started_at": "2026-10-25T00:14:41.099844+02:00",
+      "status": "failed"
+    },
+    {
+      "cron_exit_code": 1,
+      "duration_seconds": 14.231994,
+      "finished_at": "2026-10-25T00:22:55.641203+02:00",
+      "id": "085088e8d56f4f27beff08e5ac2b26c7",
+      "native_launcher_status": null,
+      "output_file": null,
+      "started_at": "2026-10-25T00:22:41.409209+02:00",
+      "status": "failed"
+    },
+    {
+      "cron_exit_code": 1,
+      "duration_seconds": 13.95725,
+      "finished_at": "2026-10-25T00:30:55.681241+02:00",
+      "id": "b9136e27d83e42248632a35914f3019a",
+      "native_launcher_status": null,
+      "output_file": null,
+      "started_at": "2026-10-25T00:30:41.723991+02:00",
+      "status": "failed"
+    },
+    {
+      "cron_exit_code": 1,
+      "duration_seconds": 14.401136,
+      "finished_at": "2026-10-25T00:58:57.306048+02:00",
+      "id": "7382c47334ec49e18ec0306068d29f50",
+      "native_launcher_status": null,
+      "output_file": null,
+      "started_at": "2026-10-25T00:58:42.904912+02:00",
+      "status": "failed"
+    },
+    {
+      "cron_exit_code": 1,
+      "duration_seconds": 11.525089,
+      "finished_at": "2026-10-25T01:00:54.534970+02:00",
+      "id": "2a72cd675877426c930f03cdaf02e900",
+      "native_launcher_status": null,
+      "output_file": null,
+      "started_at": "2026-10-25T01:00:43.009881+02:00",
+      "status": "failed"
+    },
+    {
+      "cron_exit_code": 1,
+      "duration_seconds": 13.718424,
+      "finished_at": "2026-10-25T01:06:57.003486+02:00",
+      "id": "c6674cdef5cd46608e9a8b019f5c49e9",
+      "native_launcher_status": null,
+      "output_file": null,
+      "started_at": "2026-10-25T01:06:43.285062+02:00",
+      "status": "failed"
+    },
+    {
+      "cron_exit_code": 1,
+      "duration_seconds": 11.074931,
+      "finished_at": "2026-10-25T01:12:54.636356+02:00",
+      "id": "95d587e3778040e28aa92863235ad265",
+      "native_launcher_status": null,
+      "output_file": null,
+      "started_at": "2026-10-25T01:12:43.561425+02:00",
+      "status": "failed"
+    },
+    {
+      "cron_exit_code": 1,
+      "duration_seconds": 11.656897,
+      "finished_at": "2026-10-25T01:20:55.561962+02:00",
+      "id": "a69d9647fb3343519b90588dcb89003f",
+      "native_launcher_status": null,
+      "output_file": null,
+      "started_at": "2026-10-25T01:20:43.905065+02:00",
+      "status": "failed"
+    },
+    {
+      "cron_exit_code": 1,
+      "duration_seconds": 11.013481,
+      "finished_at": "2026-10-25T01:28:55.263306+02:00",
+      "id": "dedc8117d60d4bcf9572ab84eb4d9cf2",
+      "native_launcher_status": null,
+      "output_file": null,
+      "started_at": "2026-10-25T01:28:44.249825+02:00",
+      "status": "failed"
+    },
+    {
+      "cron_exit_code": 1,
+      "duration_seconds": 14.275045,
+      "finished_at": "2026-10-25T01:34:58.815757+02:00",
+      "id": "3264efe44c7f452b90c128bb57b940d8",
+      "native_launcher_status": null,
+      "output_file": null,
+      "started_at": "2026-10-25T01:34:44.540712+02:00",
+      "status": "failed"
+    },
+    {
+      "cron_exit_code": 1,
+      "duration_seconds": 14.997842,
+      "finished_at": "2026-10-25T01:42:59.871081+02:00",
+      "id": "9f50c66d44bb402986913a4f482c6b4a",
+      "native_launcher_status": null,
+      "output_file": null,
+      "started_at": "2026-10-25T01:42:44.873239+02:00",
+      "status": "failed"
+    },
+    {
+      "cron_exit_code": 1,
+      "duration_seconds": 11.268039,
+      "finished_at": "2026-10-25T01:48:56.404265+02:00",
+      "id": "abcdd7cd0b2d43129faf1bf8b83761f0",
+      "native_launcher_status": null,
+      "output_file": null,
+      "started_at": "2026-10-25T01:48:45.136226+02:00",
+      "status": "failed"
+    },
+    {
+      "cron_exit_code": 1,
+      "duration_seconds": 11.414892,
+      "finished_at": "2026-10-25T01:56:56.904990+02:00",
+      "id": "b0d9f81dbb754e28b477cc56d0e4ddd2",
+      "native_launcher_status": null,
+      "output_file": null,
+      "started_at": "2026-10-25T01:56:45.490098+02:00",
+      "status": "failed"
+    },
+    {
+      "cron_exit_code": 1,
+      "duration_seconds": 13.875922,
+      "finished_at": "2026-10-25T02:19:00.384438+02:00",
+      "id": "9fd0d7527015454684ca49fb5b37f658",
+      "native_launcher_status": null,
+      "output_file": null,
+      "started_at": "2026-10-25T02:18:46.508516+02:00",
+      "status": "failed"
+    },
+    {
+      "cron_exit_code": 1,
+      "duration_seconds": 14.286846,
+      "finished_at": "2026-10-25T02:27:01.168674+02:00",
+      "id": "f6a49242013e42d1b932123bd002b50c",
+      "native_launcher_status": null,
+      "output_file": null,
+      "started_at": "2026-10-25T02:26:46.881828+02:00",
+      "status": "failed"
+    },
+    {
+      "cron_exit_code": 1,
+      "duration_seconds": 11.277777,
+      "finished_at": "2026-10-25T02:40:58.839398+02:00",
+      "id": "0009c03853c9417eaaf3782e02a1e3f7",
+      "native_launcher_status": null,
+      "output_file": null,
+      "started_at": "2026-10-25T02:40:47.561621+02:00",
+      "status": "failed"
+    },
+    {
+      "cron_exit_code": 1,
+      "duration_seconds": 11.033961,
+      "finished_at": "2026-10-25T02:48:58.965327+02:00",
+      "id": "5934790d939441b4bb021bf97f05e35d",
+      "native_launcher_status": null,
+      "output_file": null,
+      "started_at": "2026-10-25T02:48:47.931366+02:00",
+      "status": "failed"
+    },
+    {
+      "cron_exit_code": 1,
+      "duration_seconds": 12.292383,
+      "finished_at": "2026-10-25T02:57:00.604045+02:00",
+      "id": "0c750e9995b9415ab8e4283d089503d9",
+      "native_launcher_status": null,
+      "output_file": null,
+      "started_at": "2026-10-25T02:56:48.311662+02:00",
+      "status": "failed"
+    },
+    {
+      "cron_exit_code": 1,
+      "duration_seconds": 14.459359,
+      "finished_at": "2026-10-25T02:11:03.467939+01:00",
+      "id": "a44e3b11eaee4f8496234f783d0b97c6",
+      "native_launcher_status": null,
+      "output_file": null,
+      "started_at": "2026-10-25T02:10:49.008580+01:00",
+      "status": "failed"
+    },
+    {
+      "cron_exit_code": 1,
+      "duration_seconds": 13.921575,
+      "finished_at": "2026-10-25T02:19:03.318597+01:00",
+      "id": "8505a8e6cb8b40759ce3efa909adfad5",
+      "native_launcher_status": null,
+      "output_file": null,
+      "started_at": "2026-10-25T02:18:49.397022+01:00",
+      "status": "failed"
+    },
+    {
+      "cron_exit_code": 1,
+      "duration_seconds": 11.461532,
+      "finished_at": "2026-10-25T02:33:01.540600+01:00",
+      "id": "8650dd13d2d442fcb59f65b660fb3e7e",
+      "native_launcher_status": null,
+      "output_file": null,
+      "started_at": "2026-10-25T02:32:50.079068+01:00",
+      "status": "failed"
+    },
+    {
+      "cron_exit_code": 1,
+      "duration_seconds": 14.073267,
+      "finished_at": "2026-10-25T02:55:05.192620+01:00",
+      "id": "7b0ab4ea103443ba9019d3f23e4bffa0",
+      "native_launcher_status": null,
+      "output_file": null,
+      "started_at": "2026-10-25T02:54:51.119353+01:00",
+      "status": "failed"
+    },
+    {
+      "cron_exit_code": 1,
+      "duration_seconds": 14.664099,
+      "finished_at": "2026-10-25T03:03:06.152165+01:00",
+      "id": "c8b4de7c080d4a36b51c530bcaf58b04",
+      "native_launcher_status": null,
+      "output_file": null,
+      "started_at": "2026-10-25T03:02:51.488066+01:00",
+      "status": "failed"
+    },
+    {
+      "cron_exit_code": 1,
+      "duration_seconds": 11.617392,
+      "finished_at": "2026-10-25T03:17:03.786926+01:00",
+      "id": "0085427676584f419e854e0426f750b1",
+      "native_launcher_status": null,
+      "output_file": null,
+      "started_at": "2026-10-25T03:16:52.169534+01:00",
+      "status": "failed"
+    },
+    {
+      "cron_exit_code": 1,
+      "duration_seconds": 14.617095,
+      "finished_at": "2026-10-25T03:39:07.808538+01:00",
+      "id": "d91bfe2f5ae740c999f626118aae6b68",
+      "native_launcher_status": null,
+      "output_file": null,
+      "started_at": "2026-10-25T03:38:53.191443+01:00",
+      "status": "failed"
+    },
+    {
+      "cron_exit_code": 1,
+      "duration_seconds": 14.328313,
+      "finished_at": "2026-10-25T03:47:07.874051+01:00",
+      "id": "d0b7d71c48f742478e325ba25cae063c",
+      "native_launcher_status": null,
+      "output_file": null,
+      "started_at": "2026-10-25T03:46:53.545738+01:00",
+      "status": "failed"
+    },
+    {
+      "cron_exit_code": 1,
+      "duration_seconds": 11.477735,
+      "finished_at": "2026-10-25T04:01:05.774603+01:00",
+      "id": "d7fe9845cd0c4c3ea635da0538ffdf99",
+      "native_launcher_status": null,
+      "output_file": null,
+      "started_at": "2026-10-25T04:00:54.296868+01:00",
+      "status": "failed"
+    },
+    {
+      "cron_exit_code": 1,
+      "duration_seconds": 11.24953,
+      "finished_at": "2026-10-25T04:05:05.748263+01:00",
+      "id": "8c48a17c53484c7c856fdec9080e20b3",
+      "native_launcher_status": null,
+      "output_file": null,
+      "started_at": "2026-10-25T04:04:54.498733+01:00",
+      "status": "failed"
+    },
+    {
+      "cron_exit_code": 1,
+      "duration_seconds": 14.416741,
+      "finished_at": "2026-10-25T04:15:09.384571+01:00",
+      "id": "058db282e93846a482bad7513a9f3ac3",
+      "native_launcher_status": null,
+      "output_file": null,
+      "started_at": "2026-10-25T04:14:54.967830+01:00",
+      "status": "failed"
+    },
+    {
+      "cron_exit_code": 1,
+      "duration_seconds": 10.855859,
+      "finished_at": "2026-10-25T04:29:06.528180+01:00",
+      "id": "ab09b2f5e021404790f23fc7552056a2",
+      "native_launcher_status": null,
+      "output_file": null,
+      "started_at": "2026-10-25T04:28:55.672321+01:00",
+      "status": "failed"
+    },
+    {
+      "cron_exit_code": 1,
+      "duration_seconds": 11.089671,
+      "finished_at": "2026-10-25T04:37:07.151308+01:00",
+      "id": "224619ddc9c04a618561204b3b843ff2",
+      "native_launcher_status": null,
+      "output_file": null,
+      "started_at": "2026-10-25T04:36:56.061637+01:00",
+      "status": "failed"
+    },
+    {
+      "cron_exit_code": 1,
+      "duration_seconds": 14.186688,
+      "finished_at": "2026-10-25T04:51:10.889859+01:00",
+      "id": "87ab7e6609cc4fbe9e2d2d49c33c4d73",
+      "native_launcher_status": null,
+      "output_file": null,
+      "started_at": "2026-10-25T04:50:56.703171+01:00",
+      "status": "failed"
+    },
+    {
+      "cron_exit_code": 1,
+      "duration_seconds": 11.479444,
+      "finished_at": "2026-10-25T05:05:08.816929+01:00",
+      "id": "f0365ffb3e4e45e69104cf972aa248a2",
+      "native_launcher_status": null,
+      "output_file": null,
+      "started_at": "2026-10-25T05:04:57.337485+01:00",
+      "status": "failed"
+    },
+    {
+      "cron_exit_code": 1,
+      "duration_seconds": 11.639683,
+      "finished_at": "2026-10-25T05:13:09.359455+01:00",
+      "id": "0b31f953cff44e6caa0d5bb70ed70085",
+      "native_launcher_status": null,
+      "output_file": null,
+      "started_at": "2026-10-25T05:12:57.719772+01:00",
+      "status": "failed"
+    },
+    {
+      "cron_exit_code": 1,
+      "duration_seconds": 14.794046,
+      "finished_at": "2026-10-25T05:43:13.975564+01:00",
+      "id": "fc1febbbdc664f9b95d2933c61336b67",
+      "native_launcher_status": null,
+      "output_file": null,
+      "started_at": "2026-10-25T05:42:59.181518+01:00",
+      "status": "failed"
+    },
+    {
+      "cron_exit_code": 1,
+      "duration_seconds": 11.056476,
+      "finished_at": "2026-10-25T05:57:10.858850+01:00",
+      "id": "3f8d9d6c1b4142479d717378c32999d9",
+      "native_launcher_status": null,
+      "output_file": null,
+      "started_at": "2026-10-25T05:56:59.802374+01:00",
+      "status": "failed"
+    },
+    {
+      "cron_exit_code": 1,
+      "duration_seconds": 11.260141,
+      "finished_at": "2026-10-25T06:05:11.434576+01:00",
+      "id": "37f085b72c7b45078cbe31a03ef06ee1",
+      "native_launcher_status": null,
+      "output_file": null,
+      "started_at": "2026-10-25T06:05:00.174435+01:00",
+      "status": "failed"
+    },
+    {
+      "cron_exit_code": 1,
+      "duration_seconds": 11.715476,
+      "finished_at": "2026-10-25T06:13:12.268516+01:00",
+      "id": "5171052522d04b11bc8817cf3dd30af4",
+      "native_launcher_status": null,
+      "output_file": null,
+      "started_at": "2026-10-25T06:13:00.553040+01:00",
+      "status": "failed"
+    },
+    {
+      "cron_exit_code": 1,
+      "duration_seconds": 9.081272,
+      "finished_at": "2026-10-25T06:15:09.725852+01:00",
+      "id": "35961387f27947a8821af7496fb3283e",
+      "native_launcher_status": null,
+      "output_file": null,
+      "started_at": "2026-10-25T06:15:00.644580+01:00",
+      "status": "failed"
+    },
+    {
+      "cron_exit_code": 1,
+      "duration_seconds": 14.018413,
+      "finished_at": "2026-10-25T06:17:14.773496+01:00",
+      "id": "225e35e510c54db3a70cd80b089719fa",
+      "native_launcher_status": null,
+      "output_file": null,
+      "started_at": "2026-10-25T06:17:00.755083+01:00",
+      "status": "failed"
+    },
+    {
+      "cron_exit_code": 1,
+      "duration_seconds": 11.179443,
+      "finished_at": "2026-10-25T06:35:12.814075+01:00",
+      "id": "00e321b505f24eca91dcdb943a0e725a",
+      "native_launcher_status": null,
+      "output_file": null,
+      "started_at": "2026-10-25T06:35:01.634632+01:00",
+      "status": "failed"
+    },
+    {
+      "cron_exit_code": 1,
+      "duration_seconds": 13.681212,
+      "finished_at": "2026-10-25T07:05:16.696021+01:00",
+      "id": "68ee77149d2f4e2188a3ab21709ab69d",
+      "native_launcher_status": null,
+      "output_file": null,
+      "started_at": "2026-10-25T07:05:03.014809+01:00",
+      "status": "failed"
+    },
+    {
+      "cron_exit_code": 1,
+      "duration_seconds": 13.879296,
+      "finished_at": "2026-10-25T07:13:17.278189+01:00",
+      "id": "ef5dc616d67740ec880843a1f5ddc0be",
+      "native_launcher_status": null,
+      "output_file": null,
+      "started_at": "2026-10-25T07:13:03.398893+01:00",
+      "status": "failed"
+    },
+    {
+      "cron_exit_code": 1,
+      "duration_seconds": 11.441616,
+      "finished_at": "2026-10-25T07:27:15.487669+01:00",
+      "id": "dc7136d70b4740c093c82901d139c684",
+      "native_launcher_status": null,
+      "output_file": null,
+      "started_at": "2026-10-25T07:27:04.046053+01:00",
+      "status": "failed"
+    },
+    {
+      "cron_exit_code": 1,
+      "duration_seconds": 11.013448,
+      "finished_at": "2026-10-25T07:43:15.821509+01:00",
+      "id": "d5d36c086b4b4df192da0080112efe74",
+      "native_launcher_status": null,
+      "output_file": null,
+      "started_at": "2026-10-25T07:43:04.808061+01:00",
+      "status": "failed"
+    },
+    {
+      "cron_exit_code": 1,
+      "duration_seconds": 13.534355,
+      "finished_at": "2026-10-25T07:49:18.635200+01:00",
+      "id": "4526a683f6a2403c916b6e86616bb708",
+      "native_launcher_status": null,
+      "output_file": null,
+      "started_at": "2026-10-25T07:49:05.100845+01:00",
+      "status": "failed"
+    },
+    {
+      "cron_exit_code": 1,
+      "duration_seconds": 11.303896,
+      "finished_at": "2026-10-25T08:03:17.063304+01:00",
+      "id": "995fff14fed341458b9a2a423da4747b",
+      "native_launcher_status": null,
+      "output_file": null,
+      "started_at": "2026-10-25T08:03:05.759408+01:00",
+      "status": "failed"
+    },
+    {
+      "cron_exit_code": 1,
+      "duration_seconds": 11.500746,
+      "finished_at": "2026-10-25T08:11:17.586390+01:00",
+      "id": "690274eb185540ffa0cd971e55861054",
+      "native_launcher_status": null,
+      "output_file": null,
+      "started_at": "2026-10-25T08:11:06.085644+01:00",
+      "status": "failed"
+    },
+    {
+      "cron_exit_code": 1,
+      "duration_seconds": 11.241808,
+      "finished_at": "2026-10-25T08:39:18.690331+01:00",
+      "id": "38f1ecb243c0449f86d815ee8131dc8e",
+      "native_launcher_status": null,
+      "output_file": null,
+      "started_at": "2026-10-25T08:39:07.448523+01:00",
+      "status": "failed"
+    },
+    {
+      "cron_exit_code": 1,
+      "duration_seconds": 13.958708,
+      "finished_at": "2026-10-25T08:53:22.069862+01:00",
+      "id": "cdbaf14650cd4f9a835336717e0b7f8d",
+      "native_launcher_status": null,
+      "output_file": null,
+      "started_at": "2026-10-25T08:53:08.111154+01:00",
+      "status": "failed"
+    },
+    {
+      "cron_exit_code": 1,
+      "duration_seconds": 11.051595,
+      "finished_at": "2026-10-25T09:11:20.001305+01:00",
+      "id": "e3da2ab176c14b069fbeee9f4ab4a3d9",
+      "native_launcher_status": null,
+      "output_file": null,
+      "started_at": "2026-10-25T09:11:08.949710+01:00",
+      "status": "failed"
+    },
+    {
+      "cron_exit_code": 1,
+      "duration_seconds": 13.711791,
+      "finished_at": "2026-10-25T09:29:23.491822+01:00",
+      "id": "c084c739722a43849fb53abd0237c4cb",
+      "native_launcher_status": null,
+      "output_file": null,
+      "started_at": "2026-10-25T09:29:09.780031+01:00",
+      "status": "failed"
+    },
+    {
+      "cron_exit_code": 1,
+      "duration_seconds": 13.726102,
+      "finished_at": "2026-10-25T09:37:23.884700+01:00",
+      "id": "07ce25c804dd4303937de2a4036a5dee",
+      "native_launcher_status": null,
+      "output_file": null,
+      "started_at": "2026-10-25T09:37:10.158598+01:00",
+      "status": "failed"
+    },
+    {
+      "cron_exit_code": 1,
+      "duration_seconds": 11.180909,
+      "file_timestamp_minus_db_finish_seconds": -0.966985,
+      "finished_at": "2026-10-25T09:51:21.966985+01:00",
+      "id": "a932bac4c248475bb8d1222c68c11f77",
+      "native_launcher_status": {
+        "exit_code": 1,
+        "status": "child_failed",
+        "wakeAgent": false
+      },
+      "output_file": "2026-10-25_09-51-21.md",
+      "started_at": "2026-10-25T09:51:10.786076+01:00",
+      "status": "failed"
+    },
+    {
+      "cron_exit_code": 1,
+      "duration_seconds": 11.017729,
+      "file_timestamp_minus_db_finish_seconds": -0.163494,
+      "finished_at": "2026-10-25T09:59:22.163494+01:00",
+      "id": "82fa8f6a100d4c31928038c627f5ee0a",
+      "native_launcher_status": {
+        "exit_code": 1,
+        "status": "child_failed",
+        "wakeAgent": false
+      },
+      "output_file": "2026-10-25_09-59-22.md",
+      "started_at": "2026-10-25T09:59:11.145765+01:00",
+      "status": "failed"
+    },
+    {
+      "cron_exit_code": 1,
+      "duration_seconds": 13.598911,
+      "file_timestamp_minus_db_finish_seconds": -0.723197,
+      "finished_at": "2026-10-25T10:21:25.723197+01:00",
+      "id": "d223175d23dd456fba60429bc1406b63",
+      "native_launcher_status": {
+        "exit_code": 1,
+        "status": "child_failed",
+        "wakeAgent": false
+      },
+      "output_file": "2026-10-25_10-21-25.md",
+      "started_at": "2026-10-25T10:21:12.124286+01:00",
+      "status": "failed"
+    },
+    {
+      "cron_exit_code": 1,
+      "duration_seconds": 13.547557,
+      "file_timestamp_minus_db_finish_seconds": -1.001394,
+      "finished_at": "2026-10-25T10:29:26.001394+01:00",
+      "id": "e8fec17335f0475db9c567ceb8f309b1",
+      "native_launcher_status": {
+        "exit_code": 1,
+        "status": "child_failed",
+        "wakeAgent": false
+      },
+      "output_file": "2026-10-25_10-29-25.md",
+      "started_at": "2026-10-25T10:29:12.453837+01:00",
+      "status": "failed"
+    },
+    {
+      "cron_exit_code": 1,
+      "duration_seconds": 13.779387,
+      "file_timestamp_minus_db_finish_seconds": -0.405006,
+      "finished_at": "2026-10-25T10:33:26.405006+01:00",
+      "id": "cf9fb64025974346a04cb1a75ba34583",
+      "native_launcher_status": {
+        "exit_code": 1,
+        "status": "child_failed",
+        "wakeAgent": false
+      },
+      "output_file": "2026-10-25_10-33-26.md",
+      "started_at": "2026-10-25T10:33:12.625619+01:00",
+      "status": "failed"
+    },
+    {
+      "cron_exit_code": 1,
+      "duration_seconds": 11.08807,
+      "file_timestamp_minus_db_finish_seconds": -0.797078,
+      "finished_at": "2026-10-25T10:35:23.797078+01:00",
+      "id": "8fe992d800714482a186dff162370dc6",
+      "native_launcher_status": {
+        "exit_code": 1,
+        "status": "child_failed",
+        "wakeAgent": false
+      },
+      "output_file": "2026-10-25_10-35-23.md",
+      "started_at": "2026-10-25T10:35:12.709008+01:00",
+      "status": "failed"
+    },
+    {
+      "cron_exit_code": 1,
+      "duration_seconds": 17.642014,
+      "file_timestamp_minus_db_finish_seconds": -0.536419,
+      "finished_at": "2026-10-25T11:19:33.536419+01:00",
+      "id": "51569070161842838b51f566518e73c8",
+      "native_launcher_status": {
+        "exit_code": 1,
+        "status": "child_failed",
+        "wakeAgent": false
+      },
+      "output_file": "2026-10-25_11-19-33.md",
+      "started_at": "2026-10-25T11:19:15.894405+01:00",
+      "status": "failed"
+    }
+  ],
+  "failure_duration_seconds": {
+    "max": 17.642014,
+    "median": 12.0039295,
+    "min": 9.081272
+  },
+  "failure_streaks_at_least_three": [
+    [
+      {
+        "duration_seconds": 11.715476,
+        "finished_at": "2026-10-25T06:13:12.268516+01:00",
+        "started_at": "2026-10-25T06:13:00.553040+01:00"
+      },
+      {
+        "duration_seconds": 9.081272,
+        "finished_at": "2026-10-25T06:15:09.725852+01:00",
+        "started_at": "2026-10-25T06:15:00.644580+01:00"
+      },
+      {
+        "duration_seconds": 14.018413,
+        "finished_at": "2026-10-25T06:17:14.773496+01:00",
+        "started_at": "2026-10-25T06:17:00.755083+01:00"
+      }
+    ]
+  ],
+  "hermes_home": "C:\\Users\\thoma\\AppData\\Local\\hermes",
+  "job": {
+    "enabled": true,
+    "id": "2f6c5088c6ff",
+    "last_run_at": "2026-10-25T11:22:07.225063+01:00",
+    "last_status": "ok",
+    "next_run_at": "2026-10-25T11:24:16.279570+01:00",
+    "no_agent": true,
+    "state": "scheduled"
+  },
+  "latest_completed": {
+    "cron_exit_code": 0,
+    "duration_seconds": 50.646432,
+    "file_timestamp_minus_db_finish_seconds": -0.237674,
+    "finished_at": "2026-10-25T11:22:07.237674+01:00",
+    "id": "ef781d511f4e458093958b939b24f91b",
+    "native_launcher_status": null,
+    "output_file": "2026-10-25_11-22-07.md",
+    "started_at": "2026-10-25T11:21:16.591242+01:00",
+    "status": "completed"
+  },
+  "latest_failed": {
+    "cron_exit_code": 1,
+    "duration_seconds": 17.642014,
+    "file_timestamp_minus_db_finish_seconds": -0.536419,
+    "finished_at": "2026-10-25T11:19:33.536419+01:00",
+    "id": "51569070161842838b51f566518e73c8",
+    "native_launcher_status": {
+      "exit_code": 1,
+      "status": "child_failed",
+      "wakeAgent": false
+    },
+    "output_file": "2026-10-25_11-19-33.md",
+    "started_at": "2026-10-25T11:19:15.894405+01:00",
+    "status": "failed"
+  },
+  "maximum_cron_failure_streak": 3,
+  "not_a_cross_file_atomic_snapshot": true,
+  "observed_at": "2026-10-25T10:23:20.537678+00:00",
+  "read_only": true,
+  "retained_failed_rows": [
+    {
+      "cron_exit_code": 1,
+      "duration_seconds": 11.180909,
+      "file_timestamp_minus_db_finish_seconds": -0.966985,
+      "finished_at": "2026-10-25T09:51:21.966985+01:00",
+      "id": "a932bac4c248475bb8d1222c68c11f77",
+      "native_launcher_status": {
+        "exit_code": 1,
+        "status": "child_failed",
+        "wakeAgent": false
+      },
+      "output_file": "2026-10-25_09-51-21.md",
+      "started_at": "2026-10-25T09:51:10.786076+01:00",
+      "status": "failed"
+    },
+    {
+      "cron_exit_code": 1,
+      "duration_seconds": 11.017729,
+      "file_timestamp_minus_db_finish_seconds": -0.163494,
+      "finished_at": "2026-10-25T09:59:22.163494+01:00",
+      "id": "82fa8f6a100d4c31928038c627f5ee0a",
+      "native_launcher_status": {
+        "exit_code": 1,
+        "status": "child_failed",
+        "wakeAgent": false
+      },
+      "output_file": "2026-10-25_09-59-22.md",
+      "started_at": "2026-10-25T09:59:11.145765+01:00",
+      "status": "failed"
+    },
+    {
+      "cron_exit_code": 1,
+      "duration_seconds": 13.598911,
+      "file_timestamp_minus_db_finish_seconds": -0.723197,
+      "finished_at": "2026-10-25T10:21:25.723197+01:00",
+      "id": "d223175d23dd456fba60429bc1406b63",
+      "native_launcher_status": {
+        "exit_code": 1,
+        "status": "child_failed",
+        "wakeAgent": false
+      },
+      "output_file": "2026-10-25_10-21-25.md",
+      "started_at": "2026-10-25T10:21:12.124286+01:00",
+      "status": "failed"
+    },
+    {
+      "cron_exit_code": 1,
+      "duration_seconds": 13.547557,
+      "file_timestamp_minus_db_finish_seconds": -1.001394,
+      "finished_at": "2026-10-25T10:29:26.001394+01:00",
+      "id": "e8fec17335f0475db9c567ceb8f309b1",
+      "native_launcher_status": {
+        "exit_code": 1,
+        "status": "child_failed",
+        "wakeAgent": false
+      },
+      "output_file": "2026-10-25_10-29-25.md",
+      "started_at": "2026-10-25T10:29:12.453837+01:00",
+      "status": "failed"
+    },
+    {
+      "cron_exit_code": 1,
+      "duration_seconds": 13.779387,
+      "file_timestamp_minus_db_finish_seconds": -0.405006,
+      "finished_at": "2026-10-25T10:33:26.405006+01:00",
+      "id": "cf9fb64025974346a04cb1a75ba34583",
+      "native_launcher_status": {
+        "exit_code": 1,
+        "status": "child_failed",
+        "wakeAgent": false
+      },
+      "output_file": "2026-10-25_10-33-26.md",
+      "started_at": "2026-10-25T10:33:12.625619+01:00",
+      "status": "failed"
+    },
+    {
+      "cron_exit_code": 1,
+      "duration_seconds": 11.08807,
+      "file_timestamp_minus_db_finish_seconds": -0.797078,
+      "finished_at": "2026-10-25T10:35:23.797078+01:00",
+      "id": "8fe992d800714482a186dff162370dc6",
+      "native_launcher_status": {
+        "exit_code": 1,
+        "status": "child_failed",
+        "wakeAgent": false
+      },
+      "output_file": "2026-10-25_10-35-23.md",
+      "started_at": "2026-10-25T10:35:12.709008+01:00",
+      "status": "failed"
+    },
+    {
+      "cron_exit_code": 1,
+      "duration_seconds": 17.642014,
+      "file_timestamp_minus_db_finish_seconds": -0.536419,
+      "finished_at": "2026-10-25T11:19:33.536419+01:00",
+      "id": "51569070161842838b51f566518e73c8",
+      "native_launcher_status": {
+        "exit_code": 1,
+        "status": "child_failed",
+        "wakeAgent": false
+      },
+      "output_file": "2026-10-25_11-19-33.md",
+      "started_at": "2026-10-25T11:19:15.894405+01:00",
+      "status": "failed"
+    }
+  ],
+  "retained_output_file_count": 50,
+  "retained_output_filename_max": "2026-10-25_11-22-07.md",
+  "retained_output_filename_min": "2026-10-25_09-43-24.md",
+  "scope": "Local-calendar 2026-10-25 execution timestamps, ordered by aware UTC; no remote query",
+  "status_counts": {
+    "completed": 311,
+    "failed": 60,
+    "running": 1
+  },
+  "unknown": [
+    "Exact underlying child exit code (launcher normalizes nonzero to1)",
+    "Underlying child exception and captured stdout/stderr",
+    "Which cron failures were received as supervisor health events",
+    "SSH/provider/model/network cause"
+  ],
+  "verified_copy_chronology_supplement": {
+    "actions_performed": false,
+    "added_at": "2026-10-25T10:29:27.932391+00:00",
+    "causal_attribution": "Unknown; this does not prove those cron failures were received remotely or caused the latch",
+    "chronology": "Latch absent in captured copy; present by later heartbeat. The local 06:13-06:17+01 cron failure streak falls inside this interval.",
+    "copied_safety_state": {
+      "supervisor": {
+        "consecutive_errors": 0,
+        "entry_halt": false,
+        "last_seen": "2026-10-24T23:59:00.260041+00:00",
+        "success": true
+      },
+      "worker_last_seen": "2026-10-25T00:00:26.304742+00:00"
+    },
+    "copy_captured_at": "2026-10-25T00:00:26.323709+00:00",
+    "exact_latch_onset": "Unknown",
+    "independent_safety_file_read": false,
+    "later_root_observed_heartbeat_at": "2026-10-25T09:59:45+00:00",
+    "later_root_observed_supervisor": {
+      "consecutive_errors": 3,
+      "entry_halt": true,
+      "success": true
+    },
+    "source": "Root agent read-only inspection of the already native-verified October25 E: copy; the reviewer did not repeat E: verification",
+    "verified_copy_receipt": "daily-copy-verification-20261025.json"
+  }
+}

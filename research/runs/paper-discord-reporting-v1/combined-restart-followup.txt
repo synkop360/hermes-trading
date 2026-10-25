@@ -1,0 +1,10 @@
+Independent inline RestartProbe.test_abandoned_combined_identity_survives_restart_then_distinct_input_recovers
+Synthetic eight-account fixture; fake poster; real HTTP transport denial inherited from PaperNotificationTests.
+
+test_abandoned_combined_identity_survives_restart_then_distinct_input_recovers (__main__.RestartProbe.test_abandoned_combined_identity_survives_restart_then_distinct_input_recovers) ... ok
+
+----------------------------------------------------------------------
+Ran 1 test in 1.101s
+
+OK
+{"restart_same_input_messages": 0, "distinct_input_confirmed_parts": 3, "cycle_marker": "1", "duplicate_replay_extra_parts": 0}

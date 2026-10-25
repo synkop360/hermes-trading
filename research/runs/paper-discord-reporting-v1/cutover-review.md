@@ -19,3 +19,5 @@ The procedure accurately describes the current implementation, but that descript
 - Deployment/live activation remain explicitly unapproved. Startup values may be unavailable until a fresh settled observation; the five-new-batch acceptance and natural-close limitation are truthful. The six-hour qualification gap remains disclosed. Full Windows v2 is explicitly pending; its current progress is not a passing receipt. The interrupted v1 full run is not represented as a pass.
 
 Final document completion should link the packaged and Linux receipts and retain the first Linux fixture-failure explanation when the full Windows terminal result is attached. No additional material cutover inconsistency was established in this scoped review.
+
+The four-part finding was subsequently corrected, including its combined partial-failure/restart path. See the [final focused follow-up](combined-followup-review.md). The successor commit/export must replace `8f315b3` and receive its own final verification receipts before exact installation approval is requested.

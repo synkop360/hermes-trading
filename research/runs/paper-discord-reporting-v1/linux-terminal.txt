@@ -1,0 +1,6 @@
+{
+  "status": "no_terminal_test_receipt",
+  "exit_code": 137,
+  "observed_at": "2026-10-24T21:42:58.154336+00:00",
+  "owned_container_absent": true
+}

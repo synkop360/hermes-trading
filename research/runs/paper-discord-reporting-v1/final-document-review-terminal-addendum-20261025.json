@@ -1,0 +1,29 @@
+{
+  "observed_at": "2026-10-25T11:18:40.710326+00:00",
+  "mode": "independent_read_only_document_review",
+  "candidate": "ed439e897a4dd388fdcf6425e7e8b6171d5a88a9",
+  "document_raw_sha256": {
+    "docs/PAPER_DISCORD_REPORTING_CUTOVER.md": "cc179df184a8b66e60fb2d8612d1c84f5369c9b9074ec764c8a94759dc3db2e6",
+    "research/runs/paper-discord-reporting-v1/VERIFICATION.md": "ae94b47dc4bd816835031b46812ca89e0be5f2b0544a44c4cbb1674fc86381fe"
+  },
+  "material_findings": [],
+  "owner_authorization_supersedes_prior_unapproved_status": true,
+  "approval_record": "live-cutover/owner-approval.json",
+  "checked": {
+    "terminal_catalog_reconciled": true,
+    "all_47_new_cases_confirmed_ok_in_completed_full_log": true,
+    "full_suite_remains_failed_with_30_unrun_cases": true,
+    "qualified_linux_limit_explicit": true,
+    "exact_export_and_release_identity_consistent": true,
+    "all_eight_original_state_and_sticky_halt_preserved_in_procedure": true,
+    "post_work_rollback_refusal_explicit": true
+  },
+  "performed": {
+    "test_runs": 0,
+    "network_calls": 0,
+    "source_test_script_config_edits": 0,
+    "deployments": 0,
+    "webhook_sends": 0
+  },
+  "limits": "Review confirms document and retained evidence consistency, not live cutover completion or resolution of the supervisor halt."
+}
