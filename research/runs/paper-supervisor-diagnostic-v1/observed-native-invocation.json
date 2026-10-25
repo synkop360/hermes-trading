@@ -1,0 +1,112 @@
+{
+  "started_at": "2026-10-25T13:06:36.755337+00:00",
+  "finished_at": "2026-10-25T13:06:50.604048+00:00",
+  "native_result": {
+    "status": "child_failed",
+    "wakeAgent": false,
+    "exit_code": 1
+  },
+  "observed_children": [
+    {
+      "status": "native_child_terminal",
+      "exit_code": 1,
+      "elapsed_seconds": 12.937999999965541,
+      "stdout_bytes": 0,
+      "diagnostic": {
+        "exception_types": [
+          "CalledProcessError"
+        ],
+        "frames": [
+          {
+            "scope": "unclassified_python_frame"
+          },
+          {
+            "scope": "unclassified_python_frame"
+          },
+          {
+            "scope": "pinned_project_source",
+            "source": "scripts/hermes_watch.py",
+            "line": 620,
+            "function": "main"
+          },
+          {
+            "scope": "pinned_project_source",
+            "source": "scripts/hermes_watch.py",
+            "line": 574,
+            "function": "_main"
+          },
+          {
+            "scope": "pinned_project_source",
+            "source": "scripts/hermes_watch.py",
+            "line": 438,
+            "function": "_run_supervised_watch"
+          },
+          {
+            "scope": "pinned_project_source",
+            "source": "scripts/hermes_watch.py",
+            "line": 388,
+            "function": "_supervised_watch_result"
+          },
+          {
+            "scope": "pinned_project_source",
+            "source": "scripts/hermes_watch.py",
+            "line": 471,
+            "function": "_run_supervised_cycle"
+          },
+          {
+            "scope": "pinned_project_source",
+            "source": "scripts/hermes_watch.py",
+            "line": 255,
+            "function": "_remote_snapshot"
+          },
+          {
+            "scope": "pinned_project_source",
+            "source": "scripts/hermes_watch.py",
+            "line": 77,
+            "function": "_run"
+          },
+          {
+            "scope": "unclassified_python_frame"
+          }
+        ],
+        "stderr_bytes": 2391,
+        "raw_stderr_retained": false
+      },
+      "native_argv_and_kwargs_unchanged": true
+    }
+  ],
+  "source_sha256": {
+    "native": "d1426320536bd8c369163d8fd6221f151fcb4f01e76ceb3033d945b8f96bd073",
+    "watcher": "118d3170daa2bd816c205a66ec12cbaa829aceae01d456e1aa9f8d842f4e36e2"
+  },
+  "before": {
+    "cycles_started": 1006,
+    "model_attempts_reserved": 0,
+    "deadline": "2027-04-21T20:13:29.470165+00:00"
+  },
+  "after": {
+    "cycles_started": 1007,
+    "model_attempts_reserved": 0,
+    "deadline": "2027-04-21T20:13:29.470165+00:00"
+  },
+  "unchanged_runtime_guards": true,
+  "strategy_and_limits_unchanged": true,
+  "fixed_before": {
+    "strategy.yaml": "4122e49676b1918738cd9e8a6ff45d221b8be6067c7235d36089515210a5ae99",
+    "reflection_owner.json": "f74490133763b2e82ec4a8b84a328bc4e034bfe6845bad6684bc236d0163c84c",
+    "supervisor_limits.json": "e461c661317f2300d645c9f3087dd22b8bc97028eef684c35154c36d4ba20318",
+    "wallet_account.json": "6d4f37a11acbeeb44acc458886fa60b374fcb41132860b4e792821520ee1ca12"
+  },
+  "fixed_after": {
+    "strategy.yaml": "4122e49676b1918738cd9e8a6ff45d221b8be6067c7235d36089515210a5ae99",
+    "reflection_owner.json": "f74490133763b2e82ec4a8b84a328bc4e034bfe6845bad6684bc236d0163c84c",
+    "supervisor_limits.json": "e461c661317f2300d645c9f3087dd22b8bc97028eef684c35154c36d4ba20318",
+    "wallet_account.json": "6d4f37a11acbeeb44acc458886fa60b374fcb41132860b4e792821520ee1ca12"
+  },
+  "native_launch_file_unchanged": true,
+  "limitations": [
+    "Operator process environment with the original job proposal interpreter; not a cron-daemon reproduction.",
+    "No raw stdout/stderr, exception message, environment values or credentials retained."
+  ],
+  "operator_script_sha256": "596c0ffc796566ad00fc6557e94ea33bccf38317eb0a76e26aacfdbaf19c6271"
+}

@@ -1,0 +1,65 @@
+{
+  "observed_at": "2026-10-25T19:32:24.105585+00:00",
+  "kind": "read_only_native_snapshot_subcommand",
+  "exit_code": 1,
+  "elapsed_seconds": 2.76500000001397,
+  "stderr": {
+    "exception_types": [
+      "OperationalError",
+      "ValueError"
+    ],
+    "frames": [
+      {
+        "scope": "pinned_project_source",
+        "source": "hermes_trading/paper_publication.py",
+        "line": 169,
+        "function": "assert_no_pending_paired_batch"
+      },
+      {
+        "scope": "pinned_project_source",
+        "source": "hermes_trading/archive_quote_state.py",
+        "line": 140,
+        "function": "assert_quote_retention_complete"
+      },
+      {
+        "scope": "pinned_project_source",
+        "source": "hermes_trading/archive_quote_state.py",
+        "line": 84,
+        "function": "operations"
+      },
+      {
+        "scope": "unclassified_python_frame"
+      },
+      {
+        "scope": "unclassified_python_frame"
+      },
+      {
+        "scope": "pinned_project_source",
+        "source": "hermes_trading/supervisor_sync.py",
+        "line": 171,
+        "function": "main"
+      },
+      {
+        "scope": "pinned_project_source",
+        "source": "hermes_trading/supervisor_sync.py",
+        "line": 143,
+        "function": "make_snapshot"
+      },
+      {
+        "scope": "pinned_project_source",
+        "source": "hermes_trading/paper_publication.py",
+        "line": 191,
+        "function": "assert_no_pending_paired_batch"
+      }
+    ],
+    "stderr_bytes": 2074,
+    "raw_stderr_retained": false
+  },
+  "stdout_bytes": 0,
+  "transport_classifications": [],
+  "original_native_command_unchanged": true,
+  "raw_output_retained": false,
+  "limitations": [
+    "Standalone operator read-only command, not a supervisor cycle or full cron environment reproduction."
+  ]
+}

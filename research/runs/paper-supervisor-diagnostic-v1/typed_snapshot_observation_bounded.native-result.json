@@ -1,0 +1,7 @@
+{
+  "observed_at": "2026-10-25T19:39:20.089328+00:00",
+  "instance": "b45705e2-e89a-49fe-89c5-f2f81bbac862",
+  "native_exit_code": 0,
+  "stdout": "{\"kind\": \"read_only_typed_native_snapshot_observation\", \"source_files_verified\": 129, \"observations\": [{\"at\": \"2026-10-25T19:39:16.560169+00:00\", \"status\": \"validated_snapshot\", \"schema_version\": 2, \"files\": 6, \"elapsed_seconds\": 1.0046100355684757}, {\"at\": \"2026-10-25T19:39:19.564923+00:00\", \"status\": \"snapshot_rejected\", \"exception_chain\": [{\"type\": \"ValueError\", \"pinned_frames\": [{\"source\": \"hermes_trading/supervisor_sync.py\", \"line\": 143}, {\"source\": \"hermes_trading/paper_publication.py\", \"line\": 191}]}, {\"type\": \"OperationalError\", \"sqlite_errorcode\": 5, \"sqlite_base_category\": \"SQLITE_BUSY\", \"pinned_frames\": [{\"source\": \"hermes_trading/paper_publication.py\", \"line\": 169}, {\"source\": \"hermes_trading/archive_quote_state.py\", \"line\": 140}, {\"source\": \"hermes_trading/archive_quote_state.py\", \"line\": 84}]}], \"elapsed_seconds\": 0.00158001109957695}], \"elapsed_seconds\": 3.006443202495575, \"raw_messages_or_payloads_retained\": false, \"health_receipts_published\": false, \"limitations\": [\"Bounded operator read-only native function calls; not full cron environment reproduction.\"]}\n",
+  "stderr": "Using SSH key from file C:\\Users\\thoma\\.ssh\\id_ed25519_hermes_trading.pub: hermes-trading-railway\n"
+}

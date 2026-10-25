@@ -1,0 +1,25 @@
+{
+  "observed_at": "2026-10-25T13:15:02.850799+00:00",
+  "kind": "read_only_native_snapshot_subcommand",
+  "exit_code": 0,
+  "elapsed_seconds": 2.827999999979511,
+  "stderr": {
+    "exception_types": [],
+    "frames": [],
+    "stderr_bytes": 98,
+    "raw_stderr_retained": false
+  },
+  "stdout_bytes": 42476,
+  "transport_classifications": [],
+  "original_native_command_unchanged": true,
+  "raw_output_retained": false,
+  "limitations": [
+    "Standalone operator read-only command, not a supervisor cycle or full cron environment reproduction."
+  ],
+  "snapshot": {
+    "schema_version": 2,
+    "files": 6,
+    "heartbeat_status": "ok",
+    "timestamp": "2026-10-25T13:15:02.005812+00:00"
+  }
+}

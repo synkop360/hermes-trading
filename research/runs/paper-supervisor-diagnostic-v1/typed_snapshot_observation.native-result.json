@@ -1,0 +1,7 @@
+{
+  "observed_at": "2026-10-25T19:35:16.112656+00:00",
+  "instance": "b45705e2-e89a-49fe-89c5-f2f81bbac862",
+  "native_exit_code": 0,
+  "stdout": "{\"kind\": \"read_only_typed_native_snapshot_observation\", \"source_files_verified\": 129, \"observations\": [{\"at\": \"2026-10-25T19:35:02.828873+00:00\", \"status\": \"validated_snapshot\", \"schema_version\": 2, \"files\": 6, \"elapsed_seconds\": 0.7545726327225566}, {\"at\": \"2026-10-25T19:35:09.583617+00:00\", \"status\": \"validated_snapshot\", \"schema_version\": 2, \"files\": 6, \"elapsed_seconds\": 0.032242474146187305}, {\"at\": \"2026-10-25T19:35:15.616062+00:00\", \"status\": \"validated_snapshot\", \"schema_version\": 2, \"files\": 6, \"elapsed_seconds\": 0.03157003503292799}], \"elapsed_seconds\": 12.81881311442703, \"raw_messages_or_payloads_retained\": false, \"health_receipts_published\": false, \"limitations\": [\"Bounded operator read-only native function calls; not full cron environment reproduction.\"]}\n",
+  "stderr": "Using SSH key from file C:\\Users\\thoma\\.ssh\\id_ed25519_hermes_trading.pub: hermes-trading-railway\n"
+}

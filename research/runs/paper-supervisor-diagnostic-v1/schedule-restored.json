@@ -1,0 +1,9 @@
+{
+  "observed_at": "2026-10-25T13:07:42.774877+00:00",
+  "job_id": "2f6c5088c6ff",
+  "enabled": true,
+  "state": "scheduled",
+  "next_run_at": "2026-10-25T14:08:42.695798+01:00",
+  "restored_after_confirmed_terminal_child": true,
+  "native_exit_code": 0
+}

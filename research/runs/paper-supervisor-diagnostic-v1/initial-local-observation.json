@@ -1,0 +1,104 @@
+{
+  "observed_at": "2026-10-25T12:49:39.424329+00:00",
+  "job": {
+    "id": "2f6c5088c6ff",
+    "enabled": true,
+    "state": "scheduled",
+    "no_agent": true,
+    "last_status": "ok",
+    "last_run_at": "2026-10-25T13:49:38.978392+01:00",
+    "next_run_at": "2026-10-25T13:50:38.978392+01:00"
+  },
+  "recent_executions": [
+    {
+      "id": "849c4f6354cc42f1ae42ac3eb11f1ff1",
+      "status": "completed",
+      "started_at": "2026-10-25T13:49:24.590599+01:00",
+      "finished_at": "2026-10-25T13:49:38.986489+01:00",
+      "error_present": false
+    },
+    {
+      "id": "d3538624316243bcbace9a026ff68e55",
+      "status": "completed",
+      "started_at": "2026-10-25T13:47:24.504784+01:00",
+      "finished_at": "2026-10-25T13:47:42.223816+01:00",
+      "error_present": false
+    },
+    {
+      "id": "0e0881f88aa84ef5a04be8bc99519871",
+      "status": "completed",
+      "started_at": "2026-10-25T13:45:24.414048+01:00",
+      "finished_at": "2026-10-25T13:45:39.853748+01:00",
+      "error_present": false
+    },
+    {
+      "id": "afe86ec8ab934ac8be11f907ef109b90",
+      "status": "failed",
+      "started_at": "2026-10-25T13:43:24.326400+01:00",
+      "finished_at": "2026-10-25T13:43:39.371727+01:00",
+      "error_present": true
+    },
+    {
+      "id": "f08bf0cc1cbc4980853855d2741f9ce4",
+      "status": "completed",
+      "started_at": "2026-10-25T13:41:24.227929+01:00",
+      "finished_at": "2026-10-25T13:41:39.063813+01:00",
+      "error_present": false
+    },
+    {
+      "id": "3fe2d4bae0a6497a9648ea39077185ea",
+      "status": "completed",
+      "started_at": "2026-10-25T13:39:24.144035+01:00",
+      "finished_at": "2026-10-25T13:39:42.446721+01:00",
+      "error_present": false
+    },
+    {
+      "id": "7c76aa257dce41b7a237742323d2be23",
+      "status": "completed",
+      "started_at": "2026-10-25T13:37:24.042863+01:00",
+      "finished_at": "2026-10-25T13:37:38.176626+01:00",
+      "error_present": false
+    },
+    {
+      "id": "83b693bc951541f69d2ded99ee0abccf",
+      "status": "completed",
+      "started_at": "2026-10-25T13:35:23.941893+01:00",
+      "finished_at": "2026-10-25T13:35:42.295106+01:00",
+      "error_present": false
+    },
+    {
+      "id": "49c688825de24758abbd90d59e54f2cc",
+      "status": "completed",
+      "started_at": "2026-10-25T13:33:23.838187+01:00",
+      "finished_at": "2026-10-25T13:33:38.033604+01:00",
+      "error_present": false
+    },
+    {
+      "id": "9bf6e0020b5046c58d85d99b6a874d72",
+      "status": "completed",
+      "started_at": "2026-10-25T13:31:23.754785+01:00",
+      "finished_at": "2026-10-25T13:31:41.237011+01:00",
+      "error_present": false
+    },
+    {
+      "id": "84c1555a4e1c4d03acbf5613bc283a23",
+      "status": "failed",
+      "started_at": "2026-10-25T13:29:23.661152+01:00",
+      "finished_at": "2026-10-25T13:29:35.215227+01:00",
+      "error_present": true
+    },
+    {
+      "id": "524133cb02544f79a9f573e19aea98b6",
+      "status": "completed",
+      "started_at": "2026-10-25T13:27:23.578812+01:00",
+      "finished_at": "2026-10-25T13:27:40.673314+01:00",
+      "error_present": false
+    }
+  ],
+  "lifecycle": {
+    "cycles_started": 998,
+    "model_attempts_reserved": 0,
+    "deadline": "2027-04-21T20:13:29.470165+00:00",
+    "status": "running"
+  }
+}
