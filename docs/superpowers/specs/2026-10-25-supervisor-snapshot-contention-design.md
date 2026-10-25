@@ -1,6 +1,6 @@
 # Bounded supervisor snapshot recollection
 
-Date: October 25, 2026. Status: proposed; awaiting approval for disabled local implementation and synthetic correctness checks. This document grants no deployment or latch-reset authority.
+Date: October 25, 2026. Status: **owner-approved for disabled local implementation and synthetic correctness checks**. The owner's reply was “Approve design and disabled local implementation.” This document grants no deployment or latch-reset authority. [Implementation plan](../plans/2026-10-25-supervisor-snapshot-contention.md).
 
 ## Intent and evidence
 
