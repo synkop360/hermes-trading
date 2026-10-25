@@ -1,0 +1,236 @@
+{
+  "status": "public_fr_pair_refresh_saved_drafts_require_reconciliation",
+  "request_started_at": "2026-10-17T11:01:37.897708+00:00",
+  "received_at": "2026-10-17T11:01:38.093409+00:00",
+  "url": "https://api.kraken.com/0/public/AssetPairs?pair=XBTEUR%2CETHEUR%2CXRPEUR&country_code=FR",
+  "final_url": "https://api.kraken.com/0/public/AssetPairs?pair=XBTEUR%2CETHEUR%2CXRPEUR&country_code=FR",
+  "http_status": 200,
+  "server_date": "Sat, 17 Oct 2026 11:01:38 GMT",
+  "source_file": "asset-pairs.raw.json",
+  "source_bytes": 1647,
+  "source_sha256": "01dd35b5e91ecf8bd86fcf631c76af8cb3fe18e0199a308c5b586221a294c048",
+  "country_code": "FR",
+  "pairs": {
+    "ETH/EUR": {
+      "altname": "ETHEUR",
+      "wsname": "ETH/EUR",
+      "ordermin": "0.002",
+      "costmin": "0.45",
+      "lot_decimals": 8,
+      "pair_decimals": 2,
+      "tick_size": "0.01",
+      "status": "online",
+      "fees": [],
+      "fees_maker": []
+    },
+    "BTC/EUR": {
+      "altname": "XBTEUR",
+      "wsname": "XBT/EUR",
+      "ordermin": "0.00006",
+      "costmin": "0.45",
+      "lot_decimals": 8,
+      "pair_decimals": 1,
+      "tick_size": "0.1",
+      "status": "online",
+      "fees": [],
+      "fees_maker": []
+    },
+    "XRP/EUR": {
+      "altname": "XRPEUR",
+      "wsname": "XRP/EUR",
+      "ordermin": "4",
+      "costmin": "0.45",
+      "lot_decimals": 8,
+      "pair_decimals": 5,
+      "tick_size": "0.00001",
+      "status": "online",
+      "fees": [],
+      "fees_maker": []
+    }
+  },
+  "prepared_profile_comparison": [
+    {
+      "profile": "adaptive_50",
+      "strategy": "research/runs/approved-cost-reserve-v1/adaptive_50/strategy.yaml",
+      "strategy_sha256": "b741b054284a753512818ef73d5aa1dcd03137d8f7e6bfde2ea2c008976c04c6",
+      "differences": [
+        {
+          "field": "symbols.ETH/EUR.simulation.minimum_order_quantity",
+          "configured": "0.001",
+          "public_current": "0.002"
+        },
+        {
+          "field": "symbols.BTC/EUR.simulation.minimum_order_quantity",
+          "configured": "0.00005",
+          "public_current": "0.00006"
+        },
+        {
+          "field": "symbols.XRP/EUR.simulation.minimum_order_quantity",
+          "configured": "1.65",
+          "public_current": "4"
+        }
+      ]
+    },
+    {
+      "profile": "adaptive_100",
+      "strategy": "research/runs/approved-cost-reserve-v1/adaptive_100/strategy.yaml",
+      "strategy_sha256": "b741b054284a753512818ef73d5aa1dcd03137d8f7e6bfde2ea2c008976c04c6",
+      "differences": [
+        {
+          "field": "symbols.ETH/EUR.simulation.minimum_order_quantity",
+          "configured": "0.001",
+          "public_current": "0.002"
+        },
+        {
+          "field": "symbols.BTC/EUR.simulation.minimum_order_quantity",
+          "configured": "0.00005",
+          "public_current": "0.00006"
+        },
+        {
+          "field": "symbols.XRP/EUR.simulation.minimum_order_quantity",
+          "configured": "1.65",
+          "public_current": "4"
+        }
+      ]
+    },
+    {
+      "profile": "adaptive_150",
+      "strategy": "research/runs/approved-cost-reserve-v1/adaptive_150/strategy.yaml",
+      "strategy_sha256": "b741b054284a753512818ef73d5aa1dcd03137d8f7e6bfde2ea2c008976c04c6",
+      "differences": [
+        {
+          "field": "symbols.ETH/EUR.simulation.minimum_order_quantity",
+          "configured": "0.001",
+          "public_current": "0.002"
+        },
+        {
+          "field": "symbols.BTC/EUR.simulation.minimum_order_quantity",
+          "configured": "0.00005",
+          "public_current": "0.00006"
+        },
+        {
+          "field": "symbols.XRP/EUR.simulation.minimum_order_quantity",
+          "configured": "1.65",
+          "public_current": "4"
+        }
+      ]
+    },
+    {
+      "profile": "adaptive_200",
+      "strategy": "research/runs/approved-cost-reserve-v1/adaptive_200/strategy.yaml",
+      "strategy_sha256": "b741b054284a753512818ef73d5aa1dcd03137d8f7e6bfde2ea2c008976c04c6",
+      "differences": [
+        {
+          "field": "symbols.ETH/EUR.simulation.minimum_order_quantity",
+          "configured": "0.001",
+          "public_current": "0.002"
+        },
+        {
+          "field": "symbols.BTC/EUR.simulation.minimum_order_quantity",
+          "configured": "0.00005",
+          "public_current": "0.00006"
+        },
+        {
+          "field": "symbols.XRP/EUR.simulation.minimum_order_quantity",
+          "configured": "1.65",
+          "public_current": "4"
+        }
+      ]
+    },
+    {
+      "profile": "control_50",
+      "strategy": "research/runs/approved-cost-reserve-v1/control_50/strategy.yaml",
+      "strategy_sha256": "1ced7791dcd640ec4e03ce07714db779da54804f15b6a4b76447cef171403230",
+      "differences": [
+        {
+          "field": "symbols.ETH/EUR.simulation.minimum_order_quantity",
+          "configured": "0.001",
+          "public_current": "0.002"
+        },
+        {
+          "field": "symbols.BTC/EUR.simulation.minimum_order_quantity",
+          "configured": "0.00005",
+          "public_current": "0.00006"
+        },
+        {
+          "field": "symbols.XRP/EUR.simulation.minimum_order_quantity",
+          "configured": "1.65",
+          "public_current": "4"
+        }
+      ]
+    },
+    {
+      "profile": "control_100",
+      "strategy": "research/runs/approved-cost-reserve-v1/control_100/strategy.yaml",
+      "strategy_sha256": "1ced7791dcd640ec4e03ce07714db779da54804f15b6a4b76447cef171403230",
+      "differences": [
+        {
+          "field": "symbols.ETH/EUR.simulation.minimum_order_quantity",
+          "configured": "0.001",
+          "public_current": "0.002"
+        },
+        {
+          "field": "symbols.BTC/EUR.simulation.minimum_order_quantity",
+          "configured": "0.00005",
+          "public_current": "0.00006"
+        },
+        {
+          "field": "symbols.XRP/EUR.simulation.minimum_order_quantity",
+          "configured": "1.65",
+          "public_current": "4"
+        }
+      ]
+    },
+    {
+      "profile": "control_150",
+      "strategy": "research/runs/approved-cost-reserve-v1/control_150/strategy.yaml",
+      "strategy_sha256": "1ced7791dcd640ec4e03ce07714db779da54804f15b6a4b76447cef171403230",
+      "differences": [
+        {
+          "field": "symbols.ETH/EUR.simulation.minimum_order_quantity",
+          "configured": "0.001",
+          "public_current": "0.002"
+        },
+        {
+          "field": "symbols.BTC/EUR.simulation.minimum_order_quantity",
+          "configured": "0.00005",
+          "public_current": "0.00006"
+        },
+        {
+          "field": "symbols.XRP/EUR.simulation.minimum_order_quantity",
+          "configured": "1.65",
+          "public_current": "4"
+        }
+      ]
+    },
+    {
+      "profile": "control_200",
+      "strategy": "research/runs/approved-cost-reserve-v1/control_200/strategy.yaml",
+      "strategy_sha256": "1ced7791dcd640ec4e03ce07714db779da54804f15b6a4b76447cef171403230",
+      "differences": [
+        {
+          "field": "symbols.ETH/EUR.simulation.minimum_order_quantity",
+          "configured": "0.001",
+          "public_current": "0.002"
+        },
+        {
+          "field": "symbols.BTC/EUR.simulation.minimum_order_quantity",
+          "configured": "0.00005",
+          "public_current": "0.00006"
+        },
+        {
+          "field": "symbols.XRP/EUR.simulation.minimum_order_quantity",
+          "configured": "1.65",
+          "public_current": "4"
+        }
+      ]
+    }
+  ],
+  "changed_fields": 24,
+  "account_eligibility_or_actual_fee_tier_verified": false,
+  "quotes_or_ohlc_requested": false,
+  "economic_backtest_training_provider_calls_or_real_orders": false,
+  "prepared_drafts_modified": false,
+  "request_count_this_capture": 1,
+  "prior_agent_raw_response_preserved": false
+}

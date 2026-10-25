@@ -1,0 +1,247 @@
+{
+  "observed_at": "2026-10-23T08:33:53.714280+00:00",
+  "purpose": "Restore exact ignored historical correctness fixtures required by three test modules; no current activation authority",
+  "files": {
+    "research/runs/approved-cost-reserve-v1/adaptive_100/goal.yaml": {
+      "sha256": "1ae46687ad02b2e80fa2134325cf841e38503dfad0c77a384969ed82c866b520",
+      "bytes": 252
+    },
+    "research/runs/approved-cost-reserve-v1/adaptive_100/strategy.yaml": {
+      "sha256": "b741b054284a753512818ef73d5aa1dcd03137d8f7e6bfde2ea2c008976c04c6",
+      "bytes": 1204
+    },
+    "research/runs/approved-cost-reserve-v1/adaptive_100/wallet_account.draft.json": {
+      "sha256": "ad8927504670605bb5f235a3b62400adc8f3ff55457bf864cab4c6d4319d4219",
+      "bytes": 215
+    },
+    "research/runs/approved-cost-reserve-v1/adaptive_150/goal.yaml": {
+      "sha256": "1ae46687ad02b2e80fa2134325cf841e38503dfad0c77a384969ed82c866b520",
+      "bytes": 252
+    },
+    "research/runs/approved-cost-reserve-v1/adaptive_150/strategy.yaml": {
+      "sha256": "b741b054284a753512818ef73d5aa1dcd03137d8f7e6bfde2ea2c008976c04c6",
+      "bytes": 1204
+    },
+    "research/runs/approved-cost-reserve-v1/adaptive_150/wallet_account.draft.json": {
+      "sha256": "8ba21649c51cab3fb5c2c104c960e51f8eee936c75473ae5fa3c328b9c5328e9",
+      "bytes": 215
+    },
+    "research/runs/approved-cost-reserve-v1/adaptive_200/goal.yaml": {
+      "sha256": "1ae46687ad02b2e80fa2134325cf841e38503dfad0c77a384969ed82c866b520",
+      "bytes": 252
+    },
+    "research/runs/approved-cost-reserve-v1/adaptive_200/strategy.yaml": {
+      "sha256": "b741b054284a753512818ef73d5aa1dcd03137d8f7e6bfde2ea2c008976c04c6",
+      "bytes": 1204
+    },
+    "research/runs/approved-cost-reserve-v1/adaptive_200/wallet_account.draft.json": {
+      "sha256": "e31e806f599bd61b64e6cd9469b92d5dbd3d51e0f6ca293124f5a2b42f3084b2",
+      "bytes": 215
+    },
+    "research/runs/approved-cost-reserve-v1/adaptive_50/goal.yaml": {
+      "sha256": "1ae46687ad02b2e80fa2134325cf841e38503dfad0c77a384969ed82c866b520",
+      "bytes": 252
+    },
+    "research/runs/approved-cost-reserve-v1/adaptive_50/strategy.yaml": {
+      "sha256": "b741b054284a753512818ef73d5aa1dcd03137d8f7e6bfde2ea2c008976c04c6",
+      "bytes": 1204
+    },
+    "research/runs/approved-cost-reserve-v1/adaptive_50/wallet_account.draft.json": {
+      "sha256": "04e735fd039b856a42deeaadf1a65a94bf15df4fcfaf4c45c1815defc83535e4",
+      "bytes": 214
+    },
+    "research/runs/approved-cost-reserve-v1/authorization.json": {
+      "sha256": "2b5234be04bd5d1e887c47647c1884a030f10b2d295eab91c6d4dc27f58e7bd5",
+      "bytes": 457
+    },
+    "research/runs/approved-cost-reserve-v1/control_100/goal.yaml": {
+      "sha256": "1ae46687ad02b2e80fa2134325cf841e38503dfad0c77a384969ed82c866b520",
+      "bytes": 252
+    },
+    "research/runs/approved-cost-reserve-v1/control_100/strategy.yaml": {
+      "sha256": "1ced7791dcd640ec4e03ce07714db779da54804f15b6a4b76447cef171403230",
+      "bytes": 1275
+    },
+    "research/runs/approved-cost-reserve-v1/control_100/wallet_account.draft.json": {
+      "sha256": "e4c46bbe4f635da6ae32ffd687024e273c6f5448027a2c9c76881e40bfe0f0e1",
+      "bytes": 214
+    },
+    "research/runs/approved-cost-reserve-v1/control_150/goal.yaml": {
+      "sha256": "1ae46687ad02b2e80fa2134325cf841e38503dfad0c77a384969ed82c866b520",
+      "bytes": 252
+    },
+    "research/runs/approved-cost-reserve-v1/control_150/strategy.yaml": {
+      "sha256": "1ced7791dcd640ec4e03ce07714db779da54804f15b6a4b76447cef171403230",
+      "bytes": 1275
+    },
+    "research/runs/approved-cost-reserve-v1/control_150/wallet_account.draft.json": {
+      "sha256": "e8dbd2f7af00e67281ae820b6e0b1045ed1c35bfff2fab698b3267798df94fb1",
+      "bytes": 214
+    },
+    "research/runs/approved-cost-reserve-v1/control_200/goal.yaml": {
+      "sha256": "1ae46687ad02b2e80fa2134325cf841e38503dfad0c77a384969ed82c866b520",
+      "bytes": 252
+    },
+    "research/runs/approved-cost-reserve-v1/control_200/strategy.yaml": {
+      "sha256": "1ced7791dcd640ec4e03ce07714db779da54804f15b6a4b76447cef171403230",
+      "bytes": 1275
+    },
+    "research/runs/approved-cost-reserve-v1/control_200/wallet_account.draft.json": {
+      "sha256": "57991c8f6201f1b3a6b9557ef2c34a0240513a6f1ac6ddc598a793a76b2756b5",
+      "bytes": 214
+    },
+    "research/runs/approved-cost-reserve-v1/control_50/goal.yaml": {
+      "sha256": "1ae46687ad02b2e80fa2134325cf841e38503dfad0c77a384969ed82c866b520",
+      "bytes": 252
+    },
+    "research/runs/approved-cost-reserve-v1/control_50/strategy.yaml": {
+      "sha256": "1ced7791dcd640ec4e03ce07714db779da54804f15b6a4b76447cef171403230",
+      "bytes": 1275
+    },
+    "research/runs/approved-cost-reserve-v1/control_50/wallet_account.draft.json": {
+      "sha256": "4599c5d004ba0f475985c19ffc7e8cd8ece0f89cc59c74df30edbdd74f5216c9",
+      "bytes": 213
+    },
+    "research/runs/approved-cost-reserve-v1/manifest.json": {
+      "sha256": "d58d83e5db5fb557f507a57c5465b79698ff81da4cdd5e2001d59834e6f41963",
+      "bytes": 8706
+    },
+    "research/runs/current-venue-execution-v1/candidate/adaptive_100/goal.yaml": {
+      "sha256": "1ae46687ad02b2e80fa2134325cf841e38503dfad0c77a384969ed82c866b520",
+      "bytes": 252
+    },
+    "research/runs/current-venue-execution-v1/candidate/adaptive_100/strategy.yaml": {
+      "sha256": "4122e49676b1918738cd9e8a6ff45d221b8be6067c7235d36089515210a5ae99",
+      "bytes": 1147
+    },
+    "research/runs/current-venue-execution-v1/candidate/adaptive_100/wallet_account.draft.json": {
+      "sha256": "ad8927504670605bb5f235a3b62400adc8f3ff55457bf864cab4c6d4319d4219",
+      "bytes": 215
+    },
+    "research/runs/current-venue-execution-v1/candidate/adaptive_150/goal.yaml": {
+      "sha256": "1ae46687ad02b2e80fa2134325cf841e38503dfad0c77a384969ed82c866b520",
+      "bytes": 252
+    },
+    "research/runs/current-venue-execution-v1/candidate/adaptive_150/strategy.yaml": {
+      "sha256": "4122e49676b1918738cd9e8a6ff45d221b8be6067c7235d36089515210a5ae99",
+      "bytes": 1147
+    },
+    "research/runs/current-venue-execution-v1/candidate/adaptive_150/wallet_account.draft.json": {
+      "sha256": "8ba21649c51cab3fb5c2c104c960e51f8eee936c75473ae5fa3c328b9c5328e9",
+      "bytes": 215
+    },
+    "research/runs/current-venue-execution-v1/candidate/adaptive_200/goal.yaml": {
+      "sha256": "1ae46687ad02b2e80fa2134325cf841e38503dfad0c77a384969ed82c866b520",
+      "bytes": 252
+    },
+    "research/runs/current-venue-execution-v1/candidate/adaptive_200/strategy.yaml": {
+      "sha256": "4122e49676b1918738cd9e8a6ff45d221b8be6067c7235d36089515210a5ae99",
+      "bytes": 1147
+    },
+    "research/runs/current-venue-execution-v1/candidate/adaptive_200/wallet_account.draft.json": {
+      "sha256": "e31e806f599bd61b64e6cd9469b92d5dbd3d51e0f6ca293124f5a2b42f3084b2",
+      "bytes": 215
+    },
+    "research/runs/current-venue-execution-v1/candidate/adaptive_50/goal.yaml": {
+      "sha256": "1ae46687ad02b2e80fa2134325cf841e38503dfad0c77a384969ed82c866b520",
+      "bytes": 252
+    },
+    "research/runs/current-venue-execution-v1/candidate/adaptive_50/strategy.yaml": {
+      "sha256": "4122e49676b1918738cd9e8a6ff45d221b8be6067c7235d36089515210a5ae99",
+      "bytes": 1147
+    },
+    "research/runs/current-venue-execution-v1/candidate/adaptive_50/wallet_account.draft.json": {
+      "sha256": "04e735fd039b856a42deeaadf1a65a94bf15df4fcfaf4c45c1815defc83535e4",
+      "bytes": 214
+    },
+    "research/runs/current-venue-execution-v1/candidate/authorization.json": {
+      "sha256": "2b5234be04bd5d1e887c47647c1884a030f10b2d295eab91c6d4dc27f58e7bd5",
+      "bytes": 457
+    },
+    "research/runs/current-venue-execution-v1/candidate/control_100/goal.yaml": {
+      "sha256": "1ae46687ad02b2e80fa2134325cf841e38503dfad0c77a384969ed82c866b520",
+      "bytes": 252
+    },
+    "research/runs/current-venue-execution-v1/candidate/control_100/strategy.yaml": {
+      "sha256": "759dfae2b67e3dc93469665fb113af523d8d494954384e87efda42160ac44624",
+      "bytes": 1215
+    },
+    "research/runs/current-venue-execution-v1/candidate/control_100/wallet_account.draft.json": {
+      "sha256": "e4c46bbe4f635da6ae32ffd687024e273c6f5448027a2c9c76881e40bfe0f0e1",
+      "bytes": 214
+    },
+    "research/runs/current-venue-execution-v1/candidate/control_150/goal.yaml": {
+      "sha256": "1ae46687ad02b2e80fa2134325cf841e38503dfad0c77a384969ed82c866b520",
+      "bytes": 252
+    },
+    "research/runs/current-venue-execution-v1/candidate/control_150/strategy.yaml": {
+      "sha256": "759dfae2b67e3dc93469665fb113af523d8d494954384e87efda42160ac44624",
+      "bytes": 1215
+    },
+    "research/runs/current-venue-execution-v1/candidate/control_150/wallet_account.draft.json": {
+      "sha256": "e8dbd2f7af00e67281ae820b6e0b1045ed1c35bfff2fab698b3267798df94fb1",
+      "bytes": 214
+    },
+    "research/runs/current-venue-execution-v1/candidate/control_200/goal.yaml": {
+      "sha256": "1ae46687ad02b2e80fa2134325cf841e38503dfad0c77a384969ed82c866b520",
+      "bytes": 252
+    },
+    "research/runs/current-venue-execution-v1/candidate/control_200/strategy.yaml": {
+      "sha256": "759dfae2b67e3dc93469665fb113af523d8d494954384e87efda42160ac44624",
+      "bytes": 1215
+    },
+    "research/runs/current-venue-execution-v1/candidate/control_200/wallet_account.draft.json": {
+      "sha256": "57991c8f6201f1b3a6b9557ef2c34a0240513a6f1ac6ddc598a793a76b2756b5",
+      "bytes": 214
+    },
+    "research/runs/current-venue-execution-v1/candidate/control_50/goal.yaml": {
+      "sha256": "1ae46687ad02b2e80fa2134325cf841e38503dfad0c77a384969ed82c866b520",
+      "bytes": 252
+    },
+    "research/runs/current-venue-execution-v1/candidate/control_50/strategy.yaml": {
+      "sha256": "759dfae2b67e3dc93469665fb113af523d8d494954384e87efda42160ac44624",
+      "bytes": 1215
+    },
+    "research/runs/current-venue-execution-v1/candidate/control_50/wallet_account.draft.json": {
+      "sha256": "4599c5d004ba0f475985c19ffc7e8cd8ece0f89cc59c74df30edbdd74f5216c9",
+      "bytes": 213
+    },
+    "research/runs/current-venue-execution-v1/candidate/manifest.json": {
+      "sha256": "4f5837781789d8b08c48d479d6bbf72fd23ae7b7bd06e079915fb92bbccf7051",
+      "bytes": 8888
+    },
+    "research/runs/current-venue-execution-v1/candidate/venue-receipt.json": {
+      "sha256": "bad0f11e96196403cf90e44d751d99a21de06c2668640cc68ba3e1f8aaa9a6e8",
+      "bytes": 4528
+    },
+    "research/runs/current-venue-execution-v1/candidate/venue-revision.json": {
+      "sha256": "f4499662da61d89bf098fd490f0a4c136f31c70350139f459b4649209ecacfbf",
+      "bytes": 6987
+    },
+    "research/runs/primary-wallet-protocol-v1/authorization.json": {
+      "sha256": "2412c82dbcf2a414f8424947eae804d63cfd21985b922d6a502fd5c56388ab52",
+      "bytes": 685
+    },
+    "research/runs/venue-refresh-2026-10-17/asset-pairs.raw.json": {
+      "sha256": "01dd35b5e91ecf8bd86fcf631c76af8cb3fe18e0199a308c5b586221a294c048",
+      "bytes": 1647
+    },
+    "research/runs/venue-refresh-2026-10-17/verification.json": {
+      "sha256": "2d1477e74db828b3ad2990d70901b0f4fbf3ce943989590150739e65bb761672",
+      "bytes": 7988
+    }
+  },
+  "file_count": 57,
+  "bytes": 67167,
+  "source": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-trading",
+  "destination": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-effective-stop-proposals",
+  "changed_tracked_files": false,
+  "runtime_source_pins_unchanged": 364,
+  "synthetic_or_dated_saved_inputs_only": true,
+  "network_requests": 0,
+  "railway_access": false,
+  "model_calls": 0,
+  "market_backtests": false,
+  "deployed": false,
+  "activated": false
+}

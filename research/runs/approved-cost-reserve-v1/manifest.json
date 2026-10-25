@@ -1,0 +1,194 @@
+{
+  "schema_version": 1,
+  "status": "prepared_draft_not_activated",
+  "created_at": "2026-10-14T23:22:01.583701+00:00",
+  "source_strategy_sha256": "4ef191105a9a73100af057d9da9a1d8eef94f2d62026fe5521618647f7cc2120",
+  "source_version": "273",
+  "primary_wallet_eur": 100,
+  "wallets_eur": [
+    50,
+    100,
+    150,
+    200
+  ],
+  "assets": [
+    "ETH/EUR",
+    "XRP/EUR",
+    "BTC/EUR"
+  ],
+  "common_data": {
+    "required": true,
+    "one_collection_per_cycle": true,
+    "persist_before_any_arm_executes": true
+  },
+  "steering": {
+    "owner": "one_external_llm_supervisor",
+    "review_wallet": "adaptive_100",
+    "cadence_new_closed_trades": 5,
+    "recent_trade_context": 25,
+    "maximum_changed_variables": 1,
+    "no_change_allowed": true,
+    "applies_to": "one_shared_adaptive_strategy_all_wallets_at_next_common_batch",
+    "cost_allocation": "each_wallet_report_bears_full_shared_strategy_LLM_cost_as_a_standalone_scenario"
+  },
+  "model_access": {
+    "status": "unresolved",
+    "calls_enabled": false,
+    "paid_calls_authorized": false,
+    "preference": "verified_free_or_local_first"
+  },
+  "checkpoint_days": 30,
+  "qualification": {
+    "minimum_days": 180,
+    "independent_calendar_blocks": 2,
+    "days_per_block": 90,
+    "minimum_independent_trades_per_block": 30,
+    "cost_stress_required": true,
+    "positive_net_confidence_bound_required": true,
+    "max_drawdown": "0.03",
+    "status": "unqualified",
+    "confidence_level": ".95",
+    "primary_comparison": "EUR100 adaptive standalone full-cost net growth; paired adaptive-minus-control improvement reported separately",
+    "endpoint": "prespecified day180; day30isoperationalonly",
+    "calendar_blocks_are": "chronological subwindows, not independent replications",
+    "partial_close_independence": "group partial legs and remainder under original entry lineage; do not count them as independent trades",
+    "secondary_wallets": "exploratory until multiplicity-adjusted qualification; no independent-replication claim",
+    "estimator": "paired circular moving-block bootstrap of aligned daily log-equity changes, 7-day blocks, 10000resamples with prespecified seed and sensitivity to14-dayblocks; implement/validate before launch",
+    "incomplete_data": "no imputation or zero-cost substitution; no qualification when required windows are incomplete",
+    "stress": "prespecified2xtradingfees/slippageand2xoperatingcostscenario, preserving causal original orders/strategyepochs; feasibility and insolvency reported"
+  },
+  "stop_rules": [
+    "net wallet drawdown at least3percent",
+    "unknown/stale wallet cost or mark: block entries, maintain protective exits",
+    "invalid release/owner/model pin: halt steering",
+    "recovery trade: halt learning until reconciliation",
+    "incomplete paired batch: replay original common inputs before new collection"
+  ],
+  "initial_migration": [
+    "isolated new virtual accounts; no imported historic equity or positions",
+    "USDT to EUR with preserved available symbol thresholds",
+    "published conservative fees and taker-only baseline; passive fill quality unverified",
+    "fixed risk/order/exposure caps; no increases to fit exchange minimums",
+    "exit.max_bars changed from48to24at initialization to fit existing bounded LLM action menu; not an experimental improvement claim"
+  ],
+  "launch_blockers": [
+    "verified pinned model access and usage/cost provenance",
+    "explicit operating cost accrual assumptions and freshness producer",
+    "common-input paired runner and durable restart/publication boundary",
+    "operational stop enforcement and qualification estimator",
+    "fresh market minimums and execution constraints",
+    "controlled deployed release confirmation"
+  ],
+  "profiles": [
+    {
+      "arm": "adaptive",
+      "wallet_eur": 50,
+      "directory": "adaptive_50",
+      "strategy_sha256": "b741b054284a753512818ef73d5aa1dcd03137d8f7e6bfde2ea2c008976c04c6",
+      "goal_sha256": "1ae46687ad02b2e80fa2134325cf841e38503dfad0c77a384969ed82c866b520"
+    },
+    {
+      "arm": "adaptive",
+      "wallet_eur": 100,
+      "directory": "adaptive_100",
+      "strategy_sha256": "b741b054284a753512818ef73d5aa1dcd03137d8f7e6bfde2ea2c008976c04c6",
+      "goal_sha256": "1ae46687ad02b2e80fa2134325cf841e38503dfad0c77a384969ed82c866b520"
+    },
+    {
+      "arm": "adaptive",
+      "wallet_eur": 150,
+      "directory": "adaptive_150",
+      "strategy_sha256": "b741b054284a753512818ef73d5aa1dcd03137d8f7e6bfde2ea2c008976c04c6",
+      "goal_sha256": "1ae46687ad02b2e80fa2134325cf841e38503dfad0c77a384969ed82c866b520"
+    },
+    {
+      "arm": "adaptive",
+      "wallet_eur": 200,
+      "directory": "adaptive_200",
+      "strategy_sha256": "b741b054284a753512818ef73d5aa1dcd03137d8f7e6bfde2ea2c008976c04c6",
+      "goal_sha256": "1ae46687ad02b2e80fa2134325cf841e38503dfad0c77a384969ed82c866b520"
+    },
+    {
+      "arm": "control",
+      "wallet_eur": 50,
+      "directory": "control_50",
+      "strategy_sha256": "1ced7791dcd640ec4e03ce07714db779da54804f15b6a4b76447cef171403230",
+      "goal_sha256": "1ae46687ad02b2e80fa2134325cf841e38503dfad0c77a384969ed82c866b520"
+    },
+    {
+      "arm": "control",
+      "wallet_eur": 100,
+      "directory": "control_100",
+      "strategy_sha256": "1ced7791dcd640ec4e03ce07714db779da54804f15b6a4b76447cef171403230",
+      "goal_sha256": "1ae46687ad02b2e80fa2134325cf841e38503dfad0c77a384969ed82c866b520"
+    },
+    {
+      "arm": "control",
+      "wallet_eur": 150,
+      "directory": "control_150",
+      "strategy_sha256": "1ced7791dcd640ec4e03ce07714db779da54804f15b6a4b76447cef171403230",
+      "goal_sha256": "1ae46687ad02b2e80fa2134325cf841e38503dfad0c77a384969ed82c866b520"
+    },
+    {
+      "arm": "control",
+      "wallet_eur": 200,
+      "directory": "control_200",
+      "strategy_sha256": "1ced7791dcd640ec4e03ce07714db779da54804f15b6a4b76447cef171403230",
+      "goal_sha256": "1ae46687ad02b2e80fa2134325cf841e38503dfad0c77a384969ed82c866b520"
+    }
+  ],
+  "timeframe": "1h",
+  "asset_order": [
+    "ETH/EUR",
+    "XRP/EUR",
+    "BTC/EUR"
+  ],
+  "publication_activation": "only snapshots with closed candle timestamps strictly after durable decision/publication effective_at; unfinished batches retain original strategies",
+  "drawdown_policy": {
+    "peak": "running observed net liquidation equity peak since actual activation; fees/open inventory/all applicable accrued costs included",
+    "threshold": ".03",
+    "nonprimary_halt": "disable new entries in both arms of that wallet pair, close inventory using explicit paper risk-stop reason; no further strategy-learning trades from it",
+    "primary_halt": "halt entries and steering across entire paired experiment, close all simulated inventory explicitly",
+    "unknown_equity": "block entries until measured; do not invent a peak",
+    "after_halt": "continue accumulating hosting/tool/model expenses until services stop; report costs and incomplete/stopped status",
+    "reset": "no automatic reset of equity peak, wallet capital or experiment identity"
+  },
+  "reporting_protocol": {
+    "schema_version": 1,
+    "primary_wallet_eur": 100,
+    "assessment_days": 180,
+    "block_window_days": 90,
+    "minimum_completed_entry_lineages_per_block": 30,
+    "bootstrap_seed": 20261010,
+    "bootstrap_resamples": 10000,
+    "generator": "PCG64",
+    "primary_block_days": 7,
+    "sensitivity_block_days": 14,
+    "confidence": "one_sided_95_percentile_lower_5pct_linear",
+    "calendar_boundary_tolerance_seconds": 120,
+    "maximum_observation_gap_seconds": 300,
+    "cost_stress_multiplier": 2,
+    "stress": "fixed_original_orders_and_entry_contracts",
+    "configured_stress_admission": "frozen_prebatch_net_equity_sequential_cash_and_entry_basis_exposure",
+    "stressed_stop_geometry": "same_verified_closed_history_at_stressed_entry_for_sizing_only",
+    "secondary_wallets": "exploratory_not_independent_replications"
+  },
+  "initial_candidate": {
+    "name": "fixed_atr_targets_with_cost_stress_reserve",
+    "approval_ref": "authorization.json",
+    "initialization_changes": [
+      "remove exit.trailing_atr",
+      "remove exit.partial_close_pct",
+      "enable simulation.cost_stress_reserve"
+    ],
+    "same_baseline_both_arms": true,
+    "later_global_changes_per_review": 1,
+    "risk_caps_changed": false,
+    "return_improvement_claimed": false,
+    "minimum_profitable_wallet_claimed": false
+  },
+  "storage_decision": {
+    "paid_5GB_resize_approved": false,
+    "launch_capacity_unresolved": true
+  }
+}
