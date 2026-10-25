@@ -1,0 +1,23 @@
+{
+  "observed_at": "2026-10-25T20:54:17.361732+00:00",
+  "candidate": "20eb6af2a441c934618e124af30d72f411a3938a",
+  "exit_code": 0,
+  "result": {
+    "kind": "isolated_synthetic_fixture_stage_diagnostic",
+    "stages": [
+      {
+        "stage": "setup",
+        "status": "passed",
+        "elapsed_seconds": 0.015000000013969839
+      },
+      {
+        "stage": "activate_copy",
+        "status": "passed",
+        "elapsed_seconds": 0.1410000000614673
+      }
+    ],
+    "raw_error_messages_retained": false
+  },
+  "stderr_bytes": 0,
+  "no_source_or_live_state_changes": true
+}

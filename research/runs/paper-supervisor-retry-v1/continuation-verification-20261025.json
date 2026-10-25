@@ -1,0 +1,23 @@
+{
+  "checked_at": "2026-10-25T21:03:20.396554+00:00",
+  "current_candidate": "20eb6af2a441c934618e124af30d72f411a3938a",
+  "raw_package_files_verified": 667,
+  "prior_running_608_byte_pins_unchanged": true,
+  "historical_inputs_original_bytes_preserved": 57,
+  "program_sources_unchanged": true,
+  "cutover_exact_pins_and_links_checked": true,
+  "local_links_checked": 35,
+  "source_raw_sha256": {
+    "hermes_trading/supervisor_sync.py": "d493060b2db48ccac5cee2eafa3d06d72e68e239ef9da90543f256d8bd0d8ad9",
+    "scripts/paper_release_transition.py": "306da355b372cf0048b0192e7ec475d1c70740a5f60eb7ebe97b177d1c3b8ccf",
+    "tests/test_supervisor_snapshot_retry.py": "4d0f065381acd4ec5cf7e42dd1fed0ae8d399fa4b08ea5b34793f9229301a8a0",
+    "tests/test_paper_snapshot_release_transition.py": "04938f0e39cc8a836e3d214ef873297cc51a04c68aff0532d5bf3a37172ab482"
+  },
+  "full_regression_status": "nonterminal_with_recorded_errors",
+  "full_exec_session": 42772,
+  "dependent_11_case_rerun_status": "pending_full_terminal",
+  "deployment_approved": false,
+  "actual_state_changed": false,
+  "goal_status": "active",
+  "overall_estimate": 65
+}

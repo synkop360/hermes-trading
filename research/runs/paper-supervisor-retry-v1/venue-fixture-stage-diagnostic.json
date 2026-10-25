@@ -1,0 +1,25 @@
+{
+  "observed_at": "2026-10-25T20:43:43.880697+00:00",
+  "exit_code": 0,
+  "result": {
+    "kind": "isolated_synthetic_fixture_stage_diagnostic",
+    "stages": [
+      {
+        "stage": "setup",
+        "status": "failed",
+        "error_type": "FileNotFoundError",
+        "pinned_frames": [
+          {
+            "source": "tests/test_venue_candidate.py",
+            "line": 19
+          }
+        ],
+        "elapsed_seconds": 0.0,
+        "missing_packaged_input": "research/runs/approved-cost-reserve-v1/manifest.json"
+      }
+    ],
+    "raw_error_messages_retained": false
+  },
+  "stderr_bytes": 0,
+  "no_source_or_live_state_changes": true
+}
