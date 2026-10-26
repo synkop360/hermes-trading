@@ -1,10 +1,14 @@
 # Disabled local supervisor snapshot repair
 
+**Current status, October 26 at 17:17 UTC:** the owner-approved snapshot repair is installed. [Execution and qualified operational acceptance](LIVE_CUTOVER_RESULT.md) preserve the long interruption, initial degraded/failed observations and existing entry halt. Worker processing, ordinary scheduled supervision and a new confirmed summary are observed; the next actual new E: daily generation remains pending. The local-only descriptions below record the predeployment stage.
+
 October 25, 2026. Program candidate **`a79fb936fd970eb9b25a23edf6522a2e34f6e17f`** and the corrected packaging candidate **`20eb6af2a441c934618e124af30d72f411a3938a`** are local only. The latter adds original test inputs and byte-preservation metadata without changing program/test code. The deployed Discord release remains `ed439e8`; no actual state, guard, schedule, readiness marker, clock, risk limit or entry halt was changed by this implementation.
 
 The owner [approved disabled local implementation](owner-approval.json) of the [reviewed design](../../../docs/superpowers/specs/2026-10-25-supervisor-snapshot-contention-design.md). Deployment and latch recovery are excluded. [Plan](../../../docs/superpowers/plans/2026-10-25-supervisor-snapshot-contention.md).
 
 Local correctness qualification is complete through composed evidence covering all1,712catalog IDs. The original full failed run remains preserved. [Final verification](VERIFICATION.md). The current [morning observation](FORWARD_OBSERVATION_20261026.md) confirms187reporting windows and the retained halt; deployment is still unapproved.
+
+Independent work while that approval is pending: the [October 26 scheduled backup](DAILY_BACKUP_20261026.md) is verified against all 527 file hashes, original opening and eight account identities. The task returned zero and remains enabled; no task, backup, live state or entry halt was changed.
 
 ## Implemented behavior
 

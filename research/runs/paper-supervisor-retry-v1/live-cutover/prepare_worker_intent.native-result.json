@@ -1,0 +1,10 @@
+{
+  "observed_at": "2026-10-26T16:59:47.662223+00:00",
+  "instance": "577064e4-f63d-4ff5-af18-a87ff4e97765",
+  "native_exit_code": 1,
+  "result": {
+    "status": "non_json_remote_result",
+    "stdout_bytes": 108
+  },
+  "stderr_bytes": 98
+}

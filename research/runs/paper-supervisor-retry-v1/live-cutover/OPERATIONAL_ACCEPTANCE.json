@@ -1,0 +1,77 @@
+{
+  "observed_at": "2026-10-26T17:18:26.880556+00:00",
+  "status": "installed_paper_snapshot_repair_with_partial_operational_acceptance",
+  "candidate": "20eb6af2a441c934618e124af30d72f411a3938a",
+  "deployment": "1e949e5d-bd82-40eb-98ab-da524dcda358",
+  "instance": "577064e4-f63d-4ff5-af18-a87ff4e97765",
+  "transition_id": "73d12cfc0c991ec320b6e4676a869a8f8be23d81572fd2ab3f170f715c1a568b",
+  "ready_at": "2026-10-26T17:11:30.537794+00:00",
+  "last_original_observed_at": "2026-10-26T07:03:46.156194+00:00",
+  "gap_to_readiness_seconds": 36464.3816,
+  "opening_at": "2026-10-23T20:13:56.622959+00:00",
+  "opening_hash": "50fd92318969675f72e7450148e77e5bb1d4f60d9d1963ec90cab3061e27c349",
+  "original_clocks_preserved": true,
+  "worker_healthy": true,
+  "supervisor_scheduled_success_observed": true,
+  "all_eight_finalized_comparison_verified": true,
+  "all_orders_zero_and_positions_empty": true,
+  "actual_model_attempts_reserved_before_resume": 0,
+  "new_batches_since_closed_baseline": 5,
+  "confirmed_cycle_windows_before": 194,
+  "confirmed_cycle_windows_after": 195,
+  "reporter_counters": {
+    "coalesced": 0,
+    "delivery_unknown": 0,
+    "dropped": 0,
+    "gaps": 1,
+    "invalid": 0,
+    "omitted_events": 0,
+    "oversized": 0,
+    "repeated_states": 0,
+    "restarts": 1
+  },
+  "retained_supervisor_entry_halt": true,
+  "primary_wallet": {
+    "account_hash": "8537e0f7f17abc8a092f2ca8e39ad8b1d290f8ee222296fbdc834fe00bb488f3",
+    "account_hash_matches": true,
+    "closed_net_pnl": "0",
+    "common_heartbeat_time": true,
+    "cost_quality": {
+      "ai": "estimated",
+      "funding": "actual",
+      "hosting": "estimated",
+      "tools": "estimated"
+    },
+    "currency": "EUR",
+    "known_accrued_costs": "0.6617362004446759259259259260",
+    "matches_latest_settlement": true,
+    "missing_field_count": 0,
+    "net_equity": "199.3382637995553240740740741",
+    "observed_at": "2026-10-26T17:16:32.112419+00:00",
+    "status": "observed"
+  },
+  "comparison_eur": {
+    "100": "0E-26",
+    "150": "0E-25",
+    "200": "0E-25",
+    "50": "0E-26"
+  },
+  "volume": {
+    "blocked": false,
+    "capacity_bytes": 500000000,
+    "reasons": [],
+    "threshold_bytes": 350000000,
+    "used_bytes": 193312432
+  },
+  "degraded_initial_observation_retained": true,
+  "failed_scheduled_run_retained": true,
+  "old_state_rollback_ineligible_after_successor_writes": true,
+  "pending_acceptance": [
+    "next actual new daily E: generation; existing Oct26 copy verified before cutover is not new post-cutover proof",
+    "longer forward stability and live snapshot BUSY improvement unproved"
+  ],
+  "next_daily_copy_due_utc": "2026-10-27T00:15:00+00:00",
+  "snapshot_retry_effectiveness_proven": false,
+  "profitability_proven": false,
+  "overall_estimate": 65
+}

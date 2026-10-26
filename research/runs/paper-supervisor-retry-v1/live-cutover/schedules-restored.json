@@ -1,0 +1,54 @@
+{
+  "observed_at": "2026-10-26T17:13:45.365026+00:00",
+  "status": "existing_schedules_restored_with_original_definitions",
+  "supervisor": {
+    "id": "2f6c5088c6ff",
+    "name": "hermes-paper-beta-6c9d520-supervisor",
+    "prompt": "",
+    "skills": [],
+    "skill": null,
+    "model": null,
+    "provider": null,
+    "provider_snapshot": null,
+    "model_snapshot": null,
+    "base_url": null,
+    "script": "hermes_trading_paper_6c9d520_job.py",
+    "no_agent": true,
+    "context_from": null,
+    "schedule": {
+      "kind": "interval",
+      "minutes": 1,
+      "display": "every 1m"
+    },
+    "schedule_display": "every 1m",
+    "repeat": {
+      "times": 259200,
+      "completed": 1541
+    },
+    "enabled": true,
+    "state": "scheduled",
+    "paused_at": null,
+    "paused_reason": null,
+    "created_at": "2026-10-21T09:57:30.100772+02:00",
+    "next_run_at": "2026-10-26T18:13:42.385476+01:00",
+    "last_run_at": "2026-10-26T08:02:32.133759+01:00",
+    "last_status": "error",
+    "last_error": "Script exited with code 1\nstdout:\n{\"exit_code\": 1, \"status\": \"child_failed\", \"wakeAgent\": false}",
+    "last_delivery_error": null,
+    "deliver": "local",
+    "origin": null,
+    "enabled_toolsets": null,
+    "workdir": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-trading",
+    "fire_claim": null
+  },
+  "legacy_remains_paused": true,
+  "worker_poststart_status": "degraded",
+  "initial_status_ok_assertion_failed": true,
+  "first_batch_source_and_common_financial_checks_passed": true,
+  "retained_supervisor_halt": true,
+  "pending_acceptance": [
+    "ordinary scheduled supervisor outcome",
+    "fresh confirmed ordinary report after five new batches",
+    "next actual new daily E: generation"
+  ]
+}

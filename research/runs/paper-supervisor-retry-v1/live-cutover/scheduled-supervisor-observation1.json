@@ -1,0 +1,17 @@
+{
+  "observed_at": "2026-10-26T17:14:37.012343+00:00",
+  "job": {
+    "id": "2f6c5088c6ff",
+    "enabled": true,
+    "state": "scheduled",
+    "last_run_at": "2026-10-26T08:02:32.133759+01:00",
+    "last_status": "error",
+    "next_run_at": "2026-10-26T18:13:42.385476+01:00"
+  },
+  "status": {
+    "observed_at": "2026-10-26T07:00:35.205952+00:00",
+    "status": "not_due",
+    "mirror_state": "current",
+    "refresh_required": false
+  }
+}

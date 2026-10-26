@@ -1,0 +1,24 @@
+{
+  "recorded_at": "2026-10-26T07:01:06.832816+00:00",
+  "owner_answer": "Approve paper-only cutover",
+  "question_tool_call": "call_ed08451eab064e3b9fabe3815bd4a25b",
+  "approval_ref": "owner_20261026_snapshot_20eb6af_paper_cutover",
+  "candidate": "20eb6af2a441c934618e124af30d72f411a3938a",
+  "cutover_document_sha256": "c7709db0ca9d56424046c9bfe8d952678f46b4cb49863085750d20f6fece3a50",
+  "approved_scope": [
+    "exact paper-only Railway deployment",
+    "matching PC byte-preserving source install",
+    "checked six-component two-host transition",
+    "original clocks/history/eight wallets/fees/risk limits and entry halt preserved",
+    "scheduled supervision/reporting/backup acceptance"
+  ],
+  "excluded_scope": [
+    "entry halt recovery",
+    "paid inference or services",
+    "risk or strategy changes",
+    "private exchange credential use",
+    "real orders",
+    "backtests",
+    "training"
+  ]
+}

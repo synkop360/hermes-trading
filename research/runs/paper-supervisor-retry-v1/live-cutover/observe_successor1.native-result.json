@@ -1,0 +1,1226 @@
+{
+  "observed_at": "2026-10-26T17:12:24.671982+00:00",
+  "instance": "577064e4-f63d-4ff5-af18-a87ff4e97765",
+  "native_exit_code": 0,
+  "result": {
+    "accounts": {
+      "adaptive_100": {
+        "account_hash": "ab01234ad2feb966dda08ae4d7334835a08d838cba55bb5ff515723c3f6e7c4d",
+        "account_hash_matches": true,
+        "closed_net_pnl": "0",
+        "common_heartbeat_time": true,
+        "cost_quality": {
+          "ai": "missing",
+          "funding": "missing",
+          "hosting": "missing",
+          "tools": "missing"
+        },
+        "currency": "EUR",
+        "known_accrued_costs": "0",
+        "matches_latest_settlement": true,
+        "missing_field_count": 4,
+        "net_equity": null,
+        "observed_at": "2026-10-26T17:11:44.290865+00:00",
+        "status": "observed"
+      },
+      "adaptive_150": {
+        "account_hash": "114e0c50abc0237b326b8b8be92e01cee16ff58dbf549f2dee037028c5aa2ff4",
+        "account_hash_matches": true,
+        "closed_net_pnl": "0",
+        "common_heartbeat_time": true,
+        "cost_quality": {
+          "ai": "missing",
+          "funding": "missing",
+          "hosting": "missing",
+          "tools": "missing"
+        },
+        "currency": "EUR",
+        "known_accrued_costs": "0",
+        "matches_latest_settlement": true,
+        "missing_field_count": 4,
+        "net_equity": null,
+        "observed_at": "2026-10-26T17:11:44.290865+00:00",
+        "status": "observed"
+      },
+      "adaptive_200": {
+        "account_hash": "8537e0f7f17abc8a092f2ca8e39ad8b1d290f8ee222296fbdc834fe00bb488f3",
+        "account_hash_matches": true,
+        "closed_net_pnl": "0",
+        "common_heartbeat_time": true,
+        "cost_quality": {
+          "ai": "missing",
+          "funding": "missing",
+          "hosting": "missing",
+          "tools": "missing"
+        },
+        "currency": "EUR",
+        "known_accrued_costs": "0",
+        "matches_latest_settlement": true,
+        "missing_field_count": 4,
+        "net_equity": null,
+        "observed_at": "2026-10-26T17:11:44.290865+00:00",
+        "status": "observed"
+      },
+      "adaptive_50": {
+        "account_hash": "c6cb98dfffbfefb519cd7dc6cfe213cc61f2bfc741d13bc7d23f18e652f2cb72",
+        "account_hash_matches": true,
+        "closed_net_pnl": "0",
+        "common_heartbeat_time": true,
+        "cost_quality": {
+          "ai": "missing",
+          "funding": "missing",
+          "hosting": "missing",
+          "tools": "missing"
+        },
+        "currency": "EUR",
+        "known_accrued_costs": "0",
+        "matches_latest_settlement": true,
+        "missing_field_count": 4,
+        "net_equity": null,
+        "observed_at": "2026-10-26T17:11:44.290865+00:00",
+        "status": "observed"
+      },
+      "control_100": {
+        "account_hash": "d2bf582f19519c6ea828762c53115a20009668676338fbdba9b7712b8fd0aec3",
+        "account_hash_matches": true,
+        "closed_net_pnl": "0",
+        "common_heartbeat_time": true,
+        "cost_quality": {
+          "ai": "estimated",
+          "funding": "actual",
+          "hosting": "estimated",
+          "tools": "estimated"
+        },
+        "currency": "EUR",
+        "known_accrued_costs": "0.6609700088078703703703703704",
+        "matches_latest_settlement": true,
+        "missing_field_count": 0,
+        "net_equity": "99.33902999119212962962962963",
+        "observed_at": "2026-10-26T17:11:44.290865+00:00",
+        "status": "observed"
+      },
+      "control_150": {
+        "account_hash": "33aead4b07aeddd677babf6b1f344df77f3c0ab2a71932ec3f086d0847468527",
+        "account_hash_matches": true,
+        "closed_net_pnl": "0",
+        "common_heartbeat_time": true,
+        "cost_quality": {
+          "ai": "estimated",
+          "funding": "actual",
+          "hosting": "estimated",
+          "tools": "estimated"
+        },
+        "currency": "EUR",
+        "known_accrued_costs": "0.6609700088078703703703703704",
+        "matches_latest_settlement": true,
+        "missing_field_count": 0,
+        "net_equity": "149.3390299911921296296296296",
+        "observed_at": "2026-10-26T17:11:44.290865+00:00",
+        "status": "observed"
+      },
+      "control_200": {
+        "account_hash": "25288c8ffd776d40ef0a1cac47b63f1b033e7093a5b01bd551734d62eac589bc",
+        "account_hash_matches": true,
+        "closed_net_pnl": "0",
+        "common_heartbeat_time": true,
+        "cost_quality": {
+          "ai": "estimated",
+          "funding": "actual",
+          "hosting": "estimated",
+          "tools": "estimated"
+        },
+        "currency": "EUR",
+        "known_accrued_costs": "0.6609700088078703703703703704",
+        "matches_latest_settlement": true,
+        "missing_field_count": 0,
+        "net_equity": "199.3390299911921296296296296",
+        "observed_at": "2026-10-26T17:11:44.290865+00:00",
+        "status": "observed"
+      },
+      "control_50": {
+        "account_hash": "164833f1175f88b92747e404a0d963fec6344debbe4a07d2f8548df3b7544268",
+        "account_hash_matches": true,
+        "closed_net_pnl": "0",
+        "common_heartbeat_time": true,
+        "cost_quality": {
+          "ai": "estimated",
+          "funding": "actual",
+          "hosting": "estimated",
+          "tools": "estimated"
+        },
+        "currency": "EUR",
+        "known_accrued_costs": "0.6609700088078703703703703704",
+        "matches_latest_settlement": true,
+        "missing_field_count": 0,
+        "net_equity": "49.33902999119212962962962963",
+        "observed_at": "2026-10-26T17:11:44.290865+00:00",
+        "status": "observed"
+      }
+    },
+    "baseline_complete": 2711,
+    "cohort": {
+      "all_eight_account_hashes_match": true,
+      "all_eight_common_observation_time": true,
+      "all_eight_match_latest_settlement": true,
+      "current_journal_matches_heartbeat": true,
+      "heartbeat_stable_during_read": true,
+      "new_completed_since_closed_baseline": 1
+    },
+    "comparisons_eur": {
+      "100": null,
+      "150": null,
+      "200": null,
+      "50": null
+    },
+    "entry_admission": {
+      "blocked": true,
+      "reasons": [
+        "supervisor_error_halt",
+        "supervisor_health_stale"
+      ],
+      "status": null
+    },
+    "expected_summary_every_new_batches": 5,
+    "heartbeat": {
+      "account_names_match": true,
+      "batch_id": "3029b0c7-5df4-44d1-89ee-1b6dd71f7ade",
+      "completed_batches": 2712,
+      "error_present": false,
+      "input_hash": "69bd1afb3530c2950b51218ce88d86c86e7b0226b61541e91db1ace1f052a517",
+      "observed_at": "2026-10-26T17:11:44.290865+00:00",
+      "paper_mode": true,
+      "primary_wallet_eur": 200,
+      "simulated": true,
+      "status": "degraded",
+      "timestamp": "2026-10-26T17:11:46.706609+00:00"
+    },
+    "identity": {
+      "experiment_id": "paper-beta-v1-20261021-6c9d520",
+      "manifest_hash": "ea5d54c0e67d6286f770a6a3362f491a702875d15b5518987f93b1b2ea634b0d",
+      "manifest_raw_hash_matches": true,
+      "opening_hash": "50fd92318969675f72e7450148e77e5bb1d4f60d9d1963ec90cab3061e27c349",
+      "opening_verified": true
+    },
+    "journal": {
+      "batch_id": "3029b0c7-5df4-44d1-89ee-1b6dd71f7ade",
+      "completed_count": 2712,
+      "finalized_all_eight": true,
+      "input_hash": "69bd1afb3530c2950b51218ce88d86c86e7b0226b61541e91db1ace1f052a517",
+      "opening_at": "2026-10-23T20:13:56.622959+00:00",
+      "opening_hash": "50fd92318969675f72e7450148e77e5bb1d4f60d9d1963ec90cab3061e27c349",
+      "pending_count": 0,
+      "status": "observed"
+    },
+    "kind": "read_only_reporting_acceptance",
+    "limitations": [
+      "One observation, not a consistent backup or continuity proof.",
+      "The ledger retains locally confirmed part IDs, not Discord message bodies or remote message IDs.",
+      "Startup may precede the first new financial envelope; current wallet rows do not prove a historical message body.",
+      "Cycle cadence advances only after confirmed report success; runtime sender status and configured cadence are not persisted.",
+      "No retry is made for a locked journal; unavailable/racing source evidence remains unavailable.",
+      "Trading reads and volume scan follow the cohort read; they are not one cross-database transaction."
+    ],
+    "observed_at": "2026-10-26T17:12:24.416277+00:00",
+    "profitability_qualified": false,
+    "reporter": {
+      "abandoned_intent_count": 0,
+      "cadences": {
+        "cycle": "194",
+        "financial:1d": "2026-10-26T00:00:00+00:00",
+        "financial:1w": "2026-10-26T00:00:00+00:00",
+        "operational:12h": "2026-10-26T12:00:00+00:00"
+      },
+      "confirmed_cycle_windows": 194,
+      "confirmed_event_marker_count": 256,
+      "confirmed_part_ids": [
+        "4af240fd2ae593d7112fb958:1",
+        "4af240fd2ae593d7112fb958:2",
+        "96994480d02e6907fe1428fd:0",
+        "655882c903ad5b78325156be:0",
+        "29d5dd8d6cd5611a3e40da5c:0",
+        "cff15bff26476f0df9b08485:0",
+        "39b8f67e96a9fef2d1be46ac:0",
+        "39b8f67e96a9fef2d1be46ac:1",
+        "39b8f67e96a9fef2d1be46ac:2",
+        "6a7fd6f12c9c61d02f1ed9c4:0",
+        "6d78044d3c5a7bf816e5b38b:0",
+        "5820c2dcd3b24a9990adcae6:0",
+        "457c45a45747e5980892831a:0",
+        "215ef2bae2eb0bd0fdeeaf08:0",
+        "215ef2bae2eb0bd0fdeeaf08:1",
+        "215ef2bae2eb0bd0fdeeaf08:2",
+        "40432ad7d79f9777cd22959d:0",
+        "405b02c0a9eeb50a59846a79:0",
+        "1802b034c13cc534ab2c65eb:0",
+        "9fd9803b16f60d2753ea0cdc:0",
+        "64e0f06cc64b890bb270020d:0",
+        "64e0f06cc64b890bb270020d:1",
+        "64e0f06cc64b890bb270020d:2",
+        "ae674267cbf46e25385c7278:0",
+        "16c9ff6165f6b569db8c363b:0",
+        "5cc1083393016d1864bbacca:0",
+        "2388da3caa565d3b555d83f9:0",
+        "229578a1a78a48eade252613:0",
+        "229578a1a78a48eade252613:1",
+        "229578a1a78a48eade252613:2",
+        "84102f3d8c96939228d37f43:0",
+        "aa09e2ff4a4ca945f3a919a0:0",
+        "4129a1590200a0be7413f428:0",
+        "0edd96ee126f423f011494ee:0",
+        "b0aa08555ad8b3999285a782:0",
+        "b0aa08555ad8b3999285a782:1",
+        "b0aa08555ad8b3999285a782:2",
+        "26d51b3579c31917be8f146b:0",
+        "708478c37c2a76150132e041:0",
+        "1cac4d94b4c206593bcedca4:0",
+        "6634ce6a840c2b2aa64094ce:0",
+        "0407b1dee00f19096baaf13f:0",
+        "0407b1dee00f19096baaf13f:1",
+        "0407b1dee00f19096baaf13f:2",
+        "feb2ae1652b8fefc24263766:0",
+        "2e2a7804fda2b98bdd3dfa70:0",
+        "a1e2fe10e72cb2b550e31bb7:0",
+        "ddf310aecf4762584cc09066:0",
+        "d0fcf3ea00182edb71f62a9a:0",
+        "d0fcf3ea00182edb71f62a9a:1",
+        "d0fcf3ea00182edb71f62a9a:2",
+        "2b71e7dfbdeeda3076985252:0",
+        "135683cf0dd62b05d042501d:0",
+        "251310e42c6d752c73911a81:0",
+        "aad2522c3dd33293572d7c68:0",
+        "c1931a0d8179a13440c95493:0",
+        "c1931a0d8179a13440c95493:1",
+        "c1931a0d8179a13440c95493:2",
+        "343f963c952db08df3b291af:0",
+        "32d67b1bdf5428c7c72e8e3f:0",
+        "377c41a1f245702cd81d89ad:0",
+        "f5a9d18a91f700581058668f:0",
+        "1d573ffb6d70a43cbde19a95:0",
+        "1d573ffb6d70a43cbde19a95:1",
+        "1d573ffb6d70a43cbde19a95:2",
+        "1ba21e9e92bbef28976f2c77:0",
+        "e5e2100a6c424b06151f6886:0",
+        "eecb89f9fd12fb40e451eea2:0",
+        "266e5af4951348d428a34e83:0",
+        "cd1b665275bd714c11091041:0",
+        "cd1b665275bd714c11091041:1",
+        "cd1b665275bd714c11091041:2",
+        "3587922a10318fb2df7745f9:0",
+        "64842be6024ecc18c297f1ff:0",
+        "a31634b05353b797c3a51dad:0",
+        "2c86bd559460d9beb69402d3:0",
+        "ae8ef4d17f9cd00e1cbfa847:0",
+        "ae8ef4d17f9cd00e1cbfa847:1",
+        "ae8ef4d17f9cd00e1cbfa847:2",
+        "23dcaad342621b231c3b0166:0",
+        "8f2b960e259822fc00e857f8:0",
+        "d072c80f518c66757baf4b2c:0",
+        "da49e7dd9cde27d25ed96ab8:0",
+        "efbb6168ed0776c372bcf45c:0",
+        "efbb6168ed0776c372bcf45c:1",
+        "efbb6168ed0776c372bcf45c:2",
+        "72c019a8b6a4902930b4b3a4:0",
+        "c35a496caaf99026dd68b51e:0",
+        "fba6ad0d60e617b33f20592a:0",
+        "0adf1076934121bbae7a7dc4:0",
+        "80699eed544a662cba59a584:0",
+        "80699eed544a662cba59a584:1",
+        "80699eed544a662cba59a584:2",
+        "a313296f45707a2757daaef8:0",
+        "5fa6ecd5aac21dce00f6e893:0",
+        "222557b37d91eca6f93fba04:0",
+        "ba7ca750049db7618936f372:0",
+        "f4d4163f7ababb253795e086:0",
+        "f4d4163f7ababb253795e086:1",
+        "f4d4163f7ababb253795e086:2",
+        "1054be20aceec5d507fa4418:0",
+        "04dfd5f9d9e8afe255ce2571:0",
+        "13f0a6b364c8e96b0322b64b:0",
+        "e2b10a78002b387f25a4fa67:0",
+        "c9799ae47a48c4ad926a7f31:0",
+        "c9799ae47a48c4ad926a7f31:1",
+        "c9799ae47a48c4ad926a7f31:2",
+        "4353bf6b164deba3c3b207e8:0",
+        "6c19e222e8d451264909c185:0",
+        "d9a5688caf0d8d87a037615f:0",
+        "f30d3a6e13fbf6dc4666cbb5:0",
+        "32b6b07c053df31ec8d4b393:0",
+        "32b6b07c053df31ec8d4b393:1",
+        "32b6b07c053df31ec8d4b393:2",
+        "a9b2bc9225bdf33370dcf2b7:0",
+        "2f88df1163ef117f41108234:0",
+        "3428ba0cf9059bc25a1913ed:0",
+        "c5e7aae6b112be7073b8ba55:0",
+        "02dde18228b7af9c259a2f39:0",
+        "02dde18228b7af9c259a2f39:1",
+        "02dde18228b7af9c259a2f39:2",
+        "10a5f6dcde1f57efcbe6a561:0",
+        "03f108ed6fa5792741a2f0b1:0",
+        "d85d0b49a7749f492de22fde:0",
+        "a9a44173930cbc82d43c19b6:0",
+        "9f0e59ad48db4247e11e6afe:0",
+        "9f0e59ad48db4247e11e6afe:1",
+        "9f0e59ad48db4247e11e6afe:2",
+        "51f2f90aea720ff5c654d636:0",
+        "99ab7275424f521f6f1da11a:0",
+        "e94a7f368ab4c008051a6a0a:0",
+        "f678ae7f6efebb9a42d9bae8:0",
+        "e47528133c1942a9bc72441a:0",
+        "e47528133c1942a9bc72441a:1",
+        "e47528133c1942a9bc72441a:2",
+        "e92e42f3d1d0237bb867060a:0",
+        "9ee467db19035d1318aceab4:0",
+        "5221a0aa9adbd40c23411fb7:0",
+        "9d0b9f2873ad6a5b4eb02c36:0",
+        "459cddfc1fa13903d9fe8039:0",
+        "459cddfc1fa13903d9fe8039:1",
+        "459cddfc1fa13903d9fe8039:2",
+        "b23c63158c0cd9063bd5972e:0",
+        "48d92f39c25deb5c89d6acb3:0",
+        "68af7ac4499817e015bb93f6:0",
+        "984aeb8ca8b1ab86d8a37a9c:0",
+        "628088b127d2b3ad5b4cfe14:0",
+        "628088b127d2b3ad5b4cfe14:1",
+        "628088b127d2b3ad5b4cfe14:2",
+        "ccfacb1a3a1ea5f8dd9b3e0d:0",
+        "327c34b78bc4566b4a8d4bea:0",
+        "5d8939f34e3e0152b89642f7:0",
+        "5fc4e47632af751bd7f92081:0",
+        "f374732fcbacf6db1f358b4b:0",
+        "f374732fcbacf6db1f358b4b:1",
+        "f374732fcbacf6db1f358b4b:2",
+        "9e2d50b93b09ec1a8e7bcb18:0",
+        "785438acf8022015805f8603:0",
+        "60a866a4dce96864b4975f07:0",
+        "fe5b8808f9ad37a3c4651773:0",
+        "41e2c6584141d4e3abe4ff79:0",
+        "41e2c6584141d4e3abe4ff79:1",
+        "41e2c6584141d4e3abe4ff79:2",
+        "968ffe5174b896af0d26470b:0",
+        "ce4ce984f7c21910c76eac34:0",
+        "e5b610c2fc5c912aa9cf17c0:0",
+        "fbb8dd401d551d29d77a6e80:0",
+        "cd87fc49a88d886dc00671b6:0",
+        "cd87fc49a88d886dc00671b6:1",
+        "cd87fc49a88d886dc00671b6:2",
+        "5894e5dae62bd41833b01786:0",
+        "c53786a8320a583c1598f04f:0",
+        "cb1d35bf6adc5d2c9cea8f48:0",
+        "71aaca5b509b10756a659dac:0",
+        "64588c5e99363c9eae26225e:0",
+        "64588c5e99363c9eae26225e:1",
+        "64588c5e99363c9eae26225e:2",
+        "6a04b0a7e18d3c3b282a4f36:0",
+        "c5ec1db6121dd3ad4f815022:0",
+        "644c91d65762fbabbcfd96d8:0",
+        "ca36521353e66162e777d418:0",
+        "7b7a68c520f19eefd4833915:0",
+        "7b7a68c520f19eefd4833915:1",
+        "7b7a68c520f19eefd4833915:2",
+        "8d1cb3068e1ca2f238df925c:0",
+        "d68e63bb1a3bf2714cab6ee3:0",
+        "255945357c478abba023d4dc:0",
+        "b0e146f4b9648187d40417ec:0",
+        "e4caa4f80bd8113a11fb6356:0",
+        "e4caa4f80bd8113a11fb6356:1",
+        "e4caa4f80bd8113a11fb6356:2",
+        "4ce62c29e19ab820aec091f3:0",
+        "d8a48f4f14068aa8b0c0bd2a:0",
+        "519f311eb0d32e19c8c571d8:0",
+        "68a6119b25292fdcb7ac4d73:0",
+        "72d84bd0ceff4f4200135c79:0",
+        "72d84bd0ceff4f4200135c79:1",
+        "72d84bd0ceff4f4200135c79:2",
+        "f9c5aeb4a02d280348c541e7:0",
+        "28e2723fd9ef2d830370f48e:0",
+        "cb5e066980ad87dc9421b1c5:0",
+        "a81c616529652f7e1c5b043b:0",
+        "76ab3f24c1ff528a6ca21169:0",
+        "76ab3f24c1ff528a6ca21169:1",
+        "76ab3f24c1ff528a6ca21169:2",
+        "7a44246a398dce8c51aa1ca8:0",
+        "b95502ca510204d119e26f79:0",
+        "b4b328340c896f19747d865b:0",
+        "b1bdeeb314a712a2b41b2c88:0",
+        "78d1418bd5186fbdf0baccc0:0",
+        "78d1418bd5186fbdf0baccc0:1",
+        "78d1418bd5186fbdf0baccc0:2",
+        "9a2d7b0d9f364dc87397b45b:0",
+        "60a69b9d36da9e9957006db8:0",
+        "ca0e22a91881ce0eea79525f:0",
+        "f2a635d00f7363bf776c6648:0",
+        "a6537451a854def236616e8a:0",
+        "a6537451a854def236616e8a:1",
+        "a6537451a854def236616e8a:2",
+        "00b9cb01ad2aa4d5896da959:0",
+        "8893d7de59fef4b442a9ecec:0",
+        "326c033d8f8703b7d4cbd690:0",
+        "4b5c3eedd4c839bdec9f7c35:0",
+        "f2550549ed6ccea74d32fabc:0",
+        "f2550549ed6ccea74d32fabc:1",
+        "f2550549ed6ccea74d32fabc:2",
+        "f7077577f89f56a0dc2f9f84:0",
+        "97f740f9f4035f19e53a0f66:0",
+        "fee19fe95216faf8fd19839a:0",
+        "5405235bab56a5a6c02dbc0c:0",
+        "21b1f90ab5f67ece2bae6c59:0",
+        "21b1f90ab5f67ece2bae6c59:1",
+        "21b1f90ab5f67ece2bae6c59:2",
+        "3b30803b6bee8713a6c68405:0",
+        "26196c3b5496f02438a9e703:0",
+        "69393db3107c33386ba2c38e:0",
+        "f01192c6bcf851fbc7c7925e:0",
+        "c00773a8a9a81bb4c798ea4e:0",
+        "c00773a8a9a81bb4c798ea4e:1",
+        "c00773a8a9a81bb4c798ea4e:2",
+        "af5645cca9b8498e5c74341c:0",
+        "28b7f8e8cbe692842ee5ceeb:0",
+        "ead686af3a31726d6306530d:0",
+        "cfbc7a9917591eb565aaa9e0:0",
+        "ff6e176d499fd8a304a6f82c:0",
+        "ff6e176d499fd8a304a6f82c:1",
+        "ff6e176d499fd8a304a6f82c:2",
+        "b8dc3476076091256c6ec052:0",
+        "620825ba736661436175eef1:0",
+        "c91dd212ade406f13ad8515e:0",
+        "5cbcf9c7666ebbcb2f70f0c3:0",
+        "ed1d15f59f3caad88a99a446:0",
+        "ed1d15f59f3caad88a99a446:1",
+        "ed1d15f59f3caad88a99a446:2",
+        "8b923be9952c2896e04398e2:0",
+        "56eae613f4c93a0471ee1293:0"
+      ],
+      "confirmed_report_parts": {
+        "00b9cb01ad2aa4d5896da959": [
+          1
+        ],
+        "02dde18228b7af9c259a2f39": [
+          1,
+          2,
+          3
+        ],
+        "03f108ed6fa5792741a2f0b1": [
+          1
+        ],
+        "0407b1dee00f19096baaf13f": [
+          1,
+          2,
+          3
+        ],
+        "04dfd5f9d9e8afe255ce2571": [
+          1
+        ],
+        "0adf1076934121bbae7a7dc4": [
+          1
+        ],
+        "0edd96ee126f423f011494ee": [
+          1
+        ],
+        "1054be20aceec5d507fa4418": [
+          1
+        ],
+        "10a5f6dcde1f57efcbe6a561": [
+          1
+        ],
+        "135683cf0dd62b05d042501d": [
+          1
+        ],
+        "13f0a6b364c8e96b0322b64b": [
+          1
+        ],
+        "16c9ff6165f6b569db8c363b": [
+          1
+        ],
+        "1802b034c13cc534ab2c65eb": [
+          1
+        ],
+        "1ba21e9e92bbef28976f2c77": [
+          1
+        ],
+        "1cac4d94b4c206593bcedca4": [
+          1
+        ],
+        "1d573ffb6d70a43cbde19a95": [
+          1,
+          2,
+          3
+        ],
+        "215ef2bae2eb0bd0fdeeaf08": [
+          1,
+          2,
+          3
+        ],
+        "21b1f90ab5f67ece2bae6c59": [
+          1,
+          2,
+          3
+        ],
+        "222557b37d91eca6f93fba04": [
+          1
+        ],
+        "229578a1a78a48eade252613": [
+          1,
+          2,
+          3
+        ],
+        "2388da3caa565d3b555d83f9": [
+          1
+        ],
+        "23dcaad342621b231c3b0166": [
+          1
+        ],
+        "251310e42c6d752c73911a81": [
+          1
+        ],
+        "255945357c478abba023d4dc": [
+          1
+        ],
+        "26196c3b5496f02438a9e703": [
+          1
+        ],
+        "266e5af4951348d428a34e83": [
+          1
+        ],
+        "26d51b3579c31917be8f146b": [
+          1
+        ],
+        "28b7f8e8cbe692842ee5ceeb": [
+          1
+        ],
+        "28e2723fd9ef2d830370f48e": [
+          1
+        ],
+        "29d5dd8d6cd5611a3e40da5c": [
+          1
+        ],
+        "2b71e7dfbdeeda3076985252": [
+          1
+        ],
+        "2c86bd559460d9beb69402d3": [
+          1
+        ],
+        "2e2a7804fda2b98bdd3dfa70": [
+          1
+        ],
+        "2f88df1163ef117f41108234": [
+          1
+        ],
+        "326c033d8f8703b7d4cbd690": [
+          1
+        ],
+        "327c34b78bc4566b4a8d4bea": [
+          1
+        ],
+        "32b6b07c053df31ec8d4b393": [
+          1,
+          2,
+          3
+        ],
+        "32d67b1bdf5428c7c72e8e3f": [
+          1
+        ],
+        "3428ba0cf9059bc25a1913ed": [
+          1
+        ],
+        "343f963c952db08df3b291af": [
+          1
+        ],
+        "3587922a10318fb2df7745f9": [
+          1
+        ],
+        "377c41a1f245702cd81d89ad": [
+          1
+        ],
+        "39b8f67e96a9fef2d1be46ac": [
+          1,
+          2,
+          3
+        ],
+        "3b30803b6bee8713a6c68405": [
+          1
+        ],
+        "40432ad7d79f9777cd22959d": [
+          1
+        ],
+        "405b02c0a9eeb50a59846a79": [
+          1
+        ],
+        "4129a1590200a0be7413f428": [
+          1
+        ],
+        "41e2c6584141d4e3abe4ff79": [
+          1,
+          2,
+          3
+        ],
+        "4353bf6b164deba3c3b207e8": [
+          1
+        ],
+        "457c45a45747e5980892831a": [
+          1
+        ],
+        "459cddfc1fa13903d9fe8039": [
+          1,
+          2,
+          3
+        ],
+        "48d92f39c25deb5c89d6acb3": [
+          1
+        ],
+        "4af240fd2ae593d7112fb958": [
+          2,
+          3
+        ],
+        "4b5c3eedd4c839bdec9f7c35": [
+          1
+        ],
+        "4ce62c29e19ab820aec091f3": [
+          1
+        ],
+        "519f311eb0d32e19c8c571d8": [
+          1
+        ],
+        "51f2f90aea720ff5c654d636": [
+          1
+        ],
+        "5221a0aa9adbd40c23411fb7": [
+          1
+        ],
+        "5405235bab56a5a6c02dbc0c": [
+          1
+        ],
+        "56eae613f4c93a0471ee1293": [
+          1
+        ],
+        "5820c2dcd3b24a9990adcae6": [
+          1
+        ],
+        "5894e5dae62bd41833b01786": [
+          1
+        ],
+        "5cbcf9c7666ebbcb2f70f0c3": [
+          1
+        ],
+        "5cc1083393016d1864bbacca": [
+          1
+        ],
+        "5d8939f34e3e0152b89642f7": [
+          1
+        ],
+        "5fa6ecd5aac21dce00f6e893": [
+          1
+        ],
+        "5fc4e47632af751bd7f92081": [
+          1
+        ],
+        "60a69b9d36da9e9957006db8": [
+          1
+        ],
+        "60a866a4dce96864b4975f07": [
+          1
+        ],
+        "620825ba736661436175eef1": [
+          1
+        ],
+        "628088b127d2b3ad5b4cfe14": [
+          1,
+          2,
+          3
+        ],
+        "644c91d65762fbabbcfd96d8": [
+          1
+        ],
+        "64588c5e99363c9eae26225e": [
+          1,
+          2,
+          3
+        ],
+        "64842be6024ecc18c297f1ff": [
+          1
+        ],
+        "64e0f06cc64b890bb270020d": [
+          1,
+          2,
+          3
+        ],
+        "655882c903ad5b78325156be": [
+          1
+        ],
+        "6634ce6a840c2b2aa64094ce": [
+          1
+        ],
+        "68a6119b25292fdcb7ac4d73": [
+          1
+        ],
+        "68af7ac4499817e015bb93f6": [
+          1
+        ],
+        "69393db3107c33386ba2c38e": [
+          1
+        ],
+        "6a04b0a7e18d3c3b282a4f36": [
+          1
+        ],
+        "6a7fd6f12c9c61d02f1ed9c4": [
+          1
+        ],
+        "6c19e222e8d451264909c185": [
+          1
+        ],
+        "6d78044d3c5a7bf816e5b38b": [
+          1
+        ],
+        "708478c37c2a76150132e041": [
+          1
+        ],
+        "71aaca5b509b10756a659dac": [
+          1
+        ],
+        "72c019a8b6a4902930b4b3a4": [
+          1
+        ],
+        "72d84bd0ceff4f4200135c79": [
+          1,
+          2,
+          3
+        ],
+        "76ab3f24c1ff528a6ca21169": [
+          1,
+          2,
+          3
+        ],
+        "785438acf8022015805f8603": [
+          1
+        ],
+        "78d1418bd5186fbdf0baccc0": [
+          1,
+          2,
+          3
+        ],
+        "7a44246a398dce8c51aa1ca8": [
+          1
+        ],
+        "7b7a68c520f19eefd4833915": [
+          1,
+          2,
+          3
+        ],
+        "80699eed544a662cba59a584": [
+          1,
+          2,
+          3
+        ],
+        "84102f3d8c96939228d37f43": [
+          1
+        ],
+        "8893d7de59fef4b442a9ecec": [
+          1
+        ],
+        "8b923be9952c2896e04398e2": [
+          1
+        ],
+        "8d1cb3068e1ca2f238df925c": [
+          1
+        ],
+        "8f2b960e259822fc00e857f8": [
+          1
+        ],
+        "968ffe5174b896af0d26470b": [
+          1
+        ],
+        "96994480d02e6907fe1428fd": [
+          1
+        ],
+        "97f740f9f4035f19e53a0f66": [
+          1
+        ],
+        "984aeb8ca8b1ab86d8a37a9c": [
+          1
+        ],
+        "99ab7275424f521f6f1da11a": [
+          1
+        ],
+        "9a2d7b0d9f364dc87397b45b": [
+          1
+        ],
+        "9d0b9f2873ad6a5b4eb02c36": [
+          1
+        ],
+        "9e2d50b93b09ec1a8e7bcb18": [
+          1
+        ],
+        "9ee467db19035d1318aceab4": [
+          1
+        ],
+        "9f0e59ad48db4247e11e6afe": [
+          1,
+          2,
+          3
+        ],
+        "9fd9803b16f60d2753ea0cdc": [
+          1
+        ],
+        "a1e2fe10e72cb2b550e31bb7": [
+          1
+        ],
+        "a313296f45707a2757daaef8": [
+          1
+        ],
+        "a31634b05353b797c3a51dad": [
+          1
+        ],
+        "a6537451a854def236616e8a": [
+          1,
+          2,
+          3
+        ],
+        "a81c616529652f7e1c5b043b": [
+          1
+        ],
+        "a9a44173930cbc82d43c19b6": [
+          1
+        ],
+        "a9b2bc9225bdf33370dcf2b7": [
+          1
+        ],
+        "aa09e2ff4a4ca945f3a919a0": [
+          1
+        ],
+        "aad2522c3dd33293572d7c68": [
+          1
+        ],
+        "ae674267cbf46e25385c7278": [
+          1
+        ],
+        "ae8ef4d17f9cd00e1cbfa847": [
+          1,
+          2,
+          3
+        ],
+        "af5645cca9b8498e5c74341c": [
+          1
+        ],
+        "b0aa08555ad8b3999285a782": [
+          1,
+          2,
+          3
+        ],
+        "b0e146f4b9648187d40417ec": [
+          1
+        ],
+        "b1bdeeb314a712a2b41b2c88": [
+          1
+        ],
+        "b23c63158c0cd9063bd5972e": [
+          1
+        ],
+        "b4b328340c896f19747d865b": [
+          1
+        ],
+        "b8dc3476076091256c6ec052": [
+          1
+        ],
+        "b95502ca510204d119e26f79": [
+          1
+        ],
+        "ba7ca750049db7618936f372": [
+          1
+        ],
+        "c00773a8a9a81bb4c798ea4e": [
+          1,
+          2,
+          3
+        ],
+        "c1931a0d8179a13440c95493": [
+          1,
+          2,
+          3
+        ],
+        "c35a496caaf99026dd68b51e": [
+          1
+        ],
+        "c53786a8320a583c1598f04f": [
+          1
+        ],
+        "c5e7aae6b112be7073b8ba55": [
+          1
+        ],
+        "c5ec1db6121dd3ad4f815022": [
+          1
+        ],
+        "c91dd212ade406f13ad8515e": [
+          1
+        ],
+        "c9799ae47a48c4ad926a7f31": [
+          1,
+          2,
+          3
+        ],
+        "ca0e22a91881ce0eea79525f": [
+          1
+        ],
+        "ca36521353e66162e777d418": [
+          1
+        ],
+        "cb1d35bf6adc5d2c9cea8f48": [
+          1
+        ],
+        "cb5e066980ad87dc9421b1c5": [
+          1
+        ],
+        "ccfacb1a3a1ea5f8dd9b3e0d": [
+          1
+        ],
+        "cd1b665275bd714c11091041": [
+          1,
+          2,
+          3
+        ],
+        "cd87fc49a88d886dc00671b6": [
+          1,
+          2,
+          3
+        ],
+        "ce4ce984f7c21910c76eac34": [
+          1
+        ],
+        "cfbc7a9917591eb565aaa9e0": [
+          1
+        ],
+        "cff15bff26476f0df9b08485": [
+          1
+        ],
+        "d072c80f518c66757baf4b2c": [
+          1
+        ],
+        "d0fcf3ea00182edb71f62a9a": [
+          1,
+          2,
+          3
+        ],
+        "d68e63bb1a3bf2714cab6ee3": [
+          1
+        ],
+        "d85d0b49a7749f492de22fde": [
+          1
+        ],
+        "d8a48f4f14068aa8b0c0bd2a": [
+          1
+        ],
+        "d9a5688caf0d8d87a037615f": [
+          1
+        ],
+        "da49e7dd9cde27d25ed96ab8": [
+          1
+        ],
+        "ddf310aecf4762584cc09066": [
+          1
+        ],
+        "e2b10a78002b387f25a4fa67": [
+          1
+        ],
+        "e47528133c1942a9bc72441a": [
+          1,
+          2,
+          3
+        ],
+        "e4caa4f80bd8113a11fb6356": [
+          1,
+          2,
+          3
+        ],
+        "e5b610c2fc5c912aa9cf17c0": [
+          1
+        ],
+        "e5e2100a6c424b06151f6886": [
+          1
+        ],
+        "e92e42f3d1d0237bb867060a": [
+          1
+        ],
+        "e94a7f368ab4c008051a6a0a": [
+          1
+        ],
+        "ead686af3a31726d6306530d": [
+          1
+        ],
+        "ed1d15f59f3caad88a99a446": [
+          1,
+          2,
+          3
+        ],
+        "eecb89f9fd12fb40e451eea2": [
+          1
+        ],
+        "efbb6168ed0776c372bcf45c": [
+          1,
+          2,
+          3
+        ],
+        "f01192c6bcf851fbc7c7925e": [
+          1
+        ],
+        "f2550549ed6ccea74d32fabc": [
+          1,
+          2,
+          3
+        ],
+        "f2a635d00f7363bf776c6648": [
+          1
+        ],
+        "f30d3a6e13fbf6dc4666cbb5": [
+          1
+        ],
+        "f374732fcbacf6db1f358b4b": [
+          1,
+          2,
+          3
+        ],
+        "f4d4163f7ababb253795e086": [
+          1,
+          2,
+          3
+        ],
+        "f5a9d18a91f700581058668f": [
+          1
+        ],
+        "f678ae7f6efebb9a42d9bae8": [
+          1
+        ],
+        "f7077577f89f56a0dc2f9f84": [
+          1
+        ],
+        "f9c5aeb4a02d280348c541e7": [
+          1
+        ],
+        "fba6ad0d60e617b33f20592a": [
+          1
+        ],
+        "fbb8dd401d551d29d77a6e80": [
+          1
+        ],
+        "fe5b8808f9ad37a3c4651773": [
+          1
+        ],
+        "feb2ae1652b8fefc24263766": [
+          1
+        ],
+        "fee19fe95216faf8fd19839a": [
+          1
+        ],
+        "ff6e176d499fd8a304a6f82c": [
+          1,
+          2,
+          3
+        ]
+      },
+      "counters": {
+        "coalesced": 0,
+        "delivery_unknown": 0,
+        "dropped": 0,
+        "gaps": 1,
+        "invalid": 0,
+        "omitted_events": 0,
+        "oversized": 0,
+        "repeated_states": 0,
+        "restarts": 1
+      },
+      "cycle_summary_confirmation_observed": true,
+      "identity_matches": true,
+      "last_completed": 2712,
+      "last_observed_at": "2026-10-26T17:11:46.706609+00:00",
+      "new_batches": 971,
+      "opening_at": "2026-10-23T20:13:56.622959+00:00",
+      "pending_part_id": null,
+      "schema_version": 1,
+      "startup_confirmed": true,
+      "status": "metadata_observed"
+    },
+    "runtime": {
+      "expected_deployed_map": true,
+      "files": 129,
+      "loaded_release_matches_disk": true
+    },
+    "supervisor_safety": {
+      "consecutive_errors": 3,
+      "entry_halt": true,
+      "error_kind": "supervisor_exception",
+      "last_seen": "2026-10-26T07:02:29.735489+00:00",
+      "success": false
+    },
+    "trading": {
+      "adaptive_100": {
+        "decisions": {
+          "no_trade": 168
+        },
+        "orders": 0,
+        "positions": {},
+        "status": "observed"
+      },
+      "adaptive_150": {
+        "decisions": {
+          "no_trade": 168
+        },
+        "orders": 0,
+        "positions": {},
+        "status": "observed"
+      },
+      "adaptive_200": {
+        "decisions": {
+          "no_trade": 168
+        },
+        "orders": 0,
+        "positions": {},
+        "status": "observed"
+      },
+      "adaptive_50": {
+        "decisions": {
+          "no_trade": 168
+        },
+        "orders": 0,
+        "positions": {},
+        "status": "observed"
+      },
+      "control_100": {
+        "decisions": {
+          "no_trade": 168
+        },
+        "orders": 0,
+        "positions": {},
+        "status": "observed"
+      },
+      "control_150": {
+        "decisions": {
+          "no_trade": 168
+        },
+        "orders": 0,
+        "positions": {},
+        "status": "observed"
+      },
+      "control_200": {
+        "decisions": {
+          "no_trade": 168
+        },
+        "orders": 0,
+        "positions": {},
+        "status": "observed"
+      },
+      "control_50": {
+        "decisions": {
+          "no_trade": 168
+        },
+        "orders": 0,
+        "positions": {},
+        "status": "observed"
+      }
+    },
+    "volume": {
+      "blocked": false,
+      "capacity_bytes": 500000000,
+      "reasons": [],
+      "threshold_bytes": 350000000,
+      "used_bytes": 193246069
+    }
+  },
+  "stderr_bytes": 98
+}

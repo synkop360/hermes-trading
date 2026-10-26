@@ -1,0 +1,47 @@
+{
+  "observed_at": "2026-10-26T17:03:32.778363+00:00",
+  "instance": "577064e4-f63d-4ff5-af18-a87ff4e97765",
+  "native_exit_code": 0,
+  "result": {
+    "observed_at": "2026-10-26T17:03:24.921581+00:00",
+    "status": "preparation_access_reestablished_only",
+    "same_frozen_plan_retained": true,
+    "peer_reference_exists": true,
+    "worker_audit_exists": false,
+    "worker_remains_stopped": true,
+    "new_marker_absent": true,
+    "inspection": {
+      "status": "inspected",
+      "transition_id": "73d12cfc0c991ec320b6e4676a869a8f8be23d81572fd2ab3f170f715c1a568b",
+      "components": [
+        {
+          "name": "worker_renewal",
+          "state": "before"
+        },
+        {
+          "name": "worker_usage",
+          "state": "before"
+        },
+        {
+          "name": "worker_limits",
+          "state": "before"
+        },
+        {
+          "name": "pc_limits",
+          "state": "before"
+        },
+        {
+          "name": "pc_lifecycle",
+          "state": "before"
+        },
+        {
+          "name": "pc_launch",
+          "state": "before"
+        }
+      ],
+      "writer_quiescence": "not_established_until_apply"
+    },
+    "protected_state_matches_frozen_original": true
+  },
+  "stderr_bytes": 98
+}

@@ -1,0 +1,37 @@
+{
+  "observed_at": "2026-10-26T17:01:55.221340+00:00",
+  "status": "pc_original_guards_and_protected_reference_match_after_interruption",
+  "pc_audit_absent": true,
+  "inspection": {
+    "status": "inspected",
+    "transition_id": "73d12cfc0c991ec320b6e4676a869a8f8be23d81572fd2ab3f170f715c1a568b",
+    "components": [
+      {
+        "name": "worker_renewal",
+        "state": "before"
+      },
+      {
+        "name": "worker_usage",
+        "state": "before"
+      },
+      {
+        "name": "worker_limits",
+        "state": "before"
+      },
+      {
+        "name": "pc_limits",
+        "state": "before"
+      },
+      {
+        "name": "pc_lifecycle",
+        "state": "before"
+      },
+      {
+        "name": "pc_launch",
+        "state": "before"
+      }
+    ],
+    "writer_quiescence": "not_established_until_apply"
+  },
+  "actual_pc_sync_sha256": "f90ff5680bf79f0c813944772863ec4b78e1d7b801550b9bf2298932ad68187f"
+}
