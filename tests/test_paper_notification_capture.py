@@ -280,10 +280,13 @@ class NotificationWorkerIsolationTests(unittest.IsolatedAsyncioTestCase):
             rendered = '\n'.join(content for _,content in parts)
             self.assertLessEqual(len(parts), 4)
             self.assertTrue(all(len(content) <= 1900 for _,content in parts))
-            for name in opening['accounts']:self.assertIn(name + ':', rendered)
+            for arm in ('Adaptive','Control'):
+                for size in (50,100,150,200):
+                    label = f'{arm} €{size}' + (' · PRIMARY' if arm=='Adaptive' and size==200 else '')
+                    self.assertIn(label + ':', rendered)
             for size in (50,100,150,200):self.assertIn('adaptive minus control '+str(size)+':', rendered)
             release.set()
-            await eventually(lambda: any('Close adaptive_200' in p['content'] for p in sent), timeout=3)
+            await eventually(lambda: any('Close · Adaptive €200 · PRIMARY' in p['content'] for p in sent), timeout=3)
         finally:
             task.cancel()
             try:await asyncio.wait_for(task, 1)

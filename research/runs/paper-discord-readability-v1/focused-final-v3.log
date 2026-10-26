@@ -1,0 +1,34 @@
+Booting hermes-trading worker for BTC/USDT in training mode
+Booting hermes-trading worker for BTC/USDT in training mode
+Booting hermes-trading worker for BTC/USDT in training mode
+Booting hermes-trading worker for BTC/USDT in training mode
+worker feature notification error: discord unavailable
+Booting hermes-trading worker for BTC/USDT in training mode
+Booting hermes-trading worker for BTC/USDT in training mode
+Booting hermes-trading worker for BTC/USDT in training mode
+....F...........................................Executing <Task pending name='Task-333' coro=<LoopNotificationTests.test_run_loop_notifies_control_api_feature_once_when_enabled() running at E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\tests\test_notifications.py:533> wait_for=<Future pending cb=[_chain_future.<locals>._call_check_cancel() at C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\futures.py:387, Task.task_wakeup()] created at C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\base_events.py:428> cb=[_run_until_complete_cb() at C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\base_events.py:181] created at C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\runners.py:100> took 0.140 seconds
+...................
+======================================================================
+FAIL: test_batch_counter_survives_restart_between_summaries (tests.test_paper_notifications.PaperNotificationTests.test_batch_counter_survives_restart_between_summaries)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\unittest\async_case.py", line 90, in _callTestMethod
+    if self._callMaybeAsync(method) is not None:
+       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\unittest\async_case.py", line 112, in _callMaybeAsync
+    return self._asyncioRunner.run(
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\base_events.py", line 654, in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+  File "E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\tests\test_paper_notifications.py", line 554, in test_batch_counter_survives_restart_between_summaries
+    self.assertIn("coverage unknown", self.text())
+AssertionError: 'coverage unknown' not found in '**Hermes paper/simulated | 5 batches**\n- **Observed at:** 2026-10-24T10:00:00+00:00\n- **New entries:** enabled\n- **Worker:** healthy\n- **Model access:** available · reported: not_due; review audit unavailable\n**Wallets · primary EUR200 · native EUR**\n- Wallet = net value after recorded costs; no extra fee subtraction.\n- **Adaptive €200 · PRIMARY:** **Wallet:** EUR 202.00 | **Closed P&L:** EUR 1.25 | **Known costs:** EUR 0.20\n- **Control €200:** **Wallet:** EUR 200.00 | **Closed P&L:** EUR 1.25 | **Known costs:** EUR 0.20\n- **Adaptive €50:** **Wallet:** EUR 52.00 | **Closed P&L:** EUR 1.25 | **Known costs:** EUR 0.20\n- **Control €50:** **Wallet:** EUR 50.00 | **Closed P&L:** EUR 1.25 | **Known costs:** EUR 0.20\n- **Adaptive €100:** **Wallet:** EUR 102.00 | **Closed P&L:** EUR 1.25 | **Known costs:** EUR 0.20\n- **Control €100:** **Wallet:** EUR 100.00 | **Closed P&L:** EUR 1.25 | **Known costs:** EUR 0.20\n- **Adaptive €150:** **Wallet:** EUR 152.00 | **Closed P&L:** EUR 1.25 | **Known costs:** EUR 0.20\n- **Control €150:** **Wallet:** EUR 150.00 | **Closed P&L:** EUR 1.25 | **Known costs:** EUR 0.20\n**Adaptive minus control · current net wallet value**\n- **adaptive minus control 200:** EUR 2.00\n- **adaptive minus control 50:** EUR 2.00\n- **adaptive minus control 100:** EUR 2.00\n- **adaptive minus control 150:** EUR 2.00\n**Inventory, cost quality & activity**\n- **Adaptive €200 · PRIMARY:** **Open:** cost EUR 20.00 · net sell value EUR 20.75 · entry fees EUR 0.10\n  - **Cost quality:** hosting:unknown · ai:unknown · tools:unknown · funding:unknown; missing: none\n[paper:49aa528ef6346bd04aa264c2 part:1/3]'
+
+----------------------------------------------------------------------
+Ran 67 tests in 11.802s
+
+FAILED (failures=1)

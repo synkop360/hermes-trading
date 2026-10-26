@@ -1,0 +1,65 @@
+FFF
+======================================================================
+FAIL: test_bullets_put_primary_wallet_pnl_and_costs_before_other_wallets (tests.test_paper_notifications.PaperNotificationTests.test_bullets_put_primary_wallet_pnl_and_costs_before_other_wallets)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\unittest\async_case.py", line 90, in _callTestMethod
+    if self._callMaybeAsync(method) is not None:
+       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\unittest\async_case.py", line 112, in _callMaybeAsync
+    return self._asyncioRunner.run(
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\base_events.py", line 654, in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+  File "E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\tests\test_paper_notifications.py", line 145, in test_bullets_put_primary_wallet_pnl_and_costs_before_other_wallets
+    self.assertEqual(len(wallet_lines), 8)
+AssertionError: 0 != 8
+
+======================================================================
+FAIL: test_operational_bullets_keep_entry_pause_model_context_and_actual_time (tests.test_paper_notifications.PaperNotificationTests.test_operational_bullets_keep_entry_pause_model_context_and_actual_time)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\unittest\async_case.py", line 90, in _callTestMethod
+    if self._callMaybeAsync(method) is not None:
+       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\unittest\async_case.py", line 112, in _callMaybeAsync
+    return self._asyncioRunner.run(
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\base_events.py", line 654, in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+  File "E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\tests\test_paper_notifications.py", line 170, in test_operational_bullets_keep_entry_pause_model_context_and_actual_time
+    self.assertIn("**Operational state change**", text)
+AssertionError: '**Operational state change**' not found in 'Hermes paper/simulated | Observed at: 2026-10-24T10:01:00+00:00\nHermes paper/simulated | observed events\nObserved at: 2026-10-24T10:01:00+00:00\nLast settled: 2026-10-24T10:00:00+00:00\nObserved interval: 2026-10-24T10:00:00+00:00 -> 2026-10-24T10:01:00+00:00; coverage unknown\nstatus=running entry_admission={"enabled": true, "blocked": true, "reasons": ["supervisor_error_halt"]}\nmodel readiness/access={"success": true, "status": "not_due"}; review audit unavailable (healthy can mean not_due)\nstrategy_version=v1\nCoverage unknown; gaps=0 coalesced=0 dropped=0 delivery_unknown=0 repeats=0\nRetries may duplicate; stable tags identify parts/events.\nOperational state change; Observed interval: 2026-10-24T10:00:00+00:00 -> 2026-10-24T10:01:00+00:00; coverage unknown status=running entry_admission={"enabled": true, "blocked": true, "reasons": ["supervisor_error_halt"]} model readiness/access={"success": true, "status": "not_due"}; review audit unavailable (healthy can mean not_due)\n[paper:793a9a2f3cc837e593b6b0ff part:1/1]'
+
+======================================================================
+FAIL: test_close_bullets_show_canonical_money_quantity_and_distinct_timestamps (tests.test_paper_notifications.PaperNotificationTests.test_close_bullets_show_canonical_money_quantity_and_distinct_timestamps)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\unittest\async_case.py", line 90, in _callTestMethod
+    if self._callMaybeAsync(method) is not None:
+       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\unittest\async_case.py", line 112, in _callMaybeAsync
+    return self._asyncioRunner.run(
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\base_events.py", line 654, in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+  File "E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\tests\test_paper_notifications.py", line 188, in test_close_bullets_show_canonical_money_quantity_and_distinct_timestamps
+    self.assertIn("- **Close adaptive_200**", text)
+AssertionError: '- **Close adaptive_200**' not found in 'Hermes paper/simulated | Observed at: 2026-10-24T10:00:03+00:00\nHermes paper/simulated | startup current snapshot\nObserved at: 2026-10-24T10:00:03+00:00\nLast settled: 2026-10-24T10:00:03+00:00\nObserved interval: unknown -> 2026-10-24T10:00:03+00:00; coverage unknown\nstatus=healthy entry_admission=enabled\nmodel readiness/access={"success": true, "status": "not_due"}; review audit unavailable (healthy can mean not_due)\nstrategy_version=v1\nCoverage unknown; gaps=0 coalesced=0 dropped=0 delivery_unknown=0 repeats=0\nRetries may duplicate; stable tags identify parts/events.\ncurrent financial snapshot; period-end valuation unavailable; interval P&L/Sharpe unavailable.\nprimary EUR200; all amounts native EUR net of recorded costs (no extra fee subtraction).\nCost quality by category; source details retained in native wallet evidence.\nadaptive_50: net_equity=EUR 52 closed_net_pnl=EUR 1.25 open_basis=EUR 20 open_liquidation_value=EUR 20.75 open_entry_fees=EUR 0.10 known_accrued_costs=EUR 0.20\n costs=hosting:unknown ai:unknown tools:unknown funding:unknown missing=[] halted=False liquidation_pending=False events=observed decisions=1 reasons={"no_trade:threshold": 1}\ncontrol_50: net_equity=EUR 50 closed_net_pnl=EUR 1.25 open_basis=EUR 20 open_liquidation_value=EUR 20.75 open_entry_fees=EUR 0.10 known_accrued_costs=EUR 0.20\n costs=hosting:unknown ai:unknown tools:unknown funding:unknown missing=[] halted=False liquidation_pending=False events=observed decisions=1 reasons={"no_trade:threshold": 1}\n[paper:73622f7839eeef4e0e4d745a part:1/3]\nHermes paper/simulated | Observed at: 2026-10-24T10:00:03+00:00\nadaptive_100: net_equity=EUR 102 closed_net_pnl=EUR 1.25 open_basis=EUR 20 open_liquidation_value=EUR 20.75 open_entry_fees=EUR 0.10 known_accrued_costs=EUR 0.20\n costs=hosting:unknown ai:unknown tools:unknown funding:unknown missing=[] halted=False liquidation_pending=False events=observed decisions=1 reasons={"no_trade:threshold": 1}\ncontrol_100: net_equity=EUR 100 closed_net_pnl=EUR 1.25 open_basis=EUR 20 open_liquidation_value=EUR 20.75 open_entry_fees=EUR 0.10 known_accrued_costs=EUR 0.20\n costs=hosting:unknown ai:unknown tools:unknown funding:unknown missing=[] halted=False liquidation_pending=False events=observed decisions=1 reasons={"no_trade:threshold": 1}\nadaptive_150: net_equity=EUR 152 closed_net_pnl=EUR 1.25 open_basis=EUR 20 open_liquidation_value=EUR 20.75 open_entry_fees=EUR 0.10 known_accrued_costs=EUR 0.20\n costs=hosting:unknown ai:unknown tools:unknown funding:unknown missing=[] halted=False liquidation_pending=False events=observed decisions=1 reasons={"no_trade:threshold": 1}\ncontrol_150: net_equity=EUR 150 closed_net_pnl=EUR 1.25 open_basis=EUR 20 open_liquidation_value=EUR 20.75 open_entry_fees=EUR 0.10 known_accrued_costs=EUR 0.20\n costs=hosting:unknown ai:unknown tools:unknown funding:unknown missing=[] halted=False liquidation_pending=False events=observed decisions=1 reasons={"no_trade:threshold": 1}\nadaptive_200: net_equity=EUR 202 closed_net_pnl=EUR 1.25 open_basis=EUR 20 open_liquidation_value=EUR 20.75 open_entry_fees=EUR 0.10 known_accrued_costs=EUR 0.20\n[paper:73622f7839eeef4e0e4d745a part:2/3]\nHermes paper/simulated | Observed at: 2026-10-24T10:00:03+00:00\n costs=hosting:unknown ai:unknown tools:unknown funding:unknown missing=[] halted=False liquidation_pending=False events=observed decisions=1 reasons={"no_trade:threshold": 1}\ncontrol_200: net_equity=EUR 200 closed_net_pnl=EUR 1.25 open_basis=EUR 20 open_liquidation_value=EUR 20.75 open_entry_fees=EUR 0.10 known_accrued_costs=EUR 0.20\n costs=hosting:unknown ai:unknown tools:unknown funding:unknown missing=[] halted=False liquidation_pending=False events=observed decisions=1 reasons={"no_trade:threshold": 1}\nadaptive minus control 50: EUR 2\nadaptive minus control 100: EUR 2\nadaptive minus control 150: EUR 2\nadaptive minus control 200: EUR 2\nCanonical event outcomes:\nClose adaptive_200 BTC/EUR position=position-1 closed_at=2026-10-24T10:00:00+00:00 quantity=0.002 realized_pnl=EUR -0.00072 [event:7022af7efa5b377033ccc6e7]\n[paper:73622f7839eeef4e0e4d745a part:3/3]'
+
+----------------------------------------------------------------------
+Ran 3 tests in 0.709s
+
+FAILED (failures=3)

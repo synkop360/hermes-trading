@@ -1,0 +1,26 @@
+Executing <Task pending name='Task-3' coro=<PaperDiscordReporter.run() running at E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\hermes_trading\notifications.py:884> wait_for=<Future pending cb=[shield.<locals>._outer_done_callback() at C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\tasks.py:908, Task.task_wakeup()] created at C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\base_events.py:428> created at C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\tasks.py:384> took 0.125 seconds
+F
+======================================================================
+FAIL: test_money_display_rounds_precision_without_hiding_tiny_values_or_mutating_input (tests.test_paper_notifications.PaperNotificationTests.test_money_display_rounds_precision_without_hiding_tiny_values_or_mutating_input)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\unittest\async_case.py", line 90, in _callTestMethod
+    if self._callMaybeAsync(method) is not None:
+       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\unittest\async_case.py", line 112, in _callMaybeAsync
+    return self._asyncioRunner.run(
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\base_events.py", line 654, in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+  File "E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\tests\test_paper_notifications.py", line 224, in test_money_display_rounds_precision_without_hiding_tiny_values_or_mutating_input
+    self.assertIn("**Closed P&L:** EUR -<0.01", line)
+AssertionError: '**Closed P&L:** EUR -<0.01' not found in '- **adaptive_200:** PRIMARY EUR200 · **Wallet:** EUR 199.1234567890123456789 | **Closed P&L:** EUR -0.0042 | **Costs:** unknown'
+
+----------------------------------------------------------------------
+Ran 1 test in 0.548s
+
+FAILED (failures=1)

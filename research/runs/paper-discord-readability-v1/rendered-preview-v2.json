@@ -1,0 +1,75 @@
+{
+  "synthetic_only": true,
+  "transport": "in_memory_HTTP_forbidden",
+  "source_sha256": "354e18f054a532dd91c0291be6742ea2aa587e317726a3706b23ec707c6b5c14",
+  "lengths": {
+    "summary": [
+      1567,
+      1638,
+      1678
+    ],
+    "close": [
+      906
+    ],
+    "status": [
+      617
+    ],
+    "unknown_costs": [
+      1564,
+      1647,
+      1696
+    ]
+  },
+  "summary": [
+    {
+      "content": "**Hermes paper/simulated | startup current snapshot**\n- **Observed at:** 2026-10-26T12:00:00+00:00\n- **New entries:** paused · repeated supervisor errors (supervisor_error_halt)\n- **Worker:** running\n- **Model access:** available; review audit unavailable\n**Wallets · primary EUR200 · native EUR**\n- Wallet = net value after recorded costs; no extra fee subtraction.\n- **Adaptive €200 · PRIMARY:** **Wallet:** EUR 199.12 | **Closed P&L:** EUR 0.00 | **Known costs:** EUR 0.88\n- **Control €200:** **Wallet:** EUR 199.12 | **Closed P&L:** EUR 0.00 | **Known costs:** EUR 0.88\n- **Adaptive €50:** **Wallet:** EUR 49.12 | **Closed P&L:** EUR 0.00 | **Known costs:** EUR 0.88\n- **Control €50:** **Wallet:** EUR 49.12 | **Closed P&L:** EUR 0.00 | **Known costs:** EUR 0.88\n- **Adaptive €100:** **Wallet:** EUR 99.12 | **Closed P&L:** EUR 0.00 | **Known costs:** EUR 0.88\n- **Control €100:** **Wallet:** EUR 99.12 | **Closed P&L:** EUR 0.00 | **Known costs:** EUR 0.88\n- **Adaptive €150:** **Wallet:** EUR 149.12 | **Closed P&L:** EUR 0.00 | **Known costs:** EUR 0.88\n- **Control €150:** **Wallet:** EUR 149.12 | **Closed P&L:** EUR 0.00 | **Known costs:** EUR 0.88\n**Adaptive minus control · current net wallet value**\n- **adaptive minus control 200:** EUR 0.00\n- **adaptive minus control 50:** EUR 0.00\n- **adaptive minus control 100:** EUR 0.00\n- **adaptive minus control 150:** EUR 0.00\n**Inventory, cost quality & activity**\n- **Adaptive €200 · PRIMARY:** **Open:** cost EUR 0.00 · net sell value EUR 0.00 · entry fees EUR 0.00\n[paper:f9c3db718aeb938de517e5ef part:1/3]",
+      "username": "Synthetic",
+      "allowed_mentions": {
+        "parse": []
+      }
+    },
+    {
+      "content": "**Hermes paper/simulated**\n- **Observed at:** 2026-10-26T12:00:00+00:00\n  - **Cost quality:** hosting:estimated · ai:actual · tools:actual · funding:actual; missing: none\n  - **Activity:** 1 decisions (no_trade:supervisor_error_halt ×1); halt: no · exit pending: no · events: observed\n- **Control €200:** **Open:** cost EUR 0.00 · net sell value EUR 0.00 · entry fees EUR 0.00\n  - **Cost quality:** hosting:estimated · ai:actual · tools:actual · funding:actual; missing: none\n  - **Activity:** 1 decisions (no_trade:supervisor_error_halt ×1); halt: no · exit pending: no · events: observed\n- **Adaptive €50:** **Open:** cost EUR 0.00 · net sell value EUR 0.00 · entry fees EUR 0.00\n  - **Cost quality:** hosting:estimated · ai:actual · tools:actual · funding:actual; missing: none\n  - **Activity:** 1 decisions (no_trade:supervisor_error_halt ×1); halt: no · exit pending: no · events: observed\n- **Control €50:** **Open:** cost EUR 0.00 · net sell value EUR 0.00 · entry fees EUR 0.00\n  - **Cost quality:** hosting:estimated · ai:actual · tools:actual · funding:actual; missing: none\n  - **Activity:** 1 decisions (no_trade:supervisor_error_halt ×1); halt: no · exit pending: no · events: observed\n- **Adaptive €100:** **Open:** cost EUR 0.00 · net sell value EUR 0.00 · entry fees EUR 0.00\n  - **Cost quality:** hosting:estimated · ai:actual · tools:actual · funding:actual; missing: none\n  - **Activity:** 1 decisions (no_trade:supervisor_error_halt ×1); halt: no · exit pending: no · events: observed\n- **Control €100:** **Open:** cost EUR 0.00 · net sell value EUR 0.00 · entry fees EUR 0.00\n[paper:f9c3db718aeb938de517e5ef part:2/3]",
+      "username": "Synthetic",
+      "allowed_mentions": {
+        "parse": []
+      }
+    },
+    {
+      "content": "**Hermes paper/simulated**\n- **Observed at:** 2026-10-26T12:00:00+00:00\n  - **Cost quality:** hosting:estimated · ai:actual · tools:actual · funding:actual; missing: none\n  - **Activity:** 1 decisions (no_trade:supervisor_error_halt ×1); halt: no · exit pending: no · events: observed\n- **Adaptive €150:** **Open:** cost EUR 0.00 · net sell value EUR 0.00 · entry fees EUR 0.00\n  - **Cost quality:** hosting:estimated · ai:actual · tools:actual · funding:actual; missing: none\n  - **Activity:** 1 decisions (no_trade:supervisor_error_halt ×1); halt: no · exit pending: no · events: observed\n- **Control €150:** **Open:** cost EUR 0.00 · net sell value EUR 0.00 · entry fees EUR 0.00\n  - **Cost quality:** hosting:estimated · ai:actual · tools:actual · funding:actual; missing: none\n  - **Activity:** 1 decisions (no_trade:supervisor_error_halt ×1); halt: no · exit pending: no · events: observed\n**Reading this snapshot**\n- Display rounded to cents (half-even); +<0.01 / -<0.01 = signed nonzero amounts below one cent.\n- Closed P&L is cumulative closed-trade P&L; not a daily/30-day return.\n- Known costs are a recorded subtotal; total costs can be unknown. Actual/estimated quality is shown; sources stay in native evidence.\n- current financial snapshot; period-end valuation unavailable; interval P&L/Sharpe unavailable.\n**Observation & delivery**\n- **Last settled:** 2026-10-26T12:00:00+00:00\n- **Strategy version:** v1\n- **Observed interval:** unknown -> 2026-10-26T12:00:00+00:00; coverage unknown\n- **Delivery:** gaps=0 coalesced=0 dropped=0 delivery_unknown=0 repeats=0\n- Retries may duplicate; stable tags identify parts/events.\n[paper:f9c3db718aeb938de517e5ef part:3/3]",
+      "username": "Synthetic",
+      "allowed_mentions": {
+        "parse": []
+      }
+    }
+  ],
+  "close": [
+    {
+      "content": "**Hermes paper/simulated | observed events**\n- **Observed at:** 2026-10-26T12:01:00+00:00\n- **New entries:** paused · repeated supervisor errors (supervisor_error_halt)\n- **Worker:** running\n- **Model access:** available; review audit unavailable\n- **Last settled:** 2026-10-26T12:01:00+00:00\n- **Strategy version:** v1\n- **Observed interval:** 2026-10-26T12:00:00+00:00 -> 2026-10-26T12:01:00+00:00; coverage unknown\n- **Delivery:** gaps=0 coalesced=0 dropped=0 delivery_unknown=0 repeats=0\n- Retries may duplicate; stable tags identify parts/events.\n- **Close · Adaptive €200 · PRIMARY · BTC/EUR** | **Realized P&L:** EUR -<0.01\n  - **Quantity:** 0.002 | **Closed at:** 2026-10-26T12:00:59+00:00 | **Position:** synthetic-position-1 [event:78da946f6a874277d4835cf9]\n- Display rounded to cents (half-even); +<0.01 / -<0.01 = signed nonzero amounts below one cent.\n[paper:1919f3f89888ce5a362b4527 part:1/1]",
+      "username": "Synthetic",
+      "allowed_mentions": {
+        "parse": []
+      }
+    }
+  ],
+  "status": [
+    {
+      "content": "**Hermes paper/simulated | observed events**\n- **Observed at:** 2026-10-26T12:02:00+00:00\n- **New entries:** paused · repeated supervisor errors (supervisor_error_halt)\n- **Worker:** ok\n- **Model access:** available; review audit unavailable\n- **Last settled:** 2026-10-26T12:01:00+00:00\n- **Strategy version:** v1\n- **Observed interval:** 2026-10-26T12:01:00+00:00 -> 2026-10-26T12:02:00+00:00; coverage unknown\n- **Delivery:** gaps=0 coalesced=0 dropped=0 delivery_unknown=0 repeats=0\n- Retries may duplicate; stable tags identify parts/events.\n**Operational state change**\n[paper:81b040b11cc49375efcb60f8 part:1/1]",
+      "username": "Synthetic",
+      "allowed_mentions": {
+        "parse": []
+      }
+    }
+  ],
+  "unknown_costs": [
+    {
+      "content": "**Hermes paper/simulated | unknown costs example**\n- **Observed at:** 2026-10-26T12:00:00+00:00\n- **New entries:** paused · repeated supervisor errors (supervisor_error_halt)\n- **Worker:** running\n- **Model access:** available; review audit unavailable\n**Wallets · primary EUR200 · native EUR**\n- Wallet = net value after recorded costs; no extra fee subtraction.\n- **Adaptive €200 · PRIMARY:** **Wallet:** unknown | **Closed P&L:** EUR 0.00 | **Known costs:** EUR 0.00\n- **Control €200:** **Wallet:** EUR 199.12 | **Closed P&L:** EUR 0.00 | **Known costs:** EUR 0.88\n- **Adaptive €50:** **Wallet:** EUR 49.12 | **Closed P&L:** EUR 0.00 | **Known costs:** EUR 0.88\n- **Control €50:** **Wallet:** EUR 49.12 | **Closed P&L:** EUR 0.00 | **Known costs:** EUR 0.88\n- **Adaptive €100:** **Wallet:** EUR 99.12 | **Closed P&L:** EUR 0.00 | **Known costs:** EUR 0.88\n- **Control €100:** **Wallet:** EUR 99.12 | **Closed P&L:** EUR 0.00 | **Known costs:** EUR 0.88\n- **Adaptive €150:** **Wallet:** EUR 149.12 | **Closed P&L:** EUR 0.00 | **Known costs:** EUR 0.88\n- **Control €150:** **Wallet:** EUR 149.12 | **Closed P&L:** EUR 0.00 | **Known costs:** EUR 0.88\n**Adaptive minus control · current net wallet value**\n- **adaptive minus control 200:** unavailable\n- **adaptive minus control 50:** EUR 0.00\n- **adaptive minus control 100:** EUR 0.00\n- **adaptive minus control 150:** EUR 0.00\n**Inventory, cost quality & activity**\n- **Adaptive €200 · PRIMARY:** **Open:** cost EUR 0.00 · net sell value EUR 0.00 · entry fees EUR 0.00\n[paper:9ea0a616312279992df972ec part:1/3]"
+    },
+    {
+      "content": "**Hermes paper/simulated**\n- **Observed at:** 2026-10-26T12:00:00+00:00\n  - **Cost quality:** hosting:missing · ai:unknown · tools:unknown · funding:unknown; missing: cost:hosting\n  - **Activity:** 1 decisions (no_trade:supervisor_error_halt ×1); halt: no · exit pending: no · events: observed\n- **Control €200:** **Open:** cost EUR 0.00 · net sell value EUR 0.00 · entry fees EUR 0.00\n  - **Cost quality:** hosting:estimated · ai:actual · tools:actual · funding:actual; missing: none\n  - **Activity:** 1 decisions (no_trade:supervisor_error_halt ×1); halt: no · exit pending: no · events: observed\n- **Adaptive €50:** **Open:** cost EUR 0.00 · net sell value EUR 0.00 · entry fees EUR 0.00\n  - **Cost quality:** hosting:estimated · ai:actual · tools:actual · funding:actual; missing: none\n  - **Activity:** 1 decisions (no_trade:supervisor_error_halt ×1); halt: no · exit pending: no · events: observed\n- **Control €50:** **Open:** cost EUR 0.00 · net sell value EUR 0.00 · entry fees EUR 0.00\n  - **Cost quality:** hosting:estimated · ai:actual · tools:actual · funding:actual; missing: none\n  - **Activity:** 1 decisions (no_trade:supervisor_error_halt ×1); halt: no · exit pending: no · events: observed\n- **Adaptive €100:** **Open:** cost EUR 0.00 · net sell value EUR 0.00 · entry fees EUR 0.00\n  - **Cost quality:** hosting:estimated · ai:actual · tools:actual · funding:actual; missing: none\n  - **Activity:** 1 decisions (no_trade:supervisor_error_halt ×1); halt: no · exit pending: no · events: observed\n- **Control €100:** **Open:** cost EUR 0.00 · net sell value EUR 0.00 · entry fees EUR 0.00\n[paper:9ea0a616312279992df972ec part:2/3]"
+    },
+    {
+      "content": "**Hermes paper/simulated**\n- **Observed at:** 2026-10-26T12:00:00+00:00\n  - **Cost quality:** hosting:estimated · ai:actual · tools:actual · funding:actual; missing: none\n  - **Activity:** 1 decisions (no_trade:supervisor_error_halt ×1); halt: no · exit pending: no · events: observed\n- **Adaptive €150:** **Open:** cost EUR 0.00 · net sell value EUR 0.00 · entry fees EUR 0.00\n  - **Cost quality:** hosting:estimated · ai:actual · tools:actual · funding:actual; missing: none\n  - **Activity:** 1 decisions (no_trade:supervisor_error_halt ×1); halt: no · exit pending: no · events: observed\n- **Control €150:** **Open:** cost EUR 0.00 · net sell value EUR 0.00 · entry fees EUR 0.00\n  - **Cost quality:** hosting:estimated · ai:actual · tools:actual · funding:actual; missing: none\n  - **Activity:** 1 decisions (no_trade:supervisor_error_halt ×1); halt: no · exit pending: no · events: observed\n**Reading this snapshot**\n- Display rounded to cents (half-even); +<0.01 / -<0.01 = signed nonzero amounts below one cent.\n- Closed P&L is cumulative closed-trade P&L; not a daily/30-day return.\n- Known costs are a recorded subtotal; total costs can be unknown. Actual/estimated quality is shown; sources stay in native evidence.\n- current financial snapshot; period-end valuation unavailable; interval P&L/Sharpe unavailable.\n**Observation & delivery**\n- **Last settled:** 2026-10-26T12:00:00+00:00\n- **Strategy version:** v1\n- **Observed interval:** 2026-10-26T12:01:00+00:00 -> 2026-10-26T12:00:00+00:00; coverage unknown\n- **Delivery:** gaps=0 coalesced=0 dropped=0 delivery_unknown=0 repeats=0\n- Retries may duplicate; stable tags identify parts/events.\n[paper:9ea0a616312279992df972ec part:3/3]"
+    }
+  ]
+}

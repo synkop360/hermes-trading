@@ -1,0 +1,17 @@
+{
+  "observed_at_utc": "2026-10-26T22:18:05.753054+00:00",
+  "frozen_inventory_files": 667,
+  "frozen_actual_files": 667,
+  "frozen_matching": 667,
+  "frozen_missing": [],
+  "frozen_extras": [],
+  "frozen_mismatches": [],
+  "owned_file_sha256": {
+    "hermes_trading/notifications.py": "354e18f054a532dd91c0291be6742ea2aa587e317726a3706b23ec707c6b5c14",
+    "tests/test_paper_notifications.py": "d5f28cb2068fd4680b7ac12d890a70f9cf4a10758159268cc72d7376268b3588",
+    "tests/test_paper_notification_capture.py": "07cf4a30fe58f4730afbb6c1801a4d4f8b8be66b5e9711ccb5a2273764634fb2",
+    "docs/PAPER_DISCORD_MESSAGE_PREVIEW.md": "70ffb991b3cfebef7e32a7f89d278873799fc5952d92d1d56c557b78ae856728"
+  },
+  "installed_pc_notifications_matches_frozen": true,
+  "unrelated_dirty_cutover_sha256": "1b7aa94b07b5307e2bd9636abb6e614c6dc9924fbcdbb79a48930498f8fb0f70"
+}

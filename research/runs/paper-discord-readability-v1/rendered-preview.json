@@ -1,0 +1,37 @@
+{
+  "synthetic_only": true,
+  "transport": "in_memory_no_HTTP",
+  "source_sha256": "c53e12466883de811bc9d604e6be5afa12415540bf582b152dac3b1f7cc47a7d",
+  "summary": [
+    {
+      "content": "**Hermes paper/simulated | startup current snapshot**\n- **Observed at:** 2026-10-26T12:00:00+00:00\n- **Last settled:** 2026-10-26T12:00:00+00:00\n- **Worker:** running | **New entries:** paused · repeated supervisor errors (supervisor_error_halt)\n- **Model readiness/access:** True; review audit unavailable (healthy can mean not_due)\n- **Strategy version:** v1\n- **Observed interval:** unknown -> 2026-10-26T12:00:00+00:00; coverage unknown\n- **Delivery:** gaps=0 coalesced=0 dropped=0 delivery_unknown=0 repeats=0\n- Retries may duplicate; stable tags identify parts/events.\n**Wallets · primary EUR200 · native EUR**\n- Wallet = net value after recorded costs; no extra fee subtraction.\n- **adaptive_200:** PRIMARY EUR200 · **Wallet:** EUR 199.64 | **Closed P&L:** EUR 0 | **Costs:** EUR 0.36\n- **control_200:** **Wallet:** EUR 199.64 | **Closed P&L:** EUR 0 | **Costs:** EUR 0.36\n- **adaptive_50:** **Wallet:** EUR 49.64 | **Closed P&L:** EUR 0 | **Costs:** EUR 0.36\n- **control_50:** **Wallet:** EUR 49.64 | **Closed P&L:** EUR 0 | **Costs:** EUR 0.36\n- **adaptive_100:** **Wallet:** EUR 99.64 | **Closed P&L:** EUR 0 | **Costs:** EUR 0.36\n- **control_100:** **Wallet:** EUR 99.64 | **Closed P&L:** EUR 0 | **Costs:** EUR 0.36\n- **adaptive_150:** **Wallet:** EUR 149.64 | **Closed P&L:** EUR 0 | **Costs:** EUR 0.36\n- **control_150:** **Wallet:** EUR 149.64 | **Closed P&L:** EUR 0 | **Costs:** EUR 0.36\n**Adaptive minus control · current net wallet value**\n- **adaptive minus control 200:** EUR 0.00\n- **adaptive minus control 50:** EUR 0.00\n- **adaptive minus control 100:** EUR 0.00\n[paper:f9c3db718aeb938de517e5ef part:1/3]",
+      "username": "Synthetic",
+      "allowed_mentions": {
+        "parse": []
+      }
+    },
+    {
+      "content": "**Hermes paper/simulated**\n- **Observed at:** 2026-10-26T12:00:00+00:00\n- **adaptive minus control 150:** EUR 0.00\n**Inventory, cost quality & activity**\n- **adaptive_200:** **Open:** cost EUR 0 · net sell value EUR 0 · entry fees EUR 0\n  - **Cost quality:** hosting:estimated ai:actual tools:actual funding:actual; missing=[]\n  - **Activity:** halted=False liquidation_pending=False events=observed decisions=1 reasons={\"no_trade:supervisor_error_halt\": 1}\n- **control_200:** **Open:** cost EUR 0 · net sell value EUR 0 · entry fees EUR 0\n  - **Cost quality:** hosting:estimated ai:actual tools:actual funding:actual; missing=[]\n  - **Activity:** halted=False liquidation_pending=False events=observed decisions=1 reasons={\"no_trade:supervisor_error_halt\": 1}\n- **adaptive_50:** **Open:** cost EUR 0 · net sell value EUR 0 · entry fees EUR 0\n  - **Cost quality:** hosting:estimated ai:actual tools:actual funding:actual; missing=[]\n  - **Activity:** halted=False liquidation_pending=False events=observed decisions=1 reasons={\"no_trade:supervisor_error_halt\": 1}\n- **control_50:** **Open:** cost EUR 0 · net sell value EUR 0 · entry fees EUR 0\n  - **Cost quality:** hosting:estimated ai:actual tools:actual funding:actual; missing=[]\n  - **Activity:** halted=False liquidation_pending=False events=observed decisions=1 reasons={\"no_trade:supervisor_error_halt\": 1}\n- **adaptive_100:** **Open:** cost EUR 0 · net sell value EUR 0 · entry fees EUR 0\n  - **Cost quality:** hosting:estimated ai:actual tools:actual funding:actual; missing=[]\n  - **Activity:** halted=False liquidation_pending=False events=observed decisions=1 reasons={\"no_trade:supervisor_error_halt\": 1}\n[paper:f9c3db718aeb938de517e5ef part:2/3]",
+      "username": "Synthetic",
+      "allowed_mentions": {
+        "parse": []
+      }
+    },
+    {
+      "content": "**Hermes paper/simulated**\n- **Observed at:** 2026-10-26T12:00:00+00:00\n- **control_100:** **Open:** cost EUR 0 · net sell value EUR 0 · entry fees EUR 0\n  - **Cost quality:** hosting:estimated ai:actual tools:actual funding:actual; missing=[]\n  - **Activity:** halted=False liquidation_pending=False events=observed decisions=1 reasons={\"no_trade:supervisor_error_halt\": 1}\n- **adaptive_150:** **Open:** cost EUR 0 · net sell value EUR 0 · entry fees EUR 0\n  - **Cost quality:** hosting:estimated ai:actual tools:actual funding:actual; missing=[]\n  - **Activity:** halted=False liquidation_pending=False events=observed decisions=1 reasons={\"no_trade:supervisor_error_halt\": 1}\n- **control_150:** **Open:** cost EUR 0 · net sell value EUR 0 · entry fees EUR 0\n  - **Cost quality:** hosting:estimated ai:actual tools:actual funding:actual; missing=[]\n  - **Activity:** halted=False liquidation_pending=False events=observed decisions=1 reasons={\"no_trade:supervisor_error_halt\": 1}\n**Reading this snapshot**\n- Closed P&L is cumulative closed-trade P&L; not a daily/30-day return.\n- Costs may be actual/estimated; missing costs stay unknown. Source details remain in native wallet evidence.\n- current financial snapshot; period-end valuation unavailable; interval P&L/Sharpe unavailable.\n[paper:f9c3db718aeb938de517e5ef part:3/3]",
+      "username": "Synthetic",
+      "allowed_mentions": {
+        "parse": []
+      }
+    }
+  ],
+  "close": [
+    {
+      "content": "**Hermes paper/simulated | observed events**\n- **Observed at:** 2026-10-26T12:01:00+00:00\n- **Last settled:** 2026-10-26T12:01:00+00:00\n- **Worker:** running | **New entries:** paused · repeated supervisor errors (supervisor_error_halt)\n- **Model readiness/access:** True; review audit unavailable (healthy can mean not_due)\n- **Strategy version:** v1\n- **Observed interval:** 2026-10-26T12:00:00+00:00 -> 2026-10-26T12:01:00+00:00; coverage unknown\n- **Delivery:** gaps=0 coalesced=0 dropped=0 delivery_unknown=0 repeats=0\n- Retries may duplicate; stable tags identify parts/events.\n- **Close adaptive_200** BTC/EUR | **Realized P&L:** EUR 3.40 | **Quantity:** 0.002 | **Closed at:** 2026-10-26T12:00:59+00:00 | **Position:** synthetic-position-1 [event:78da946f6a874277d4835cf9]\n[paper:1919f3f89888ce5a362b4527 part:1/1]",
+      "username": "Synthetic",
+      "allowed_mentions": {
+        "parse": []
+      }
+    }
+  ]
+}

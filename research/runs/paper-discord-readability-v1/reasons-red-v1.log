@@ -1,0 +1,29 @@
+FFF
+======================================================================
+FAIL: test_entry_pause_reasons_have_plain_labels_without_losing_native_codes (tests.test_paper_notifications.PaperNotificationTests.test_entry_pause_reasons_have_plain_labels_without_losing_native_codes) (code='supervisor_error_halt')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\tests\test_paper_notifications.py", line 208, in test_entry_pause_reasons_have_plain_labels_without_losing_native_codes
+    self.assertIn(label + " (" + code + ")", rendered)
+AssertionError: 'repeated supervisor errors (supervisor_error_halt)' not found in '- **Worker:** running | **New entries:** paused · supervisor_error_halt\n- **Model readiness/access:** True; review audit unavailable (healthy can mean not_due)'
+
+======================================================================
+FAIL: test_entry_pause_reasons_have_plain_labels_without_losing_native_codes (tests.test_paper_notifications.PaperNotificationTests.test_entry_pause_reasons_have_plain_labels_without_losing_native_codes) (code='supervisor_health_stale')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\tests\test_paper_notifications.py", line 208, in test_entry_pause_reasons_have_plain_labels_without_losing_native_codes
+    self.assertIn(label + " (" + code + ")", rendered)
+AssertionError: 'supervision out of date (supervisor_health_stale)' not found in '- **Worker:** running | **New entries:** paused · supervisor_health_stale\n- **Model readiness/access:** True; review audit unavailable (healthy can mean not_due)'
+
+======================================================================
+FAIL: test_entry_pause_reasons_have_plain_labels_without_losing_native_codes (tests.test_paper_notifications.PaperNotificationTests.test_entry_pause_reasons_have_plain_labels_without_losing_native_codes) (code='daily_backup_failed')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\tests\test_paper_notifications.py", line 208, in test_entry_pause_reasons_have_plain_labels_without_losing_native_codes
+    self.assertIn(label + " (" + code + ")", rendered)
+AssertionError: 'daily backup failed (daily_backup_failed)' not found in '- **Worker:** running | **New entries:** paused · daily_backup_failed\n- **Model readiness/access:** True; review audit unavailable (healthy can mean not_due)'
+
+----------------------------------------------------------------------
+Ran 1 test in 0.072s
+
+FAILED (failures=3)

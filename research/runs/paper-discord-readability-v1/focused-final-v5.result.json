@@ -1,0 +1,25 @@
+{
+  "started_at_utc": "2026-10-26T22:18:14.955490+00:00",
+  "exit_code": 0,
+  "elapsed_seconds": 12.625,
+  "arguments": [
+    "-B",
+    "-X",
+    "utf8",
+    "-m",
+    "unittest",
+    "tests.test_paper_notifications",
+    "tests.test_notifications"
+  ],
+  "source_sha256": {
+    "hermes_trading/notifications.py": "354e18f054a532dd91c0291be6742ea2aa587e317726a3706b23ec707c6b5c14",
+    "tests/test_paper_notifications.py": "dc4fb960d21030cf0c44b154ac52becf6842b50b30cfaf73786c3f364fb96965",
+    "tests/test_paper_notification_capture.py": "07cf4a30fe58f4730afbb6c1801a4d4f8b8be66b5e9711ccb5a2273764634fb2"
+  },
+  "source_unchanged": true,
+  "log": "focused-final-v5.log",
+  "result_lines": [
+    "Ran 67 tests in 10.736s",
+    "OK"
+  ]
+}

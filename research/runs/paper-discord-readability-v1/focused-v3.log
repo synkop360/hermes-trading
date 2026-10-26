@@ -1,0 +1,28 @@
+Booting hermes-trading worker for BTC/USDT in training mode
+Booting hermes-trading worker for BTC/USDT in training mode
+Booting hermes-trading worker for BTC/USDT in training mode
+Booting hermes-trading worker for BTC/USDT in training mode
+worker feature notification error: discord unavailable
+Booting hermes-trading worker for BTC/USDT in training mode
+Booting hermes-trading worker for BTC/USDT in training mode
+Booting hermes-trading worker for BTC/USDT in training mode
+.................Executing <Task pending name='Task-155' coro=<PaperDiscordReporter.run() running at E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\hermes_trading\notifications.py:877> wait_for=<Future pending cb=[shield.<locals>._outer_done_callback() at C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\tasks.py:908, Task.task_wakeup()] created at C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\base_events.py:428> created at C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\tasks.py:384> took 0.172 seconds
+.............................Executing <Task pending name='Task-321' coro=<LoopNotificationTests.test_run_loop_notifies_scheduled_qualification_report() running at E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\tests\test_notifications.py:670> wait_for=<Future pending cb=[_chain_future.<locals>._call_check_cancel() at C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\futures.py:387, Task.task_wakeup()] created at C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\base_events.py:428> cb=[_run_until_complete_cb() at C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\base_events.py:181] created at C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\runners.py:100> took 0.109 seconds
+..................E
+======================================================================
+ERROR: test_paper_notification_capture (unittest.loader._FailedTest.test_paper_notification_capture)
+----------------------------------------------------------------------
+ImportError: Failed to import test module: test_paper_notification_capture
+Traceback (most recent call last):
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\unittest\loader.py", line 162, in loadTestsFromName
+    module = __import__(module_name)
+             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\tests\test_paper_notification_capture.py", line 15, in <module>
+    import test_paired_paper as fixtures
+ModuleNotFoundError: No module named 'test_paired_paper'
+
+
+----------------------------------------------------------------------
+Ran 65 tests in 15.091s
+
+FAILED (errors=1)

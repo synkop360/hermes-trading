@@ -1,0 +1,20 @@
+{
+  "exit_code": 1,
+  "elapsed_seconds": 17.953,
+  "modules": [
+    "tests.test_paper_notifications",
+    "tests.test_notifications",
+    "tests.test_paper_notification_capture"
+  ],
+  "log": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-discord-readability-v1\\focused-v3.log",
+  "source_sha256": {
+    "hermes_trading/notifications.py": "5e8595bf0e802e8da779af0a89596e831ac533c7de81cd07ea2b9783e427cbbe",
+    "tests/test_paper_notifications.py": "9414faa9822ab5816e39b454d84dc3676d11471dd7bee0340b46de396172d2c4"
+  },
+  "source_unchanged": true,
+  "result_lines": [
+    "ERROR: test_paper_notification_capture (unittest.loader._FailedTest.test_paper_notification_capture)",
+    "Ran 65 tests in 15.091s",
+    "FAILED (errors=1)"
+  ]
+}

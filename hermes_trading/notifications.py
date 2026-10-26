@@ -9,7 +9,7 @@ import threading
 from collections import deque
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
-from decimal import Decimal, InvalidOperation
+from decimal import Decimal, InvalidOperation, ROUND_HALF_EVEN, localcontext
 from pathlib import Path
 from typing import Any, Awaitable, Callable
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
@@ -569,6 +569,14 @@ _PAPER_ACCOUNTS = tuple(
     f"{arm}_{size}" for size in (50, 100, 150, 200) for arm in ("adaptive", "control")
 )
 _PAPER_IDENTITY_FIELDS = ("experiment_id", "opening_at", "opening_hash", "manifest_hash")
+_PAPER_ENTRY_REASONS = {
+    "supervisor_error_halt": "repeated supervisor errors",
+    "supervisor_health_stale": "supervision out of date",
+    "supervisor_health_missing": "supervision not yet confirmed",
+    "worker_error_halt": "repeated worker errors",
+    "daily_backup_failed": "daily backup failed",
+}
+_PAPER_MONEY_NOTE = "- Display rounded to cents (half-even); +<0.01 / -<0.01 = signed nonzero amounts below one cent."
 
 
 def _paper_text(value: Any, limit: int = 150) -> str:
@@ -588,7 +596,25 @@ def _paper_decimal(value: Any) -> Decimal | None:
 
 def _paper_money(value: Any) -> str:
     result = _paper_decimal(value)
-    return "unknown" if result is None else f"EUR {result}"
+    if result is None:
+        return "unknown"
+    if result == 0:
+        return "EUR 0.00"
+    if result.copy_abs() < Decimal("0.01"):
+        return "EUR " + ("-" if result.is_signed() else "+") + "<0.01"
+    # Decimal formatting rounds the display without quantize's precision limit.
+    with localcontext() as context:
+        context.rounding = ROUND_HALF_EVEN
+        return f"EUR {result:.2f}"
+
+
+def _paper_account_label(name):
+    arm, size = name.split("_", 1)
+    return f"{arm.title()} €{size}" + (" · PRIMARY" if name == "adaptive_200" else "")
+
+
+def _paper_yes_no(value):
+    return "yes" if value is True else "no" if value is False else "unknown"
 
 
 class PaperDiscordReporter:
@@ -909,34 +935,67 @@ class PaperDiscordReporter:
         return row if (row.get("account_hash") == self._identity["account_hashes"][name]
                        and row.get("finalized") is True and row.get("observed_at") == value.get("observed_at")) else None
 
-    def _header(self, value, label):
-        return [f"Hermes paper/simulated | {label}", f"Observed at: {_paper_text(value.get('at'))}",
-                f"Last settled: {_paper_text((self._snapshot or {}).get('observed_at', 'unavailable'))}",
-                f"Observed interval: {_paper_text(self._state.get('last_observed_at') or 'unknown')} -> {_paper_text(value.get('at'))}; coverage unknown",
-                f"status={_paper_text(value.get('status'))} entry_admission={_paper_text(value.get('entry_admission'))}",
-                f"model readiness/access={_paper_text(value.get('model_ready'))}; review audit unavailable (healthy can mean not_due)",
-                f"strategy_version={_paper_text(value.get('strategy_version'))}",
-                "Coverage unknown; gaps=" + str(self.counters["gaps"]) +
+    def _status_lines(self, value):
+        admission = value.get("entry_admission")
+        if isinstance(admission, dict) and type(admission.get("blocked")) is bool:
+            entry = "paused" if admission["blocked"] else "allowed"
+            if admission.get("reasons"):
+                reasons = admission["reasons"]
+                if isinstance(reasons, list):
+                    codes = [_paper_text(reason, 64) for reason in reasons[:8]]
+                    detail = ", ".join(f"{_PAPER_ENTRY_REASONS[code]} ({code})" if code in _PAPER_ENTRY_REASONS else code for code in codes)
+                else:
+                    detail = _paper_text(reasons)
+                entry += " · " + _paper_text(detail, 140)
+        else:
+            entry = _paper_text(admission) if isinstance(admission, str) else "unknown"
+        ready = value.get("model_ready")
+        reported = ""
+        if isinstance(ready, dict):
+            if isinstance(ready.get("status"), str):
+                reported = f" · reported: {_paper_text(ready['status'], 40)}"
+            ready = ready.get("success")
+        access = "available" if ready is True else "unavailable" if ready is False else "unknown"
+        return [f"- **New entries:** {entry}",
+                f"- **Worker:** {_paper_text(value.get('status'))}",
+                f"- **Model access:** {access}{reported}; review audit unavailable"]
+
+    def _context_lines(self, value):
+        return [f"- **Last settled:** {_paper_text((self._snapshot or {}).get('observed_at', 'unavailable'))}",
+                f"- **Strategy version:** {_paper_text(value.get('strategy_version'))}",
+                f"- **Observed interval:** {_paper_text(self._state.get('last_observed_at') or 'unknown')} -> {_paper_text(value.get('at'))}; coverage unknown",
+                "- **Delivery:** gaps=" + str(self.counters["gaps"]) +
                 f" coalesced={self.counters['coalesced']} dropped={self.counters['dropped']}"
                 f" delivery_unknown={self.counters['delivery_unknown']} repeats={self.counters['repeated_states']}",
-                "Retries may duplicate; stable tags identify parts/events."]
+                "- Retries may duplicate; stable tags identify parts/events."]
+
+    def _header(self, value, label, *, details=True):
+        return [f"**Hermes paper/simulated | {label}**", f"- **Observed at:** {_paper_text(value.get('at'))}",
+                *self._status_lines(value), *(self._context_lines(value) if details else [])]
 
     def _summary(self, labels):
-        lines = self._header(self._current, ", ".join(labels))
-        lines.append("current financial snapshot; period-end valuation unavailable; interval P&L/Sharpe unavailable.")
-        lines.append("primary EUR200; all amounts native EUR net of recorded costs (no extra fee subtraction).")
-        lines.append("Cost quality by category; source details retained in native wallet evidence.")
+        lines = self._header(self._current, ", ".join(labels), details=False)
+        lines.append("**Wallets · primary EUR200 · native EUR**")
+        lines.append("- Wallet = net value after recorded costs; no extra fee subtraction.")
         financial = self._snapshot or {}
         equities = {}
-        for name in _PAPER_ACCOUNTS:
+        details = []
+        display_accounts = ("adaptive_200", "control_200", *(
+            name for name in _PAPER_ACCOUNTS if name not in {"adaptive_200", "control_200"}))
+        for name in display_accounts:
+            label = _paper_account_label(name)
             row = self._valid_row(name, financial)
             obs = row.get("observation") if row else None
             if not isinstance(obs, dict) or obs.get("currency") != "EUR":
-                lines.append(f"{name}: unavailable")
+                lines.append(f"- **{label}:** unavailable")
                 continue
             equities[name] = _paper_decimal(obs.get("net_equity"))
-            lines.append(f"{name}: " + " ".join(f"{k}={_paper_money(obs.get(k))}" for k in (
-                "net_equity", "closed_net_pnl", "open_basis", "open_liquidation_value", "open_entry_fees", "known_accrued_costs")))
+            lines.append(f"- **{label}:** **Wallet:** {_paper_money(obs.get('net_equity'))}"
+                         f" | **Closed P&L:** {_paper_money(obs.get('closed_net_pnl'))}"
+                         f" | **Known costs:** {_paper_money(obs.get('known_accrued_costs'))}")
+            details.append(f"- **{label}:** **Open:** cost {_paper_money(obs.get('open_basis'))}"
+                         f" · net sell value {_paper_money(obs.get('open_liquidation_value'))}"
+                         f" · entry fees {_paper_money(obs.get('open_entry_fees'))}")
             decisions = row.get("decisions") if isinstance(row.get("decisions"), list) else []
             reasons = {}
             for decision in decisions[:128]:
@@ -951,15 +1010,29 @@ class PaperDiscordReporter:
                 if quality not in ('actual','estimated','missing'):quality = 'unknown'
                 if isinstance(source,dict) and source.get('amount') is None:quality = 'missing'
                 qualities.append(category + ':' + quality)
-            lines.append(f" costs={' '.join(qualities)} missing={_paper_text(obs.get('missing', 'unknown'), 80)}"
-                         f" halted={_paper_text(row.get('halted'), 8)} liquidation_pending={_paper_text(row.get('liquidation_pending'), 8)}"
-                         f" events={_paper_text(row.get('event_source_status', 'unavailable'), 24)} decisions={len(decisions)} reasons={_paper_text(reasons, 80)}")
-        for size in (50, 100, 150, 200):
+            missing = obs.get('missing')
+            missing = (", ".join(_paper_text(item, 40) for item in missing[:8]) or "none") if isinstance(missing, list) else "unknown"
+            details.append(f"  - **Cost quality:** {' · '.join(qualities)}; missing: {_paper_text(missing, 80)}")
+            reason_text = ", ".join(f"{reason} ×{count}" for reason, count in reasons.items()) or "none"
+            details.append(f"  - **Activity:**"
+                         f" {len(decisions)} decisions ({_paper_text(reason_text, 80)}); halt: {_paper_yes_no(row.get('halted'))}"
+                         f" · exit pending: {_paper_yes_no(row.get('liquidation_pending'))}"
+                         f" · events: {_paper_text(row.get('event_source_status', 'unavailable'), 24)}")
+        lines.append("**Adaptive minus control · current net wallet value**")
+        for size in (200, 50, 100, 150):
             a, c = equities.get(f"adaptive_{size}"), equities.get(f"control_{size}")
-            lines.append(f"adaptive minus control {size}: " + (_paper_money(a - c) if a is not None and c is not None else "unavailable"))
+            lines.append(f"- **adaptive minus control {size}:** " + (_paper_money(a - c) if a is not None and c is not None else "unavailable"))
+        if details:
+            lines.extend(["**Inventory, cost quality & activity**", *details])
+        lines.extend(["**Reading this snapshot**",
+                      _PAPER_MONEY_NOTE,
+                      "- Closed P&L is cumulative closed-trade P&L; not a daily/30-day return.",
+                      "- Known costs are a recorded subtotal; total costs can be unknown. Actual/estimated quality is shown; sources stay in native evidence.",
+                      "- current financial snapshot; period-end valuation unavailable; interval P&L/Sharpe unavailable."])
+        lines.extend(["**Observation & delivery**", *self._context_lines(self._current)])
         if self._current.get("error"):
             # Source error strings can contain credentials. Publish only its existence.
-            lines.append("Worker error present; details withheld.")
+            lines.append("- **Worker error present; details withheld.**")
         return lines
 
     async def _due_summary(self, event_payload=None):
@@ -1002,7 +1075,7 @@ class PaperDiscordReporter:
             return True
         lines = self._summary(reasons)
         if event_payload is not None and event_payload[0]:
-            lines.extend(['Canonical event outcomes:',*event_payload[0]])
+            lines.extend(['**Canonical event outcomes**',*event_payload[0]])
             key += ':events:' + self._tag(event_payload[1])
         if await self._deliver(key, lines):
             self._state["startup"] = True
@@ -1021,6 +1094,7 @@ class PaperDiscordReporter:
 
     async def _deliver_events(self, value, *, with_summary=False):
         entries, identities = [], []
+        has_close = False
         include_closes = self.settings.notify_trades and self.settings.mode in {"pnl_only", "verbose"}
         include_orders = self.settings.notify_orders and self.settings.mode in {"orders_only", "verbose"}
         for name in _PAPER_ACCOUNTS:
@@ -1040,34 +1114,39 @@ class PaperDiscordReporter:
                             continue
                         if _paper_decimal(event.get("quantity")) is None or _paper_decimal(event.get("realized_pnl_eur")) is None:
                             continue
-                        content = (f"Close {name} {_paper_text(event['asset'], 35)} position={_paper_text(event['position_id'], 65)}"
-                                   f" closed_at={_paper_text(event['closed_at'], 40)} quantity={_paper_text(event['quantity'], 45)}"
-                                   f" realized_pnl={_paper_money(event['realized_pnl_eur'])}")
+                        content = [f"- **Close · {_paper_account_label(name)} · {_paper_text(event['asset'], 35)}**"
+                                   f" | **Realized P&L:** {_paper_money(event['realized_pnl_eur'])}",
+                                   f"  - **Quantity:** {_paper_text(event['quantity'], 45)}"
+                                   f" | **Closed at:** {_paper_text(event['closed_at'], 40)}"
+                                   f" | **Position:** {_paper_text(event['position_id'], 65)}"]
                     else:
                         canonical = event.get("order_id") or event.get("canonical_id")
                         if not isinstance(canonical, str) or not canonical:
                             continue
                         fields = [name, canonical]
-                        content = (f"Order {_paper_text(event.get('status'), 30)} {name} {_paper_text(event.get('side'), 15)}"
-                                   f" {_paper_text(event.get('asset'), 35)} quantity={_paper_text(event.get('quantity'), 45)}")
+                        content = [f"- **Order {_paper_text(event.get('status'), 30)}** · {_paper_account_label(name)} · {_paper_text(event.get('side'), 15)}"
+                                   f" {_paper_text(event.get('asset'), 35)} | **Quantity:** {_paper_text(event.get('quantity'), 45)}"]
                     tag = self._tag([kind, fields])
                     if tag not in identities and tag not in self._state["events"]:
                         identities.append(tag)
-                        entries.append(content + f" [event:{tag}]")
+                        entries.extend([*content[:-1], content[-1] + f" [event:{tag}]"])
+                        has_close = has_close or kind == "closes"
                 if len(events) > 256:
                     self.counters["omitted_events"] += len(events) - 256
                     self.counters["gaps"] += 1
         signature = self._state_signature(value)
         if self._state["state_signature"] is not None and signature != self._state["state_signature"]:
             if not value.get("error") or self.settings.notify_errors:
-                entries.insert(0, "Operational state change; " + " ".join(self._header(value, "status change")[3:6]))
+                # The header already renders the current state once.
+                entries.insert(0, "**Operational state change**")
                 identities.append("state:" + self._tag(signature))
         if with_summary and await self._due_summary((entries,identities)):
             return True
         if not entries:
             return
         key = "events:" + self._tag(identities)
-        if await self._deliver(key, self._header(value, "observed events") + entries):
+        lines = self._header(value, "observed events") + entries + ([_PAPER_MONEY_NOTE] if has_close else [])
+        if await self._deliver(key, lines):
             self._state["events"].extend(identities)
             self._state["state_signature"] = signature
             await self._save()
@@ -1091,9 +1170,10 @@ class PaperDiscordReporter:
             self.counters["gaps"] += 1
             chunks[-1] += f"\nOmitted {omitted} excess lines/events; coverage gap."
         tag = self._tag(key)
-        timestamp = next((line for line in lines if line.startswith("Observed at:")), "Observed at: unavailable")
-        prefix = "Hermes paper/simulated | " + timestamp + "\n"
-        return [(f"{tag}:{i}", prefix + chunk + f"\n[paper:{tag} part:{i + 1}/{len(chunks)}]") for i, chunk in enumerate(chunks)]
+        timestamp = next((line for line in lines if line.startswith("- **Observed at:**")), "- **Observed at:** unavailable")
+        prefix = "**Hermes paper/simulated**\n" + timestamp + "\n"
+        return [(f"{tag}:{i}", (prefix if i else "") + chunk + f"\n[paper:{tag} part:{i + 1}/{len(chunks)}]")
+                for i, chunk in enumerate(chunks)]
 
     async def _deliver(self, key, lines):
         if key in self._state["abandoned"]:

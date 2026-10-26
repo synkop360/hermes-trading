@@ -1,0 +1,20 @@
+{
+  "verified_at_utc": "2026-10-26T22:19:10.424316+00:00",
+  "changed_functions": [
+    "PaperDiscordReporter._context_lines",
+    "PaperDiscordReporter._deliver_events",
+    "PaperDiscordReporter._due_summary",
+    "PaperDiscordReporter._header",
+    "PaperDiscordReporter._parts",
+    "PaperDiscordReporter._status_lines",
+    "PaperDiscordReporter._summary",
+    "_paper_account_label",
+    "_paper_money",
+    "_paper_yes_no"
+  ],
+  "other_functions_unchanged": true,
+  "no_deployment": true,
+  "source_sha256": "354e18f054a532dd91c0291be6742ea2aa587e317726a3706b23ec707c6b5c14",
+  "focused_result": "focused-final-v5.result.json",
+  "native_result": "native-capture-final-v3.result.json"
+}
