@@ -4,6 +4,8 @@ October 25, 2026. Program candidate **`a79fb936fd970eb9b25a23edf6522a2e34f6e17f`
 
 The owner [approved disabled local implementation](owner-approval.json) of the [reviewed design](../../../docs/superpowers/specs/2026-10-25-supervisor-snapshot-contention-design.md). Deployment and latch recovery are excluded. [Plan](../../../docs/superpowers/plans/2026-10-25-supervisor-snapshot-contention.md).
 
+Local correctness qualification is complete through composed evidence covering all1,712catalog IDs. The original full failed run remains preserved. [Final verification](VERIFICATION.md). The current [morning observation](FORWARD_OBSERVATION_20261026.md) confirms187reporting windows and the retained halt; deployment is still unapproved.
+
 ## Implemented behavior
 
 Only snapshot CLI collection gains a retry wrapper. It permits at most three complete fresh collections, waits 0.2/0.5 seconds capped by a two-second monotonic retry-admission boundary, and retries only an actual numeric SQLite BUSY cause. The original collector, both publication gates, all source/account/report/health checks, successful JSON and outer process deadlines remain intact. Permanent contention and invalid state still reject. Retry success does not clear the sticky supervisor halt or invoke a model.
@@ -16,23 +18,19 @@ The [20:24 UTC read-only forward observation](FORWARD_OBSERVATION_20261025.md) v
 
 ## Verification
 
-| Evidence | Result and scope |
-| --- | --- |
-| [Independent review](review.md) | No material findings. Reviewer independently ran 15 retry and three plan-validation checks. Its recorded test-file hash predates the explicit receiver-clock fixture correction; product hashes are unchanged. |
-| [Affected Windows run](verification/affected-windows-v1.result.json) | 140 cases executed: **139 passed, one Windows symlink skip**, zero failures/errors/ResourceWarnings, all 376 source pins unchanged. This run predates the test-only clock correction. |
-| [Original exact package](exact-package-verification.json) | All 20 new checks passed against the earlier `cda8967` byte-preserving package, with no package file changes. |
-| [First Linux run](linux-verification.json), [log](linux-tests.log) | 21 executed, 20 passed and one fixture error: simulated health timestamps exceeded the real receiver clock on the faster Linux host. No runtime defect or safety-limit relaxation followed from that error. |
-| [Corrected exact Linux package](linux-verification-v3.json) | **21 passed**, zero skips/failures/errors, CPython 3.11.17, cached image, network disabled, unprivileged user and read-only source. The real Linux symlink case passes. All 608 package files remain unchanged. |
-| [Corrected exact Windows package](exact-package-verification-v3.json) | **20 passed** at the final `a79fb93` package. All 608 files remain unchanged and the imported 129-file runtime map matches the frozen release plan. |
-| Full frozen Windows regression | The original 608-file run remains active in session42772. At20:46 UTC it records1,275 cases and three errors; it is not a passing run. An isolated reproduction proves a missing historical input before venue-review setup reaches runtime code. The run/package are left intact; terminal traces and all unrun cases must be inspected. Results are under `verification/full-frozen-windows-v1.*`. |
-| [Historical input restoration](historical-fixture-provenance-review.md) | All57 original inputs/67,167bytes match their dated October23 inventory in three checkouts. They were ignored/untracked and omitted from the old package. Commit20eb6af now stores their exact original bytes; no data regeneration or test/check change is used. |
-| [New package overlay](candidate-overlay-verification-v4.json) | The new667-file package retains every prior608file byte-for-byte and adds only57inputs, their raw inventory and exact-path Git attributes. Both runtime/release maps are identical to the reviewed retry program. The formerly failing [fixture setup and activation-copy stages pass](venue-fixture-stage-diagnostic-v4.json); the eleven dependent test bodies remain queued until the original full run is terminal. |
+[Final verification and limitations](VERIFICATION.md), [machine audit](composed-verification.json), [per-case evidence](composed-case-evidence.json).
 
-The regression runner denies external HTTP through httpx while retaining loopback test servers. These are synthetic correctness checks, not a market backtest, training, provider inference or profit evidence. The historical Discord full run retained two disabled-archive fixture deadline errors and 30 unrun cases; the new full run must be reported on its own merits, without relaxing deadlines or expanding archive work.
+- The original full Windows run executed1,712cases:1,698passes, nine missing-input errors and five platform skips, no unrun cases and unchanged376source pins. The failed result and one cleanup warning are retained.
+- All11restored-input cases pass on the final package, covering exactly the nine original errors and two overlapping passes. No failures/errors/skips/ResourceWarnings after collection; all667raw pins unchanged.
+- All16selected Linux cases pass: the eleven restored cases plus every Windows-skipped case, with no network, read-only source and an unprivileged user. The original FIFO two-second deadline remains unchanged. Its first harness import failure is preserved.
+- All20new repair/transition cases pass on the final Windows package. The earlier21-case Linux repair run covers the same program bytes.
+- The exact union is1,707distinct Windows passes plus five Linux platform passes, covering all1,712catalog IDs. **This is composed evidence, not one fresh passing full suite or a full Linux suite.**
+
+The original temporary-directory warning is retained. A negative control reproduces that warning when missing-input setup fails before cleanup ownership transfers; recovered tests emit none. The exact historical temporary-object identity is not proved. Independent product/provenance/composition reviews remain scoped to their recorded evidence; the final harness follow-up and machine audit are implementer-authored. No model, paid service, training, market backtest, real order or actual-state migration occurred.
 
 ## Exact package
 
-The [current package record](candidate-package-verification-v4.json) verifies the prior603 raw files and all57 historically restored inputs, freezes667 files from the now-durable candidate and retains all129 runtime names. Exactly one runtime file changes from the deployed predecessor: `supervisor_sync.py`. Raw hashes of the unchanged watcher and native launcher match. The short sibling package path avoids Windows long-path failures. Earlier package records remain preserved; the original full run continues on its unchanged608-file package. The current667-file test composition is not yet fully verified.
+The [current package record](candidate-package-verification-v4.json) verifies the prior603 raw files and all57 historically restored inputs, freezes667 files from the now-durable candidate and retains all129 runtime names. Exactly one runtime file changes from the deployed predecessor: `supervisor_sync.py`. Raw hashes of the unchanged watcher and native launcher match. The short sibling package path avoids Windows long-path failures. Earlier package records remain preserved; the original full run continues on its unchanged608-file package. The current667-file package has completed composed correctness verification; see the final record below.
 
 Package: `E:/_OB_VAULTS/Main Vault/Projects/Automatic Trading/hermes-snapshot-20eb6af`.
 
@@ -44,4 +42,4 @@ The [release plan](candidate-release-plan-v4.json) is a local checked input, not
 
 ## Remaining work
 
-Finish the active full regression, inspect every terminal error/unrun case and source-invariance result, then run the eleven restored-input cases and resolve any other failure before finalizing the [proposed cutover](../../../docs/PAPER_SUPERVISOR_SNAPSHOT_REPAIR_CUTOVER.md). The earlier program-only Windows/Linux package checks are terminal and passing; they do not establish complete test-input packaging. The cutover is a document-only proposal and has not been executed. Later entry recovery needs a separately checked and authorized procedure; fixing snapshot contention alone will not resume entries. Overall goal estimate remains **65%**, with no profitable strategy, LLM learning outcome or minimum profitable EUR50–200 wallet established.
+The disabled local implementation is ready for owner review of the [paper-only cutover](../../../docs/PAPER_SUPERVISOR_SNAPSHOT_REPAIR_CUTOVER.md). Deployment, actual guard migration and PC installation remain unapproved. The existing entry halt stays set; later recovery needs a separately checked and authorized procedure. Correctness checks do not establish a winning strategy, LLM learning outcome, profitable EUR50–200 wallet or improved returns. Overall goal estimate remains65%.

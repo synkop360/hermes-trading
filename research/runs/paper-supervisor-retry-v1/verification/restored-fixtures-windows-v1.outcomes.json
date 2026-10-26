@@ -1,0 +1,13 @@
+{
+  "test_current_venue_review.ReviewRegressionCases.test_history_failure_retains_quotes_for_eight_operational_exits": "passed",
+  "test_current_venue_review.ReviewRegressionCases.test_native_price_adapter_retains_received_ticker_only_when_opted_in": "passed",
+  "test_current_venue_review.ReviewRegressionCases.test_real_authorized_adaptation_preserves_activation_and_snapshot_audit": "passed",
+  "test_primary_candidate.PrimaryCandidateTests.test_active_wrong_protocol_changed_strategy_and_enabled_build_are_rejected_before_writes": "passed",
+  "test_primary_candidate.PrimaryCandidateTests.test_disabled_successor_binds_selection_release_and_launcher_preserving_all_economic_files": "passed",
+  "test_venue_candidate.VenueCandidateTests.test_activation_receipt_binds_all_strategies_accounts_goals_and_original_time": "passed",
+  "test_venue_candidate.VenueCandidateTests.test_corrected_inception_binds_venue_receipt_and_recovers_original_clock": "passed",
+  "test_venue_candidate.VenueCandidateTests.test_enabled_existing_partial_or_active_source_rejected_before_target_creation": "passed",
+  "test_venue_candidate.VenueCandidateTests.test_exact_eight_disabled_drafts_correct_24_minima_and_preserve_originals": "passed",
+  "test_venue_candidate.VenueCandidateTests.test_new_protocol_profile_loading_requires_bound_activation_evidence": "passed",
+  "test_venue_candidate.VenueCandidateTests.test_saved_research_facts_do_not_authorize_later_activation": "passed"
+}

@@ -1,0 +1,21 @@
+{
+  "checked_at": "2026-10-26T06:45:01.465974+00:00",
+  "candidate": "20eb6af2a441c934618e124af30d72f411a3938a",
+  "package_files": 667,
+  "complete_case_coverage": 1712,
+  "scope": "composed_local_correctness_not_single_full_green",
+  "single_full_suite_pass": false,
+  "cutover_document_sha256": "c7709db0ca9d56424046c9bfe8d952678f46b4cb49863085750d20f6fece3a50",
+  "release_plan_sha256": "17a768982074206fb77254cb9e792b2c03ae541aa0272348525b47f51190baf0",
+  "raw_inventory_sha256": "4d97c0d3ad666912846ed3fd60d16f7b6d6cdb2ca98f28021ebc4fc1c740c990",
+  "linux_final_result_sha256": "519af5929eb10895e448787a36a9061c30ed26be97a08675172ea8db296606a3",
+  "local_links_checked": 43,
+  "all_test_sessions_terminal": true,
+  "graph_refresh": "6415_nodes_19890_edges_AST_only",
+  "deployment_authorized": false,
+  "deployed": false,
+  "actual_state_changed": false,
+  "entry_halt_cleared": false,
+  "profitability_proven": false,
+  "overall_estimate": 65
+}

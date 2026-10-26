@@ -1,0 +1,34 @@
+{
+  "checked_at": "2026-10-26T06:36:54.432815+00:00",
+  "observation_at": "2026-10-26T06:25:54.230000+00:00",
+  "raw_receipt_sha256": "9cbe10d35f775312bf252aaeee717663587b81bc0aa821b3dba97a92e2a491da",
+  "deployed_runtime_expected_reporting_release": true,
+  "original_opening_and_all_eight_account_hashes_match": true,
+  "all_eight_common_finalized_settlement_verified": true,
+  "pending_batches": 0,
+  "completed_batches": 2678,
+  "orders_and_positions_all_eight": 0,
+  "qualified_adaptive_control_differences_eur": {
+    "50": "0",
+    "100": "0",
+    "150": "0",
+    "200": "0"
+  },
+  "reported_primary_net_equity": "199.4422871228758101851851852",
+  "reported_known_accrued_costs": "0.5577128771241898148148148149",
+  "cost_quality": {
+    "ai": "estimated",
+    "funding": "actual",
+    "hosting": "estimated",
+    "tools": "estimated"
+  },
+  "volume_bytes": 192255692,
+  "volume_percent": "38.4511384",
+  "confirmed_summary_windows": 187,
+  "reporter_failure_counters_all_zero": true,
+  "supervisor_latest_success": true,
+  "supervisor_entry_halt_retained": true,
+  "continuous_path_qualified": false,
+  "profitability_qualified": false,
+  "actual_state_changed": false
+}

@@ -1,0 +1,86 @@
+{
+  "scope": "full",
+  "started_at": "2026-10-25T20:16:36.574753+00:00",
+  "finished_at": "2026-10-25T21:02:53.307095+00:00",
+  "elapsed_seconds": 2776.734999999986,
+  "catalog_cases": 1712,
+  "tests_run": 1712,
+  "passed": 1698,
+  "expected_failures": 0,
+  "unexpected_successes": 0,
+  "skipped": [
+    [
+      "test_added_symlink_or_reparse_storage_blocks_before_stage (test_archive_capacity.CapacityTests.test_added_symlink_or_reparse_storage_blocks_before_stage)",
+      "symlink creation unavailable: [WinError 1314] Le client ne dispose pas d\u2019un privil\u00e8ge n\u00e9cessaire: 'C:\\\\Users\\\\thoma\\\\AppData\\\\Local\\\\Temp\\\\tmp4vmn0cun\\\\outside' -> 'C:\\\\Users\\\\thoma\\\\AppData\\\\Local\\\\Temp\\\\tmp4vmn0cun\\\\state\\\\linked'"
+    ],
+    [
+      "test_fifo_at_object_or_manifest_is_rejected_without_blocking (test_archive_store.ArchiveTests.test_fifo_at_object_or_manifest_is_rejected_without_blocking)",
+      "POSIX FIFO regression"
+    ],
+    [
+      "test_source_or_destination_symlink_not_followed (test_archive_store.ArchiveTests.test_source_or_destination_symlink_not_followed)",
+      "host does not allow unprivileged symlinks; Linux verification required"
+    ],
+    [
+      "test_volume_symlink_is_not_followed_and_reports_unknown (test_paper_safety.PaperSafetyTests.test_volume_symlink_is_not_followed_and_reports_unknown)",
+      "symbolic links unavailable for this Windows user"
+    ],
+    [
+      "test_trailing_dot_guard_remains_on_filesystems_that_preserve_it (test_snapshot_plus_names.SnapshotPlusNameTests.test_trailing_dot_guard_remains_on_filesystems_that_preserve_it)",
+      "Windows normalizes trailing dots in path names"
+    ]
+  ],
+  "failures": [],
+  "errors": [
+    [
+      "test_real_authorized_adaptation_preserves_activation_and_snapshot_audit (test_current_venue_review.ReviewRegressionCases.test_real_authorized_adaptation_preserves_activation_and_snapshot_audit)",
+      "Traceback (most recent call last):\n  File \"C:\\Program Files\\WindowsApps\\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\\Lib\\unittest\\async_case.py\", line 90, in _callTestMethod\n    if self._callMaybeAsync(method) is not None:\n       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"C:\\Program Files\\WindowsApps\\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\\Lib\\unittest\\async_case.py\", line 112, in _callMaybeAsync\n    return self._asyncioRunner.run(\n           ^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"C:\\Program Files\\WindowsApps\\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\\Lib\\asyncio\\runners.py\", line 118, in run\n    return self._loop.run_until_complete(task)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"C:\\Program Files\\WindowsApps\\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\\Lib\\asyncio\\base_events.py\", line 654, in run_until_complete\n    return future.result()\n           ^^^^^^^^^^^^^^^\n  File \"E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-snapshot-a79fb93\\tests\\test_current_venue_review.py\", line 22, in test_real_authorized_adaptation_preserves_activation_and_snapshot_audit\n    f=candidate_fixtures.VenueCandidateTests();f.setUp()\n                                               ^^^^^^^^^\n  File \"E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-snapshot-a79fb93\\tests\\test_venue_candidate.py\", line 19, in setUp\n    (self.source/name).write_bytes((original/name).read_bytes())\n                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"C:\\Program Files\\WindowsApps\\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\\Lib\\pathlib.py\", line 1050, in read_bytes\n    with self.open(mode='rb') as f:\n         ^^^^^^^^^^^^^^^^^^^^\n  File \"C:\\Program Files\\WindowsApps\\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\\Lib\\pathlib.py\", line 1044, in open\n    return io.open(self, mode, buffering, encoding, errors, newline)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nFileNotFoundError: [Errno 2] No such file or directory: 'E:\\\\_OB_VAULTS\\\\Main Vault\\\\Projects\\\\Automatic Trading\\\\hermes-snapshot-a79fb93\\\\research\\\\runs\\\\approved-cost-reserve-v1\\\\manifest.json'\n"
+    ],
+    [
+      "test_active_wrong_protocol_changed_strategy_and_enabled_build_are_rejected_before_writes (test_primary_candidate.PrimaryCandidateTests.test_active_wrong_protocol_changed_strategy_and_enabled_build_are_rejected_before_writes)",
+      "Traceback (most recent call last):\n  File \"E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-snapshot-a79fb93\\tests\\test_primary_candidate.py\", line 15, in setUp\n    self.source=self.root/'source';shutil.copytree(self.original,self.source);self.target=self.root/'new'\n                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"C:\\Program Files\\WindowsApps\\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\\Lib\\shutil.py\", line 571, in copytree\n    with os.scandir(src) as itr:\n         ^^^^^^^^^^^^^^^\nFileNotFoundError: [WinError 3] Le chemin d\u2019acc\u00e8s sp\u00e9cifi\u00e9 est introuvable: 'E:\\\\_OB_VAULTS\\\\Main Vault\\\\Projects\\\\Automatic Trading\\\\hermes-snapshot-a79fb93\\\\research\\\\runs\\\\current-venue-execution-v1\\\\candidate'\n"
+    ],
+    [
+      "test_disabled_successor_binds_selection_release_and_launcher_preserving_all_economic_files (test_primary_candidate.PrimaryCandidateTests.test_disabled_successor_binds_selection_release_and_launcher_preserving_all_economic_files)",
+      "Traceback (most recent call last):\n  File \"E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-snapshot-a79fb93\\tests\\test_primary_candidate.py\", line 15, in setUp\n    self.source=self.root/'source';shutil.copytree(self.original,self.source);self.target=self.root/'new'\n                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"C:\\Program Files\\WindowsApps\\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\\Lib\\shutil.py\", line 571, in copytree\n    with os.scandir(src) as itr:\n         ^^^^^^^^^^^^^^^\nFileNotFoundError: [WinError 3] Le chemin d\u2019acc\u00e8s sp\u00e9cifi\u00e9 est introuvable: 'E:\\\\_OB_VAULTS\\\\Main Vault\\\\Projects\\\\Automatic Trading\\\\hermes-snapshot-a79fb93\\\\research\\\\runs\\\\current-venue-execution-v1\\\\candidate'\n"
+    ],
+    [
+      "test_activation_receipt_binds_all_strategies_accounts_goals_and_original_time (test_venue_candidate.VenueCandidateTests.test_activation_receipt_binds_all_strategies_accounts_goals_and_original_time)",
+      "Traceback (most recent call last):\n  File \"E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-snapshot-a79fb93\\tests\\test_venue_candidate.py\", line 19, in setUp\n    (self.source/name).write_bytes((original/name).read_bytes())\n                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"C:\\Program Files\\WindowsApps\\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\\Lib\\pathlib.py\", line 1050, in read_bytes\n    with self.open(mode='rb') as f:\n         ^^^^^^^^^^^^^^^^^^^^\n  File \"C:\\Program Files\\WindowsApps\\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\\Lib\\pathlib.py\", line 1044, in open\n    return io.open(self, mode, buffering, encoding, errors, newline)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nFileNotFoundError: [Errno 2] No such file or directory: 'E:\\\\_OB_VAULTS\\\\Main Vault\\\\Projects\\\\Automatic Trading\\\\hermes-snapshot-a79fb93\\\\research\\\\runs\\\\approved-cost-reserve-v1\\\\manifest.json'\n"
+    ],
+    [
+      "test_corrected_inception_binds_venue_receipt_and_recovers_original_clock (test_venue_candidate.VenueCandidateTests.test_corrected_inception_binds_venue_receipt_and_recovers_original_clock)",
+      "Traceback (most recent call last):\n  File \"E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-snapshot-a79fb93\\tests\\test_venue_candidate.py\", line 19, in setUp\n    (self.source/name).write_bytes((original/name).read_bytes())\n                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"C:\\Program Files\\WindowsApps\\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\\Lib\\pathlib.py\", line 1050, in read_bytes\n    with self.open(mode='rb') as f:\n         ^^^^^^^^^^^^^^^^^^^^\n  File \"C:\\Program Files\\WindowsApps\\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\\Lib\\pathlib.py\", line 1044, in open\n    return io.open(self, mode, buffering, encoding, errors, newline)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nFileNotFoundError: [Errno 2] No such file or directory: 'E:\\\\_OB_VAULTS\\\\Main Vault\\\\Projects\\\\Automatic Trading\\\\hermes-snapshot-a79fb93\\\\research\\\\runs\\\\approved-cost-reserve-v1\\\\manifest.json'\n"
+    ],
+    [
+      "test_enabled_existing_partial_or_active_source_rejected_before_target_creation (test_venue_candidate.VenueCandidateTests.test_enabled_existing_partial_or_active_source_rejected_before_target_creation)",
+      "Traceback (most recent call last):\n  File \"E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-snapshot-a79fb93\\tests\\test_venue_candidate.py\", line 19, in setUp\n    (self.source/name).write_bytes((original/name).read_bytes())\n                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"C:\\Program Files\\WindowsApps\\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\\Lib\\pathlib.py\", line 1050, in read_bytes\n    with self.open(mode='rb') as f:\n         ^^^^^^^^^^^^^^^^^^^^\n  File \"C:\\Program Files\\WindowsApps\\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\\Lib\\pathlib.py\", line 1044, in open\n    return io.open(self, mode, buffering, encoding, errors, newline)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nFileNotFoundError: [Errno 2] No such file or directory: 'E:\\\\_OB_VAULTS\\\\Main Vault\\\\Projects\\\\Automatic Trading\\\\hermes-snapshot-a79fb93\\\\research\\\\runs\\\\approved-cost-reserve-v1\\\\manifest.json'\n"
+    ],
+    [
+      "test_exact_eight_disabled_drafts_correct_24_minima_and_preserve_originals (test_venue_candidate.VenueCandidateTests.test_exact_eight_disabled_drafts_correct_24_minima_and_preserve_originals)",
+      "Traceback (most recent call last):\n  File \"E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-snapshot-a79fb93\\tests\\test_venue_candidate.py\", line 19, in setUp\n    (self.source/name).write_bytes((original/name).read_bytes())\n                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"C:\\Program Files\\WindowsApps\\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\\Lib\\pathlib.py\", line 1050, in read_bytes\n    with self.open(mode='rb') as f:\n         ^^^^^^^^^^^^^^^^^^^^\n  File \"C:\\Program Files\\WindowsApps\\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\\Lib\\pathlib.py\", line 1044, in open\n    return io.open(self, mode, buffering, encoding, errors, newline)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nFileNotFoundError: [Errno 2] No such file or directory: 'E:\\\\_OB_VAULTS\\\\Main Vault\\\\Projects\\\\Automatic Trading\\\\hermes-snapshot-a79fb93\\\\research\\\\runs\\\\approved-cost-reserve-v1\\\\manifest.json'\n"
+    ],
+    [
+      "test_new_protocol_profile_loading_requires_bound_activation_evidence (test_venue_candidate.VenueCandidateTests.test_new_protocol_profile_loading_requires_bound_activation_evidence)",
+      "Traceback (most recent call last):\n  File \"E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-snapshot-a79fb93\\tests\\test_venue_candidate.py\", line 19, in setUp\n    (self.source/name).write_bytes((original/name).read_bytes())\n                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"C:\\Program Files\\WindowsApps\\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\\Lib\\pathlib.py\", line 1050, in read_bytes\n    with self.open(mode='rb') as f:\n         ^^^^^^^^^^^^^^^^^^^^\n  File \"C:\\Program Files\\WindowsApps\\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\\Lib\\pathlib.py\", line 1044, in open\n    return io.open(self, mode, buffering, encoding, errors, newline)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nFileNotFoundError: [Errno 2] No such file or directory: 'E:\\\\_OB_VAULTS\\\\Main Vault\\\\Projects\\\\Automatic Trading\\\\hermes-snapshot-a79fb93\\\\research\\\\runs\\\\approved-cost-reserve-v1\\\\manifest.json'\n"
+    ],
+    [
+      "test_saved_research_facts_do_not_authorize_later_activation (test_venue_candidate.VenueCandidateTests.test_saved_research_facts_do_not_authorize_later_activation)",
+      "Traceback (most recent call last):\n  File \"E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-snapshot-a79fb93\\tests\\test_venue_candidate.py\", line 19, in setUp\n    (self.source/name).write_bytes((original/name).read_bytes())\n                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"C:\\Program Files\\WindowsApps\\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\\Lib\\pathlib.py\", line 1050, in read_bytes\n    with self.open(mode='rb') as f:\n         ^^^^^^^^^^^^^^^^^^^^\n  File \"C:\\Program Files\\WindowsApps\\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\\Lib\\pathlib.py\", line 1044, in open\n    return io.open(self, mode, buffering, encoding, errors, newline)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nFileNotFoundError: [Errno 2] No such file or directory: 'E:\\\\_OB_VAULTS\\\\Main Vault\\\\Projects\\\\Automatic Trading\\\\hermes-snapshot-a79fb93\\\\research\\\\runs\\\\approved-cost-reserve-v1\\\\manifest.json'\n"
+    ]
+  ],
+  "unrun_cases": [],
+  "resource_warnings": [
+    "Implicitly cleaning up <TemporaryDirectory 'C:\\\\Users\\\\thoma\\\\AppData\\\\Local\\\\Temp\\\\tmpbq58ks3i'>"
+  ],
+  "source_files": 376,
+  "changed_sources": [],
+  "log_sha256": "57f123cb86b92da01fd9ec023d0e96d040c77be94ecf94346dcec7ea79ce1763",
+  "runner_sha256": "f58d686c3bbcb849ae951ef9d9c600e1ade3582e4348a8d9804a5b0d82a8ca92",
+  "deployed": false,
+  "activated": false,
+  "market_backtest": false,
+  "training": false,
+  "paid_calls": 0,
+  "status": "failed"
+}
