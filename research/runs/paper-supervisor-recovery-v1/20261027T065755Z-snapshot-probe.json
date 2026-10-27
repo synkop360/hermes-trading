@@ -1,0 +1,87 @@
+{
+  "at": "2026-10-27T06:57:55.565643+00:00",
+  "exit_code": 0,
+  "stderr_bytes": 98,
+  "result": {
+    "source_map_verified": true,
+    "runtime_files": 129,
+    "observations": [
+      {
+        "at": "2026-10-27T06:57:56.984731+00:00",
+        "status": "validated",
+        "schema": 2,
+        "elapsed_seconds": 0.8660314548760653
+      },
+      {
+        "at": "2026-10-27T06:57:59.850909+00:00",
+        "status": "validated",
+        "schema": 2,
+        "elapsed_seconds": 0.020795099437236786
+      },
+      {
+        "at": "2026-10-27T06:58:01.871840+00:00",
+        "status": "validated",
+        "schema": 2,
+        "elapsed_seconds": 0.021283753216266632
+      },
+      {
+        "at": "2026-10-27T06:58:03.893259+00:00",
+        "status": "validated",
+        "schema": 2,
+        "elapsed_seconds": 0.02350728213787079
+      },
+      {
+        "at": "2026-10-27T06:58:05.916903+00:00",
+        "status": "validated",
+        "schema": 2,
+        "elapsed_seconds": 0.02178298309445381
+      },
+      {
+        "at": "2026-10-27T06:58:07.938817+00:00",
+        "status": "validated",
+        "schema": 2,
+        "elapsed_seconds": 0.0221079271286726
+      },
+      {
+        "at": "2026-10-27T06:58:09.961054+00:00",
+        "status": "validated",
+        "schema": 2,
+        "elapsed_seconds": 0.025337738916277885
+      },
+      {
+        "at": "2026-10-27T06:58:11.986539+00:00",
+        "status": "validated",
+        "schema": 2,
+        "elapsed_seconds": 0.0241699181497097
+      },
+      {
+        "at": "2026-10-27T06:58:14.010854+00:00",
+        "status": "validated",
+        "schema": 2,
+        "elapsed_seconds": 0.023283494636416435
+      },
+      {
+        "at": "2026-10-27T06:58:16.034284+00:00",
+        "status": "validated",
+        "schema": 2,
+        "elapsed_seconds": 0.02099977619946003
+      },
+      {
+        "at": "2026-10-27T06:58:18.055393+00:00",
+        "status": "validated",
+        "schema": 2,
+        "elapsed_seconds": 0.020877638831734657
+      },
+      {
+        "at": "2026-10-27T06:58:20.076389+00:00",
+        "status": "validated",
+        "schema": 2,
+        "elapsed_seconds": 0.025539835914969444
+      }
+    ],
+    "health_receipts_published": false,
+    "model_invoked": false,
+    "raw_messages_retained": false,
+    "elapsed_seconds": 23.1172389741987
+  }
+}
