@@ -1,6 +1,6 @@
 # Supervisor contention and explicit paper-halt recovery
 
-October 27, 2026. Proposed design for disabled local implementation and synthetic checks. This is not deployment, live recovery or entry-resumption approval.
+October 27, 2026. Owner approved this design and disabled local implementation by replying “Approve”. This is not deployment, live recovery or entry-resumption approval.
 
 ## Confirmed problem
 

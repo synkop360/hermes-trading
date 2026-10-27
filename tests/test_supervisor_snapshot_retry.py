@@ -72,7 +72,17 @@ class SnapshotRetryTests(unittest.TestCase):
         self.assertEqual(files['strategy.yaml'], (self.state/'strategy.yaml').read_bytes())
         self.assertEqual(clock.waits, [0.2])
 
-    def test_real_permanent_busy_preserves_final_sqlite_cause_and_three_attempt_bound(self):
+    def test_real_busy_outlasting_old_window_can_recover_on_a_later_attempt(self):
+        self.heartbeat()
+        db = self.lock()
+        clock = Clock()
+        clock.on_wait = lambda: db.rollback() if clock.value >= 1.7 else None
+        with self.clocked(clock):
+            result = self.retry()
+        self.assertIn('heartbeat.json', result['files'])
+        self.assertEqual(clock.waits, [0.2, 0.5, 1])
+
+    def test_real_permanent_busy_preserves_final_sqlite_cause_and_eight_attempt_bound(self):
         self.heartbeat()
         self.lock()
         clock = Clock()
@@ -80,7 +90,7 @@ class SnapshotRetryTests(unittest.TestCase):
             self.retry()
         self.assertIsInstance(caught.exception.__cause__, sqlite3.OperationalError)
         self.assertEqual(caught.exception.__cause__.sqlite_errorcode, 5)
-        self.assertEqual(clock.waits, [0.2, 0.5])
+        self.assertEqual(clock.waits, [0.2, 0.5, 1, 2, 2, 2, 2])
 
     def test_retry_reads_new_files_and_runs_both_publication_gates(self):
         self.heartbeat()
@@ -266,7 +276,7 @@ class RetryBoundariesTests(unittest.TestCase):
                     outer.__cause__ = error
                     error = outer
                 with self.subTest(code=code,wrapped=wrapped):
-                    self.assertEqual(self.run_failure(error), (3,[0.2,0.5]))
+                    self.assertEqual(self.run_failure(error), (8,[0.2,0.5,1,2,2,2,2]))
 
     def test_other_codes_messages_context_and_cause_cycles_never_create_retry(self):
         errors = [self.error(code) for code in (None, 6, 10, 11, 14, '5', True)]
@@ -289,7 +299,7 @@ class RetryBoundariesTests(unittest.TestCase):
         attempts = []
         def fail(*args, **kwargs):
             attempts.append(True)
-            clock.value = 2.0
+            clock.value = 10.0
             raise error
         with patch.object(sync,'make_snapshot',fail), patch.object(sync,'monotonic',clock,create=True), \
                 patch.object(sync,'sleep',clock.sleep,create=True), self.assertRaises(sqlite3.OperationalError):
@@ -298,7 +308,7 @@ class RetryBoundariesTests(unittest.TestCase):
         self.assertEqual(clock.waits, [])
 
     def test_wait_that_reaches_deadline_does_not_admit_another_attempt(self):
-        clock = Clock(lambda: setattr(clock, 'value', 2.0))
+        clock = Clock(lambda: setattr(clock, 'value', 10.0))
         self.assertEqual(self.run_failure(self.error(),clock), (1,[0.2]))
 
     def test_wait_is_capped_at_remaining_admission_budget(self):
@@ -307,7 +317,7 @@ class RetryBoundariesTests(unittest.TestCase):
         attempts = []
         def fail(*args, **kwargs):
             attempts.append(True)
-            clock.value = 1.9
+            clock.value = 9.9
             raise error
         with patch.object(sync,'make_snapshot',fail), patch.object(sync,'monotonic',clock,create=True), \
                 patch.object(sync,'sleep',clock.sleep,create=True), self.assertRaises(sqlite3.OperationalError):

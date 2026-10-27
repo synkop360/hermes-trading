@@ -183,16 +183,16 @@ def _snapshot_busy(error):
 def make_snapshot_with_retry(state_dir, *, now=None):
     """Recollect from scratch after BUSY, within the existing CLI process budget.
 
-    Two seconds bounds waiting and admission, not an in-flight filesystem read.
+    Ten seconds bounds waiting and admission, not an in-flight filesystem read.
     The caller's existing subprocess deadline remains the hard process boundary.
     """
-    deadline = monotonic() + 2.0
-    waits = (0.2, 0.5)
-    for attempt in range(3):
+    deadline = monotonic() + 10.0
+    waits = (0.2, 0.5, 1, 2, 2, 2, 2)
+    for attempt in range(8):
         try:
             return make_snapshot(state_dir, now=now)
         except Exception as error:
-            if attempt == 2 or not _snapshot_busy(error):
+            if attempt == 7 or not _snapshot_busy(error):
                 raise
             remaining = deadline - monotonic()
             if remaining <= 0:
