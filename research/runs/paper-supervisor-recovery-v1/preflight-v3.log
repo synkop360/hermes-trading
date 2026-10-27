@@ -1,0 +1,42 @@
+Executing <Task finished name='Task-2' coro=<RecoveryPreflightTests.test_native_eight_wallet_preflight_rejections_then_checked_apply() done, defined at E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\tests\test_paper_supervisor_recovery.py:167> exception=ValueError('safety artifact must be an unlinked regular file') created at C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\runners.py:100> took 5.859 seconds
+E.........
+======================================================================
+ERROR: test_native_eight_wallet_preflight_rejections_then_checked_apply (test_paper_supervisor_recovery.RecoveryPreflightTests.test_native_eight_wallet_preflight_rejections_then_checked_apply)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\unittest\async_case.py", line 90, in _callTestMethod
+    if self._callMaybeAsync(method) is not None:
+       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\unittest\async_case.py", line 112, in _callMaybeAsync
+    return self._asyncioRunner.run(
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\base_events.py", line 654, in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+  File "E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\tests\test_paper_supervisor_recovery.py", line 233, in test_native_eight_wallet_preflight_rejections_then_checked_apply
+    await run_worker(root, collector_factory=lambda:f.market, clock=lambda:f.at, sleep=inspect)
+  File "E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\hermes_trading\paired_worker.py", line 598, in run_worker
+    if not state.get('storage_stop'):await sleep(limits['interval_seconds'])
+                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\tests\test_paper_supervisor_recovery.py", line 200, in inspect
+    request = receiver.build_recovery_request(root, approval_ref='synthetic-only', pc_evidence=evidence, now=f.at)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\hermes_trading\paper_supervisor_health.py", line 307, in build_recovery_request
+    with _recovery_preflight(root,pc_evidence,now=now) as bindings:
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\contextlib.py", line 137, in __enter__
+    return next(self.gen)
+           ^^^^^^^^^^^^^^
+  File "E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\hermes_trading\paper_supervisor_health.py", line 262, in _recovery_preflight
+    _digest(backup.get('sha256'));paper_safety._regular(Path(backup['path']))
+                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\hermes_trading\paper_safety.py", line 84, in _regular
+    raise ValueError('safety artifact must be an unlinked regular file')
+ValueError: safety artifact must be an unlinked regular file
+
+----------------------------------------------------------------------
+Ran 10 tests in 7.699s
+
+FAILED (errors=1)

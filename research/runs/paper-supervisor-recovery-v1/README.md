@@ -1,6 +1,6 @@
 # Current supervisor-halt investigation — October 27, 2026
 
-Read-only live diagnosis and a proposed correction; no product source, deployment, schedule, model invocation or safety-state mutation in this investigation. Discord readability remains separately committed as c362196 and not deployed.
+Read-only live diagnosis followed by owner-approved disabled local implementation on synthetic copies. No deployment, schedule change, model invocation or actual safety-state mutation occurred. Discord readability remains separately committed as c362196 and not deployed.
 
 ## Findings
 
@@ -27,6 +27,10 @@ Generic native launcher output still discards child stdout/stderr. Historical sc
 - `20261027T070014Z-snapshot-full-interval.json`: stops at the first reproduced typed BUSY rejection; 14 calls, 27.897 seconds. All source hashes verified before calls. No raw exception messages, provider data, credentials or health writes retained.
 - `observe_pc.py`, `observe_runtime.py`, `probe_snapshot.py`, `probe_snapshot_full_interval.py`: bounded read-only observation code. The long probe extends only the operator observation window, not product retry or process deadlines.
 
-## Proposed correction and approval boundary
+## Approved local correction and remaining approval boundary
 
-[Concrete correction design](../../../docs/superpowers/specs/2026-10-27-supervisor-contention-and-halt-recovery-design.md): a ten-second, eight-attempt typed-BUSY retry within unchanged process deadlines, plus explicit checked and audited acknowledgment of the supervisor latch. The second part adds a safety-control path and requires the user's original heavy-change approval before implementation. No production change, deployment or halt reset has been performed. Live deployment and entry recovery remain separately approvable after local correctness evidence and a concrete cutover exist.
+[Approved correction design](../../../docs/superpowers/specs/2026-10-27-supervisor-contention-and-halt-recovery-design.md): a ten-second, eight-attempt typed-BUSY retry within unchanged process deadlines, plus explicit checked and audited acknowledgment of the supervisor latch. The owner approved this design and disabled implementation. Retry correction is committed as 9029e44; recovery implementation is local and opt-in. [Ledger](implementation-ledger.md), [affected verification](local-verification.json), [operator guide](../../../docs/PAPER_SUPERVISOR_RECOVERY.md).
+
+The audit retains intent, exact state transitions and completion/cancellation receipts. Pending recovery blocks entries while normal health recording continues. A new event prevents stale application; checked cancellation preserves newer health and keeps the supervisor halted. Native preflight verifies the original opening, all eight flat accounts, matching PC/worker releases, current settlement, market/model readiness, original entry checks and the verified daily backup under the shared publication lease.
+
+Independent review is unavailable because the delegated reviewer hit an account usage limit. Local correctness tests are not a full-suite, deployed-reliability or profitability claim. The exact two-host release transition and concrete cutover remain to be prepared before requesting deployment/live-recovery approval. The installed PC and frozen package are checked read-only in [untouched verification](untouched-verification.json).

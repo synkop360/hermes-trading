@@ -1,0 +1,109 @@
+FFFFFFFEE
+======================================================================
+ERROR: test_stale_request_changed_health_and_failed_preflight_cannot_clear (test_paper_supervisor_recovery.RecoveryTransitionTests.test_stale_request_changed_health_and_failed_preflight_cannot_clear) (case='changed')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\tests\test_paper_supervisor_recovery.py", line 66, in test_stale_request_changed_health_and_failed_preflight_cannot_clear
+    self.prepare()
+  File "E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\tests\test_paper_supervisor_recovery.py", line 25, in prepare
+    safety.record_supervisor_result(self.root, success=False, event_id=f'fail-{n}',
+  File "E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\hermes_trading\paper_safety.py", line 299, in record_supervisor_result
+    return _record(root, name='supervisor', success=success, error_kind=error_kind, now=now, event_id=event_id)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\hermes_trading\paper_safety.py", line 282, in _record
+    raise ValueError('out-of-order safety health observation')
+ValueError: out-of-order safety health observation
+
+======================================================================
+ERROR: test_stale_request_changed_health_and_failed_preflight_cannot_clear (test_paper_supervisor_recovery.RecoveryTransitionTests.test_stale_request_changed_health_and_failed_preflight_cannot_clear) (case='preflight')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\tests\test_paper_supervisor_recovery.py", line 66, in test_stale_request_changed_health_and_failed_preflight_cannot_clear
+    self.prepare()
+  File "E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\tests\test_paper_supervisor_recovery.py", line 25, in prepare
+    safety.record_supervisor_result(self.root, success=False, event_id=f'fail-{n}',
+  File "E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\hermes_trading\paper_safety.py", line 299, in record_supervisor_result
+    return _record(root, name='supervisor', success=success, error_kind=error_kind, now=now, event_id=event_id)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\hermes_trading\paper_safety.py", line 282, in _record
+    raise ValueError('out-of-order safety health observation')
+ValueError: out-of-order safety health observation
+
+======================================================================
+FAIL: test_completed_retry_does_not_clear_a_newer_halt (test_paper_supervisor_recovery.RecoveryTransitionTests.test_completed_retry_does_not_clear_a_newer_halt)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\tests\test_paper_supervisor_recovery.py", line 102, in test_completed_retry_does_not_clear_a_newer_halt
+    self.prepare(); self.recover(enabled=True)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\tests\test_paper_supervisor_recovery.py", line 42, in recover
+    self.assertTrue(callable(method), 'checked supervisor recovery is absent')
+AssertionError: False is not true : checked supervisor recovery is absent
+
+======================================================================
+FAIL: test_conservative_abort_preserves_original_halt_after_state_replace (test_paper_supervisor_recovery.RecoveryTransitionTests.test_conservative_abort_preserves_original_halt_after_state_replace)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\tests\test_paper_supervisor_recovery.py", line 96, in test_conservative_abort_preserves_original_halt_after_state_replace
+    self.recover(enabled=True)
+  File "E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\tests\test_paper_supervisor_recovery.py", line 42, in recover
+    self.assertTrue(callable(method), 'checked supervisor recovery is absent')
+AssertionError: False is not true : checked supervisor recovery is absent
+
+======================================================================
+FAIL: test_marker_is_checked_after_state_read_and_malformed_marker_blocks (test_paper_supervisor_recovery.RecoveryTransitionTests.test_marker_is_checked_after_state_read_and_malformed_marker_blocks)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\tests\test_paper_supervisor_recovery.py", line 114, in test_marker_is_checked_after_state_read_and_malformed_marker_blocks
+    self.prepare(); self.recover(enabled=True)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\tests\test_paper_supervisor_recovery.py", line 42, in recover
+    self.assertTrue(callable(method), 'checked supervisor recovery is absent')
+AssertionError: False is not true : checked supervisor recovery is absent
+
+======================================================================
+FAIL: test_only_latch_fields_change_and_audit_preserves_old_row (test_paper_supervisor_recovery.RecoveryTransitionTests.test_only_latch_fields_change_and_audit_preserves_old_row)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\tests\test_paper_supervisor_recovery.py", line 52, in test_only_latch_fields_change_and_audit_preserves_old_row
+    result = self.recover(enabled=True)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\tests\test_paper_supervisor_recovery.py", line 42, in recover
+    self.assertTrue(callable(method), 'checked supervisor recovery is absent')
+AssertionError: False is not true : checked supervisor recovery is absent
+
+======================================================================
+FAIL: test_opt_in_is_required_without_mutation (test_paper_supervisor_recovery.RecoveryTransitionTests.test_opt_in_is_required_without_mutation)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\tests\test_paper_supervisor_recovery.py", line 47, in test_opt_in_is_required_without_mutation
+    with self.assertRaises(ValueError): self.recover()
+                                        ^^^^^^^^^^^^^^
+  File "E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\tests\test_paper_supervisor_recovery.py", line 42, in recover
+    self.assertTrue(callable(method), 'checked supervisor recovery is absent')
+AssertionError: False is not true : checked supervisor recovery is absent
+
+======================================================================
+FAIL: test_pending_crash_blocks_entries_and_health_then_exact_retry_completes (test_paper_supervisor_recovery.RecoveryTransitionTests.test_pending_crash_blocks_entries_and_health_then_exact_retry_completes)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\tests\test_paper_supervisor_recovery.py", line 84, in test_pending_crash_blocks_entries_and_health_then_exact_retry_completes
+    self.recover(enabled=True)
+  File "E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\tests\test_paper_supervisor_recovery.py", line 42, in recover
+    self.assertTrue(callable(method), 'checked supervisor recovery is absent')
+AssertionError: False is not true : checked supervisor recovery is absent
+
+======================================================================
+FAIL: test_stale_request_changed_health_and_failed_preflight_cannot_clear (test_paper_supervisor_recovery.RecoveryTransitionTests.test_stale_request_changed_health_and_failed_preflight_cannot_clear) (case='stale')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\tests\test_paper_supervisor_recovery.py", line 72, in test_stale_request_changed_health_and_failed_preflight_cannot_clear
+    self.recover(enabled=True, now=NOW+timedelta(seconds=121 if case=='stale' else 2))
+  File "E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\tests\test_paper_supervisor_recovery.py", line 42, in recover
+    self.assertTrue(callable(method), 'checked supervisor recovery is absent')
+AssertionError: False is not true : checked supervisor recovery is absent
+
+----------------------------------------------------------------------
+Ran 7 tests in 0.514s
+
+FAILED (failures=7, errors=2)

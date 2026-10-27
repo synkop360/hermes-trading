@@ -1,12 +1,12 @@
 Re-extracting code files in . (no LLM needed)...
-  AST extraction: 39/39 uncached files (100%) [12 workers]
+  AST extraction: 45/45 uncached files (100%) [12 workers]
   warning: 38 source file(s) produced zero nodes and are absent from the graph: settings.json, wallet_account.draft.json, wallet_cost_sources.draft.json, wallet_account.draft.json, wallet_cost_sources.draft.json (+33 more). A re-run will retry them (empties are no longer cached); if it persists, please report the file(s) (#1666).
-[graphify watch] community set changed since labeling (336 saved labels, 331 communities now; renamed 115 community(ies) by their hub). Run `graphify label` to refresh names with the LLM.
+[graphify watch] community set changed since labeling (324 saved labels, 324 communities now; renamed 111 community(ies) by their hub). Run `graphify label` to refresh names with the LLM.
 [graphify] backed up curated graph (4 files) -> 2026-10-27/
-Graph has 6447 nodes (above 5000 limit). Building aggregated community view...
-graph.html written (aggregated: 331 community nodes, 1053 cross-community edges)
+Graph has 6505 nodes (above 5000 limit). Building aggregated community view...
+graph.html written (aggregated: 324 community nodes, 977 cross-community edges)
 Tip: run with --obsidian for full node-level detail.
-[graphify watch] Rebuilt: 6447 nodes, 19950 edges, 331 communities
+[graphify watch] Rebuilt: 6505 nodes, 20182 edges, 324 communities
 [graphify watch] graph.json, graph.html and GRAPH_REPORT.md updated in graphify-out
 Code graph updated. For doc/paper/image changes run /graphify --update in your AI assistant.
 Tip: set GEMINI_API_KEY or GOOGLE_API_KEY to use Gemini for semantic extraction.

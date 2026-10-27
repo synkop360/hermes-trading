@@ -1,0 +1,6 @@
+Executing <Task finished name='Task-2' coro=<RecoveryPreflightTests.test_native_eight_wallet_preflight_rejections_then_checked_apply() done, defined at E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\tests\test_paper_supervisor_recovery.py:225> result=None created at C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\runners.py:100> took 17.546 seconds
+...............
+----------------------------------------------------------------------
+Ran 15 tests in 20.426s
+
+OK

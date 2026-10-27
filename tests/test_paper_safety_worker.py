@@ -152,6 +152,29 @@ class PaperSafetyWorkerTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(len(positions),1)
             self.assertEqual(positions[0].status.value,'closed')
 
+    async def test_pending_recovery_preserves_due_exit_and_new_worker_health(self):
+        self.safety()
+        cycle_times=[]
+        self.limits['max_cycles']=2
+        (self.root/'worker_limits.json').write_text(json.dumps(self.limits))
+        async def pending(seconds):
+            cycle_times.append(self.at)
+            await self.sleep(seconds)
+            (self.root/'paper_supervisor_recovery_pending.json').write_text('{synthetic interrupted marker')
+            snapshot=replace(self.snapshot,price=dict(self.snapshot.price,bid='77',ask='78',received_at=self.at.isoformat()))
+            self.market.collect.return_value={'ETH/EUR':snapshot}
+            self.costs()
+        result=await self.invoke(sleep=pending)
+        self.assertEqual(result['completed_batches'],2)
+        self.assertIn('supervisor_recovery_pending',result['entry_admission']['reasons'])
+        state=json.loads((self.root/'paper_safety_state.json').read_text())
+        self.assertTrue(state['worker']['success'])
+        self.assertEqual(state['worker']['last_seen'],cycle_times[-1].isoformat())
+        for profile in self.manifest['profiles']:
+            positions=self.positions(profile['directory'])
+            self.assertEqual(len(positions),1)
+            self.assertEqual(positions[0].status.value,'closed')
+
     async def test_daily_backup_uses_held_worker_lease_once_per_day(self):
         from pathlib import Path
         from hermes_trading.paper_backup import create_daily_backup

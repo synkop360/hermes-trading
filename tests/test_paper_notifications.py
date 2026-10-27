@@ -550,7 +550,7 @@ class PaperNotificationTests(unittest.IsolatedAsyncioTestCase):
         except asyncio.CancelledError: pass
         self.sent.clear()
         resumed = self.reporter(); resumed.offer(envelope(5)); await self.start(resumed)
-        await eventually(lambda: resumed._state['cadences'].get('cycle') == '1')
+        await eventually(lambda: resumed._state.get('cadences', {}).get('cycle') == '1')
         self.assertIn("5 batches", self.text())
         self.assertIn("coverage unknown", self.text())
         self.assertIn("**Delivery:** gaps=", self.text())

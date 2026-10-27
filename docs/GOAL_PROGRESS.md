@@ -1,14 +1,20 @@
 # Goal progress
 
-Last updated: 2026-10-21 (Europe/Paris).
+Last updated: 2026-10-27 (Europe/Paris).
 
-**Overall estimate: 55%**
+**Overall estimate: 65%**
 
 ```text
-[###########---------] 55 / 100
+[#############-------] 65 / 100
 ```
 
-This is a judgment estimate of engineering and forward-evaluation progress. It is not a probability of profit, a measured financial return or a completion-date forecast. The active October 20 direction is to launch safe paper trading as soon as the six gates below are met. Archive expansion, full capacity qualification, installed archive recovery and profitability proof are deferred; they do not block this launch.
+The paper beta was activated with its original October 23 opening. The October 27 read-only observation finds the installed 20eb6af worker healthy but new entries still halted after supervisor errors; all eight accounts have zero orders and positions. Calendar time does not establish qualifying forward coverage, learned improvements or profitability. Overall remains 65% while operational reliability and the prospective comparison remain unresolved.
+
+The owner approved a local correction: longer typed SQLite BUSY retries and explicit checked recovery of the supervisor latch. The Discord readability revision is also local. [Diagnosis and local evidence](../research/runs/paper-supervisor-recovery-v1/README.md), [recovery operator guide](PAPER_SUPERVISOR_RECOVERY.md). The installed runtime and live halt remain unchanged. Exact release preparation, separate deployment/live-recovery approval, and fresh scheduled-health observation are the next gates.
+
+This is an engineering and forward-evaluation estimate, not a probability of profit or a completion forecast. No profitable strategy or minimum profitable €50–200 wallet has been established. Archive expansion remains deferred. The records below retain the prelaunch position as historical evidence.
+
+## Historical prelaunch status — October 21
 
 | Launch gate | Current evidence and remaining work |
 | --- | --- |

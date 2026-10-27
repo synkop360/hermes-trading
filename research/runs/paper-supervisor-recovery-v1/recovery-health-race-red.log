@@ -1,0 +1,18 @@
+......E.
+======================================================================
+ERROR: test_pending_recovery_preserves_new_health_and_abort_never_rewinds_it (test_paper_supervisor_recovery.RecoveryTransitionTests.test_pending_recovery_preserves_new_health_and_abort_never_rewinds_it)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\tests\test_paper_supervisor_recovery.py", line 95, in test_pending_recovery_preserves_new_health_and_abort_never_rewinds_it
+    safety.record_worker_result(self.root, success=False, now=NOW+timedelta(seconds=2))
+  File "E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\hermes_trading\paper_safety.py", line 296, in record_worker_result
+    return _record(root, name='worker', success=success, error_kind=error_kind, now=now)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\hermes_trading\paper_safety.py", line 269, in _record
+    raise ValueError('supervisor recovery must be reconciled before new health')
+ValueError: supervisor recovery must be reconciled before new health
+
+----------------------------------------------------------------------
+Ran 8 tests in 0.935s
+
+FAILED (errors=1)

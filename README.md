@@ -3,14 +3,14 @@
 [Goal progress — dashboard and remaining milestones](docs/GOAL_PROGRESS.md)
 
 ```text
-[###########---------] 55% estimated
+[#############-------] 65% estimated
 ```
 
-Estimate of overall engineering and forward-evaluation progress; updated at milestones. Paper remains 0 days and profitability is unproven. The active goal is to launch safe paper trading promptly; archive expansion, full capacity, installed archive recovery and profitability proof are deferred.
+October 27: the paper beta retains its October 23 opening, but new entries remain halted after supervisor errors. All eight accounts had zero trades at the latest observation; profitability and learned improvement are unproven. The approved retry/recovery correction and simpler Discord formatting are local only. [Current evidence](research/runs/paper-supervisor-recovery-v1/README.md). Deployment and live acknowledgment need a separately reviewed release and approval.
 
-The [verified local release](research/runs/paper-launch-gate-v1/release-final-verification.json) covers 145 test modules and1,618 checks:1,614 passes,4 Windows/platform skips,0 failures/errors/ResourceWarnings. This composes the completed frozen suite with eight new standalone backup-helper checks; all 364 source/config/build hashes were rechecked. No new release or backup is installed.
+Historical prelaunch evidence: the [October 21 local release](research/runs/paper-launch-gate-v1/release-final-verification.json) covered 145 test modules and 1,618 checks. Those results predate the installed beta and the current correction; they do not validate the new code.
 
-Six launch gates remain tracked: tested and committed `feat/live-hardening` candidate; taker execution with declared public fees (maker 0.004 / taker 0.008 / slippage 0.001); France/EUR markets with EUR200 primary and reported EUR50/100/150 skips; one writer with reviews after five unique closes, `no_change`, at most one variable, archived hypotheses and fixed control; minimal 70% / 500 MB volume alert, bounded logs and daily backup; net equity, all costs, drawdown and daily Sharpe with entry-only safety halts. The disabled 49-file candidate is locally verified; approved deployment and installed cutover checks remain. Archive/checkpoint code stays disabled and historical evidence is preserved. Deployment, paid actions, private exchange credentials and risk-limit changes require user approval; commits are authorized.
+The experiment retains eight virtual wallets, €200 primary, one adaptive writer, fixed control, reviews after five new closes, original costs and risk limits. Archive expansion stays deferred. The progress estimate measures engineering and prospective evaluation, not probability of profit.
 
 [Paper beta readiness — launch gates, first results and profitability evidence](docs/PAPER_BETA_READINESS.md)
 
