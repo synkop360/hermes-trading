@@ -1,0 +1,7 @@
+Executing <Task finished name='Task-2' coro=<RecoveryNativeTransitionTests.test_both_hosts_require_scoped_receipts_and_native_validation() done, defined at E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\tests\test_paper_recovery_release_transition.py:45> result=None created at C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\runners.py:100> took 18.390 seconds
+.Executing <Task finished name='Task-7' coro=<RecoveryNativeTransitionTests.test_closed_copy_preserves_halt_and_reconciles_checked_partial_write() done, defined at E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\tests\test_paper_recovery_release_transition.py:41> result=None created at C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\runners.py:100> took 14.797 seconds
+...
+----------------------------------------------------------------------
+Ran 4 tests in 33.761s
+
+OK

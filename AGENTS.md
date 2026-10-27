@@ -1,5 +1,11 @@
 ## graphify
 
+## Owner deployment preference
+
+The owner instructed on October 27, 2026: "Always deploy before stopping." Finish authorized paper-only changes through verified deployment instead of stopping at a local commit or requesting deployment permission again. Preserve required checks, original experiment/history, risk limits and the single writer. This standing deployment instruction does not itself authorize real trading, paid calls, a live halt reset or unrelated heavy changes. If deployment cannot be completed safely, report the concrete blocker and actual installed state.
+
+## Knowledge graph
+
 This project has a knowledge graph at graphify-out/ with god nodes, community structure, and cross-file relationships.
 
 When the user types `/graphify`, use the installed graphify skill or instructions before doing anything else.

@@ -1,7 +1,7 @@
 """Explicit operator correction on supplied closed copies; never starts a writer.
 
 Supported deltas are the reviewed backup correction, paper reporting correction,
-or snapshot BUSY retry from their respective pinned predecessors.
+or supervisor recovery/reporting correction from their pinned predecessors.
 No transport, provider, scheduling, deployment or experiment initialization is
 performed here. Inspection is the default; apply requires an explicit flag and
 approval reference. Live use still requires separate exact operator approval.
@@ -34,12 +34,17 @@ REPORTING_MODULES = {'notifications.py','paired_paper.py','paired_worker.py','pa
 SNAPSHOT_BASE_COMMIT = 'ed439e897a4dd388fdcf6425e7e8b6171d5a88a9'
 SNAPSHOT_BASE_RELEASE = 'fb67c1a204c1448af5b9e6e0ca7ec41aeb95eadaba62075bcce80af6dd8dd844'
 SNAPSHOT_BASE_RUNTIME = '0a76f3a95733fdc7f0ce951b7f55f5a6040be0ae49387be4cf70563c6489165c'
+RECOVERY_BASE_COMMIT = '20eb6af2a441c934618e124af30d72f411a3938a'
+RECOVERY_BASE_RELEASE = 'b3f89fa5028578f3c29734ccca1dca855fa652d20f75345e7765ca3635ac64c7'
+RECOVERY_BASE_RUNTIME = '38fe4175e5ea53c72a26923e173374e0d9355e90477dd21d53c0c62607a9c0e2'
+RECOVERY_MODULES = {'notifications.py','paper_safety.py','paper_supervisor_health.py','supervisor_sync.py'}
 TARGET = dict(project='f78f42d9-20ec-44f6-ae3f-f8bb79ee7000',
               service='8b94cbc9-293e-4222-a8a7-698b656985f7',
               environment='fdcc71a3-00a9-410c-8d6f-59af9bc98d36')
 PURPOSE = 'paper_backup_plus_release_transition_v1'
 REPORTING_PURPOSE = 'paper_discord_release_transition_v1'
 SNAPSHOT_PURPOSE = 'paper_snapshot_busy_release_transition_v1'
+RECOVERY_PURPOSE = 'paper_supervisor_recovery_release_transition_v1'
 NAMES = {f'{arm}_{wallet}' for arm in ('adaptive', 'control') for wallet in (50, 100, 150, 200)}
 COMPONENTS = (
     ('worker_renewal', 'worker', 'adaptive_200/model_access_refresh.sqlite', 'binding'),
@@ -761,6 +766,8 @@ def _digest(value, length=64):
 
 
 def _purpose(plan):
+    if plan['old_commit'] == RECOVERY_BASE_COMMIT:
+        return RECOVERY_PURPOSE
     if plan['old_commit'] == SNAPSHOT_BASE_COMMIT:
         return SNAPSHOT_PURPOSE
     return REPORTING_PURPOSE if plan['old_commit']==REPORTING_BASE_COMMIT else PURPOSE
@@ -769,7 +776,7 @@ def _purpose(plan):
 def validate_release_plan(plan):
     if not isinstance(plan, dict) or set(plan) != {'old_commit', 'new_commit', 'target', 'old', 'new'}:
         raise ValueError('exact correction release plan required')
-    if plan['old_commit'] not in {BASE_COMMIT,REPORTING_BASE_COMMIT,SNAPSHOT_BASE_COMMIT}:
+    if plan['old_commit'] not in {BASE_COMMIT,REPORTING_BASE_COMMIT,SNAPSHOT_BASE_COMMIT,RECOVERY_BASE_COMMIT}:
         raise ValueError('correction must retain approved base commit')
     _digest(plan['new_commit'], 40)
     if plan['new_commit'] == plan['old_commit']:
@@ -798,7 +805,11 @@ def validate_release_plan(plan):
         raise ValueError('watcher and native launcher must remain unchanged')
     if set(old['runtime']) != set(new['runtime']):
         raise ValueError('runtime source inventory changed')
-    if plan['old_commit'] == SNAPSHOT_BASE_COMMIT:
+    if plan['old_commit'] == RECOVERY_BASE_COMMIT:
+        if _hash(old) != RECOVERY_BASE_RELEASE or _hash(old['runtime']) != RECOVERY_BASE_RUNTIME:
+            raise ValueError('recovery correction predecessor differs from deployed release')
+        allowed = RECOVERY_MODULES
+    elif plan['old_commit'] == SNAPSHOT_BASE_COMMIT:
         if _hash(old) != SNAPSHOT_BASE_RELEASE or _hash(old['runtime']) != SNAPSHOT_BASE_RUNTIME:
             raise ValueError('snapshot retry predecessor differs from the deployed release')
         allowed = {'supervisor_sync.py'}
