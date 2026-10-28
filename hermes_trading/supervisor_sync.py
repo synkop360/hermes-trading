@@ -18,6 +18,10 @@ FILES = ('reflection_owner.json', 'goal.yaml', 'strategy.yaml', 'trades.jsonl', 
 CONFIG_FILES = ('reflection_owner.json', 'goal.yaml', 'strategy.yaml')
 
 
+class SnapshotReportHeartbeatMismatch(ValueError):
+    """The report projection is not yet bound to the observed heartbeat."""
+
+
 def _pid_is_live(pid):
     if os.name == 'nt':
         # Windows os.kill(..., 0) must not be used as a liveness probe.
@@ -120,7 +124,7 @@ def validate_snapshot(snapshot, expected_policy, *, now=None,expected_primary=No
         if not isinstance(report,dict) or report.get('status')!='observed' or report.get('experiment_id')!=policy['experiment_id']:
             raise ValueError('wallet report is not a current experiment observation')
         if heartbeat.get('wallet_report_hash')!=_hash(report):
-            raise ValueError('wallet report does not match the worker heartbeat')
+            raise SnapshotReportHeartbeatMismatch('wallet report does not match the worker heartbeat')
         if not 0<=(current-_time(report.get('observed_at'))).total_seconds()<=600:
             raise ValueError('wallet report is stale or future-dated')
         if versioned:
@@ -181,18 +185,19 @@ def _snapshot_busy(error):
 
 
 def make_snapshot_with_retry(state_dir, *, now=None):
-    """Recollect from scratch after BUSY, within the existing CLI process budget.
+    """Recollect after BUSY or a report/heartbeat publication gap.
 
-    Ten seconds bounds waiting and admission, not an in-flight filesystem read.
+    Twenty seconds bounds waiting and admission, not an in-flight filesystem read.
     The caller's existing subprocess deadline remains the hard process boundary.
+    Persistent mismatches fail closed; every attempt retains full validation.
     """
-    deadline = monotonic() + 10.0
-    waits = (0.2, 0.5, 1, 2, 2, 2, 2)
-    for attempt in range(8):
+    deadline = monotonic() + 20.0
+    waits = (0.2, 0.5, 1) + (2,) * 9
+    for attempt in range(13):
         try:
             return make_snapshot(state_dir, now=now)
         except Exception as error:
-            if attempt == 7 or not _snapshot_busy(error):
+            if attempt == 12 or not (_snapshot_busy(error) or isinstance(error, SnapshotReportHeartbeatMismatch)):
                 raise
             remaining = deadline - monotonic()
             if remaining <= 0:

@@ -82,7 +82,23 @@ class SnapshotRetryTests(unittest.TestCase):
         self.assertIn('heartbeat.json', result['files'])
         self.assertEqual(clock.waits, [0.2, 0.5, 1])
 
-    def test_real_permanent_busy_preserves_final_sqlite_cause_and_eight_attempt_bound(self):
+    def test_real_batch_lease_longer_than_ten_seconds_can_recover(self):
+        self.heartbeat()
+        db = self.lock()
+        clock = Clock()
+        clock.on_wait = lambda: db.rollback() if clock.value >= 11 else None
+        with self.clocked(clock):
+            try:
+                result = self.retry()
+            except ValueError as error:
+                self.fail(f'ordinary eleven-second publication lease exhausted retries: {error}')
+        policy = json.loads((self.state/'reflection_owner.json').read_text())
+        files = sync.validate_snapshot(result, policy, now=NOW)
+        self.assertEqual(files['heartbeat.json'], (self.state/'heartbeat.json').read_bytes())
+        self.assertGreaterEqual(clock.value, 11)
+        self.assertLess(clock.value, 20)
+
+    def test_real_permanent_busy_preserves_final_sqlite_cause_and_thirteen_attempt_bound(self):
         self.heartbeat()
         self.lock()
         clock = Clock()
@@ -90,7 +106,7 @@ class SnapshotRetryTests(unittest.TestCase):
             self.retry()
         self.assertIsInstance(caught.exception.__cause__, sqlite3.OperationalError)
         self.assertEqual(caught.exception.__cause__.sqlite_errorcode, 5)
-        self.assertEqual(clock.waits, [0.2, 0.5, 1, 2, 2, 2, 2])
+        self.assertEqual(clock.waits, [0.2, 0.5, 1] + [2]*9)
 
     def test_retry_reads_new_files_and_runs_both_publication_gates(self):
         self.heartbeat()
@@ -167,7 +183,7 @@ class SnapshotRetryTests(unittest.TestCase):
             clock = Clock(corrupt)
             with self.subTest(case=case), self.clocked(clock), self.assertRaises(ValueError):
                 self.retry()
-            self.assertEqual(clock.waits, [0.2])
+            self.assertEqual(clock.waits, [0.2, 0.5, 1]+[2]*9 if case == 'report' else [0.2])
 
     def test_nonbusy_invalid_state_fails_without_waiting(self):
         good = self.heartbeat()
@@ -276,7 +292,7 @@ class RetryBoundariesTests(unittest.TestCase):
                     outer.__cause__ = error
                     error = outer
                 with self.subTest(code=code,wrapped=wrapped):
-                    self.assertEqual(self.run_failure(error), (8,[0.2,0.5,1,2,2,2,2]))
+                    self.assertEqual(self.run_failure(error), (13,[0.2,0.5,1]+[2]*9))
 
     def test_other_codes_messages_context_and_cause_cycles_never_create_retry(self):
         errors = [self.error(code) for code in (None, 6, 10, 11, 14, '5', True)]
@@ -299,7 +315,7 @@ class RetryBoundariesTests(unittest.TestCase):
         attempts = []
         def fail(*args, **kwargs):
             attempts.append(True)
-            clock.value = 10.0
+            clock.value = 20.0
             raise error
         with patch.object(sync,'make_snapshot',fail), patch.object(sync,'monotonic',clock,create=True), \
                 patch.object(sync,'sleep',clock.sleep,create=True), self.assertRaises(sqlite3.OperationalError):
@@ -308,7 +324,7 @@ class RetryBoundariesTests(unittest.TestCase):
         self.assertEqual(clock.waits, [])
 
     def test_wait_that_reaches_deadline_does_not_admit_another_attempt(self):
-        clock = Clock(lambda: setattr(clock, 'value', 10.0))
+        clock = Clock(lambda: setattr(clock, 'value', 20.0))
         self.assertEqual(self.run_failure(self.error(),clock), (1,[0.2]))
 
     def test_wait_is_capped_at_remaining_admission_budget(self):
@@ -317,7 +333,7 @@ class RetryBoundariesTests(unittest.TestCase):
         attempts = []
         def fail(*args, **kwargs):
             attempts.append(True)
-            clock.value = 9.9
+            clock.value = 19.9
             raise error
         with patch.object(sync,'make_snapshot',fail), patch.object(sync,'monotonic',clock,create=True), \
                 patch.object(sync,'sleep',clock.sleep,create=True), self.assertRaises(sqlite3.OperationalError):

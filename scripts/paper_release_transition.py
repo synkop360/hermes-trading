@@ -38,6 +38,9 @@ RECOVERY_BASE_COMMIT = '20eb6af2a441c934618e124af30d72f411a3938a'
 RECOVERY_BASE_RELEASE = 'b3f89fa5028578f3c29734ccca1dca855fa652d20f75345e7765ca3635ac64c7'
 RECOVERY_BASE_RUNTIME = '38fe4175e5ea53c72a26923e173374e0d9355e90477dd21d53c0c62607a9c0e2'
 RECOVERY_MODULES = {'notifications.py','paper_safety.py','paper_supervisor_health.py','supervisor_sync.py'}
+RELIABILITY_BASE_COMMIT = 'ea752c5f3990acff2a6f7164be733fe2bf92df35'
+RELIABILITY_BASE_RELEASE = 'd8289ff44d543bebca1df87a566335f05366607ffc767d05eb00b75c6eddcf04'
+RELIABILITY_BASE_RUNTIME = 'ffe95446f146d79441862a3eae14228865fd7bf460fc7c7311f5ead3510834eb'
 TARGET = dict(project='f78f42d9-20ec-44f6-ae3f-f8bb79ee7000',
               service='8b94cbc9-293e-4222-a8a7-698b656985f7',
               environment='fdcc71a3-00a9-410c-8d6f-59af9bc98d36')
@@ -45,6 +48,7 @@ PURPOSE = 'paper_backup_plus_release_transition_v1'
 REPORTING_PURPOSE = 'paper_discord_release_transition_v1'
 SNAPSHOT_PURPOSE = 'paper_snapshot_busy_release_transition_v1'
 RECOVERY_PURPOSE = 'paper_supervisor_recovery_release_transition_v1'
+RELIABILITY_PURPOSE = 'paper_supervisor_reliability_release_transition_v1'
 NAMES = {f'{arm}_{wallet}' for arm in ('adaptive', 'control') for wallet in (50, 100, 150, 200)}
 COMPONENTS = (
     ('worker_renewal', 'worker', 'adaptive_200/model_access_refresh.sqlite', 'binding'),
@@ -766,6 +770,8 @@ def _digest(value, length=64):
 
 
 def _purpose(plan):
+    if plan['old_commit'] == RELIABILITY_BASE_COMMIT:
+        return RELIABILITY_PURPOSE
     if plan['old_commit'] == RECOVERY_BASE_COMMIT:
         return RECOVERY_PURPOSE
     if plan['old_commit'] == SNAPSHOT_BASE_COMMIT:
@@ -776,7 +782,7 @@ def _purpose(plan):
 def validate_release_plan(plan):
     if not isinstance(plan, dict) or set(plan) != {'old_commit', 'new_commit', 'target', 'old', 'new'}:
         raise ValueError('exact correction release plan required')
-    if plan['old_commit'] not in {BASE_COMMIT,REPORTING_BASE_COMMIT,SNAPSHOT_BASE_COMMIT,RECOVERY_BASE_COMMIT}:
+    if plan['old_commit'] not in {BASE_COMMIT,REPORTING_BASE_COMMIT,SNAPSHOT_BASE_COMMIT,RECOVERY_BASE_COMMIT,RELIABILITY_BASE_COMMIT}:
         raise ValueError('correction must retain approved base commit')
     _digest(plan['new_commit'], 40)
     if plan['new_commit'] == plan['old_commit']:
@@ -805,7 +811,11 @@ def validate_release_plan(plan):
         raise ValueError('watcher and native launcher must remain unchanged')
     if set(old['runtime']) != set(new['runtime']):
         raise ValueError('runtime source inventory changed')
-    if plan['old_commit'] == RECOVERY_BASE_COMMIT:
+    if plan['old_commit'] == RELIABILITY_BASE_COMMIT:
+        if _hash(old) != RELIABILITY_BASE_RELEASE or _hash(old['runtime']) != RELIABILITY_BASE_RUNTIME:
+            raise ValueError('reliability correction predecessor differs from deployed release')
+        allowed = {'supervisor_sync.py'}
+    elif plan['old_commit'] == RECOVERY_BASE_COMMIT:
         if _hash(old) != RECOVERY_BASE_RELEASE or _hash(old['runtime']) != RECOVERY_BASE_RUNTIME:
             raise ValueError('recovery correction predecessor differs from deployed release')
         allowed = RECOVERY_MODULES
