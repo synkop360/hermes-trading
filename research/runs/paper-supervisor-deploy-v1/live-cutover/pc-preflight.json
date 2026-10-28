@@ -1,0 +1,10 @@
+{
+  "observed_at": "2026-10-27T21:19:30.688876+00:00",
+  "status": "original_pc_launch_and_schedules_validated",
+  "model_attempts_reserved": 0,
+  "actual_state": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-trading\\state\\paired-supervisor\\paper-beta-v1-20261021-6c9d520\\adaptive_200",
+  "cycles_started": 2386,
+  "deadline": "2027-04-21T20:13:29.470165+00:00",
+  "native_runtime_files": 129,
+  "native_launch_sha256": "2c4d7566c9292bcdf93fc7019a23539a89b2bcb8f6800307ad4ce48e516f285b"
+}

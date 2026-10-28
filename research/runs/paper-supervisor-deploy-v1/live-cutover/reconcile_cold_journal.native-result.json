@@ -1,0 +1,26 @@
+{
+  "observed_at": "2026-10-28T07:23:49.655869+00:00",
+  "instance": "b295439f-053d-4911-8b55-5db4e01f00cc",
+  "native_exit_code": 0,
+  "result": {
+    "observed_at": "2026-10-28T07:23:49.145068+00:00",
+    "status": "published_native_original_snapshot_verified_after_cold_journal_reconciliation",
+    "native_inventory_sha256": "ac45156ae15a52b63897c886b8940a70a65edba4a1e135e1137dd280271a2ebc",
+    "files": 528,
+    "snapshot_bytes": 232551524,
+    "opening_hash": "50fd92318969675f72e7450148e77e5bb1d4f60d9d1963ec90cab3061e27c349",
+    "manifest_sha256": "43ec91c55d05f6f04f7a227dd9adc23a2283dd0d788a2255903cb63ee60cbb64",
+    "batch_counts": {
+      "complete": 4157
+    },
+    "directories": 18,
+    "worker_remains_stopped": true,
+    "source_sidecar_free": true,
+    "worker_runtime_logical_hash": "95a4855114d48e5da55211954ffd6bc95f9b710c9f8e6e383329204f63e23396",
+    "user_version_unchanged": 0,
+    "schema_version_unchanged": 1,
+    "journal_removed_by_sqlite_commit": true,
+    "bundle": "/tmp/hermes-recovery-ea752c5/worker-original-bundle"
+  },
+  "stderr_bytes": 98
+}

@@ -1,0 +1,111 @@
+{
+  "observed_at": "2026-10-28T07:27:27.730944+00:00",
+  "instance": "b295439f-053d-4911-8b55-5db4e01f00cc",
+  "native_exit_code": 0,
+  "result": {
+    "observed_at": "2026-10-28T07:27:27.184492+00:00",
+    "receipt": {
+      "status": "completed",
+      "transition_id": "2af9eb98324431a533af3bf00a9fd78af841a72f5906841e821e38f1a588a4d4",
+      "root_binding": "db4c50d5971565eaf21336cc9e165ba02e8e26908578f39fcc8eee946a70a86a",
+      "original_opening_hash": "50fd92318969675f72e7450148e77e5bb1d4f60d9d1963ec90cab3061e27c349",
+      "components": [
+        {
+          "transition_id": "2af9eb98324431a533af3bf00a9fd78af841a72f5906841e821e38f1a588a4d4",
+          "name": "worker_renewal",
+          "reverse": false,
+          "root_binding": "db4c50d5971565eaf21336cc9e165ba02e8e26908578f39fcc8eee946a70a86a",
+          "before_hash": "45a2561b98337db488c110e5cde891b801d288d3b1b8a6368a0c21510d60acd6",
+          "after_hash": "cb3055fa7ae8bdb3570219b4e611e32f1a9fe8fc0c7af219cad6f20fd051629f",
+          "observed_at": "2026-10-28T07:27:23.917673+00:00",
+          "recovered_after_unknown_reply": false
+        },
+        {
+          "transition_id": "2af9eb98324431a533af3bf00a9fd78af841a72f5906841e821e38f1a588a4d4",
+          "name": "worker_usage",
+          "reverse": false,
+          "root_binding": "db4c50d5971565eaf21336cc9e165ba02e8e26908578f39fcc8eee946a70a86a",
+          "before_hash": "73451fa4656a189b29a5b064dc659b4d9967f903cc05d4433244dee242fd4b01",
+          "after_hash": "4cbc23ba9e525bee62cbe4e7ab71b2e67cc16ceaf1daf45b5aed96723dface9c",
+          "observed_at": "2026-10-28T07:27:23.925816+00:00",
+          "recovered_after_unknown_reply": false
+        },
+        {
+          "transition_id": "2af9eb98324431a533af3bf00a9fd78af841a72f5906841e821e38f1a588a4d4",
+          "name": "worker_limits",
+          "reverse": false,
+          "root_binding": "db4c50d5971565eaf21336cc9e165ba02e8e26908578f39fcc8eee946a70a86a",
+          "before_hash": "f564dfa59b06bf477f59cd8d6947d43cd4b88bc50a0326e3b8cda707907933bd",
+          "after_hash": "bddc0ca94cd9037c0bc3c7f32e8c75be7fafddce81b69ab2cd1973bc68eaae21",
+          "observed_at": "2026-10-28T07:27:23.931176+00:00",
+          "recovered_after_unknown_reply": false
+        },
+        {
+          "transition_id": "2af9eb98324431a533af3bf00a9fd78af841a72f5906841e821e38f1a588a4d4",
+          "name": "pc_limits",
+          "reverse": false,
+          "root_binding": "db4c50d5971565eaf21336cc9e165ba02e8e26908578f39fcc8eee946a70a86a",
+          "before_hash": "f564dfa59b06bf477f59cd8d6947d43cd4b88bc50a0326e3b8cda707907933bd",
+          "after_hash": "bddc0ca94cd9037c0bc3c7f32e8c75be7fafddce81b69ab2cd1973bc68eaae21",
+          "observed_at": "2026-10-28T07:27:23.932713+00:00",
+          "recovered_after_unknown_reply": false
+        },
+        {
+          "transition_id": "2af9eb98324431a533af3bf00a9fd78af841a72f5906841e821e38f1a588a4d4",
+          "name": "pc_lifecycle",
+          "reverse": false,
+          "root_binding": "db4c50d5971565eaf21336cc9e165ba02e8e26908578f39fcc8eee946a70a86a",
+          "before_hash": "5291f7b20808991303bc86dcc695cb55b308060c031a8bde24ff4a79152b29aa",
+          "after_hash": "767bce8bc6d0eeb9a8fd1009b6ed5b2dd9260838f545b4d994057904c70bb828",
+          "observed_at": "2026-10-28T07:27:23.934172+00:00",
+          "recovered_after_unknown_reply": false
+        },
+        {
+          "transition_id": "2af9eb98324431a533af3bf00a9fd78af841a72f5906841e821e38f1a588a4d4",
+          "name": "pc_launch",
+          "reverse": false,
+          "root_binding": "db4c50d5971565eaf21336cc9e165ba02e8e26908578f39fcc8eee946a70a86a",
+          "before_hash": "2c4d7566c9292bcdf93fc7019a23539a89b2bcb8f6800307ad4ce48e516f285b",
+          "after_hash": "a19da43f52a1770fd65ecf71f4bb57577ace8b8eb02b79e728b83a73fa726aa0",
+          "observed_at": "2026-10-28T07:27:23.935639+00:00",
+          "recovered_after_unknown_reply": false
+        }
+      ],
+      "completed_at": "2026-10-28T07:27:25.490214+00:00",
+      "qualification": "binding_correction_only_no_profitability_or_activation"
+    },
+    "inspection": {
+      "status": "inspected",
+      "transition_id": "2af9eb98324431a533af3bf00a9fd78af841a72f5906841e821e38f1a588a4d4",
+      "components": [
+        {
+          "name": "worker_renewal",
+          "state": "after"
+        },
+        {
+          "name": "worker_usage",
+          "state": "after"
+        },
+        {
+          "name": "worker_limits",
+          "state": "after"
+        },
+        {
+          "name": "pc_limits",
+          "state": "after"
+        },
+        {
+          "name": "pc_lifecycle",
+          "state": "after"
+        },
+        {
+          "name": "pc_launch",
+          "state": "after"
+        }
+      ],
+      "writer_quiescence": "not_established_until_apply"
+    },
+    "new_marker_released": false
+  },
+  "stderr_bytes": 98
+}

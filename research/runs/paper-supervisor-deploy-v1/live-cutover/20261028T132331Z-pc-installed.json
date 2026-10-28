@@ -1,0 +1,89 @@
+{
+  "observed_at": "2026-10-28T13:23:31.479543+00:00",
+  "release_hash": "d8289ff44d543bebca1df87a566335f05366607ffc767d05eb00b75c6eddcf04",
+  "native_launch_valid": true,
+  "schedule_definition_unchanged": true,
+  "legacy_remains_paused": true,
+  "job": {
+    "id": "2f6c5088c6ff",
+    "enabled": true,
+    "state": "scheduled",
+    "last_run_at": "2026-10-28T14:21:49.476977+01:00",
+    "last_status": "ok",
+    "next_run_at": "2026-10-28T14:22:49.476977+01:00"
+  },
+  "post_readiness_counts": {
+    "completed": 96,
+    "failed": 4
+  },
+  "latest_runs": [
+    {
+      "status": "completed",
+      "started_at": "2026-10-28T14:03:33.670472+01:00",
+      "finished_at": "2026-10-28T14:03:51.189700+01:00"
+    },
+    {
+      "status": "completed",
+      "started_at": "2026-10-28T14:05:33.749205+01:00",
+      "finished_at": "2026-10-28T14:05:54.281634+01:00"
+    },
+    {
+      "status": "completed",
+      "started_at": "2026-10-28T14:07:33.836753+01:00",
+      "finished_at": "2026-10-28T14:07:51.366894+01:00"
+    },
+    {
+      "status": "completed",
+      "started_at": "2026-10-28T14:09:33.922962+01:00",
+      "finished_at": "2026-10-28T14:09:48.375675+01:00"
+    },
+    {
+      "status": "completed",
+      "started_at": "2026-10-28T14:11:33.995515+01:00",
+      "finished_at": "2026-10-28T14:11:51.343575+01:00"
+    },
+    {
+      "status": "completed",
+      "started_at": "2026-10-28T14:13:34.079000+01:00",
+      "finished_at": "2026-10-28T14:13:48.993930+01:00"
+    },
+    {
+      "status": "completed",
+      "started_at": "2026-10-28T14:15:34.148756+01:00",
+      "finished_at": "2026-10-28T14:15:51.597502+01:00"
+    },
+    {
+      "status": "completed",
+      "started_at": "2026-10-28T14:17:34.239227+01:00",
+      "finished_at": "2026-10-28T14:17:48.946974+01:00"
+    },
+    {
+      "status": "completed",
+      "started_at": "2026-10-28T14:19:34.321736+01:00",
+      "finished_at": "2026-10-28T14:19:52.321961+01:00"
+    },
+    {
+      "status": "completed",
+      "started_at": "2026-10-28T14:21:34.418645+01:00",
+      "finished_at": "2026-10-28T14:21:49.483005+01:00"
+    }
+  ],
+  "status": {
+    "observed_at": "2026-10-28T13:21:47.267488+00:00",
+    "status": "not_due",
+    "mirror_state": "current",
+    "refresh_required": false
+  },
+  "lifecycle": {
+    "binding": "e38cfd41a71317fc04f3e92b5506b17cfd340a35e3d325a18fd9162a8c41c5fa",
+    "cycles_started": 2564,
+    "deadline": "2027-04-21T20:13:29.470165+00:00",
+    "experiment_id": "paper-beta-v1-20261021-6c9d520",
+    "last_observed_at": "2026-10-28T13:21:44.919049+00:00",
+    "last_started_at": "2026-10-28T13:21:37.222170+00:00",
+    "model_attempts_reserved": 0,
+    "schema_version": 1,
+    "status": "running",
+    "stop_reason": null
+  }
+}

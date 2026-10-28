@@ -1,6 +1,6 @@
 # Goal progress
 
-Last updated: 2026-10-27 (Europe/Paris).
+Last updated: 2026-10-28 (Europe/Paris).
 
 **Overall estimate: 65%**
 
@@ -8,9 +8,9 @@ Last updated: 2026-10-27 (Europe/Paris).
 [#############-------] 65 / 100
 ```
 
-The paper beta was activated with its original October 23 opening. The October 27 read-only observation finds the installed 20eb6af worker healthy but new entries still halted after supervisor errors; all eight accounts have zero orders and positions. Calendar time does not establish qualifying forward coverage, learned improvements or profitability. Overall remains 65% while operational reliability and the prospective comparison remain unresolved.
+The paper beta retains its original October 23 opening. Candidate `ea752c5` was activated on October 28 at 08:29 Paris time, with clearer Discord reports and longer retries for verified database contention. Eight new batches and all eight matching settlements were verified; a fresh summary was acknowledged by the notifier and a new daily backup verified on E:. The first scheduled supervisor run failed after access renewal and usage bootstrap; three subsequent runs succeeded at acceptance, with a fourth success then observed. The exact first exception is unavailable because the existing launcher discards child stderr. Long-run reliability remains unproved. All eight accounts have zero orders and positions.
 
-The owner approved the supervisor correction and subsequently instructed “Always deploy before stopping.” The frozen candidate `ea752c5` combines longer typed SQLite BUSY retries, clearer Discord reporting and an opt-in audited recovery command. [Deployment execution](PAPER_SUPERVISOR_RECOVERY_CUTOVER.md), [recovery operator guide](PAPER_SUPERVISOR_RECOVERY.md). Exact-package Windows/Linux verification is running before the authorized deployment. The installed runtime and live halt are unchanged at this preparation checkpoint. Live halt acknowledgment remains excluded; deployment authorization does not authorize that separate action.
+The owner’s standing deployment instruction was followed. Both hosts now match all 129 runtime modules and the checked release bindings. Exact-package checks passed 215 cases on Linux and 215 on Windows, including one Windows-only skip. [Deployment execution](PAPER_SUPERVISOR_RECOVERY_CUTOVER.md), [acceptance evidence](../research/runs/paper-supervisor-deploy-v1/live-cutover/OPERATIONAL_ACCEPTANCE.json). The overnight interruption expired the preparation gate; the 10-hour 6-minute observation gap is recorded without replay or clock reset. The owner then explicitly requested an unhalt. [Checked acknowledgment](PAPER_SUPERVISOR_HALT_ACKNOWLEDGMENT.md) completed at 14:26:33 Paris: both halt flags are false and new simulated entries are allowed. Risk limits and all original evidence remain intact. Intermittent supervision failures remain recorded; resetting the old latch is not proof that all failures have been eliminated.
 
 This is an engineering and forward-evaluation estimate, not a probability of profit or a completion forecast. No profitable strategy or minimum profitable €50–200 wallet has been established. Archive expansion remains deferred. The records below retain the prelaunch position as historical evidence.
 

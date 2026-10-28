@@ -1,0 +1,7 @@
+{
+  "serviceId": "8b94cbc9-293e-4222-a8a7-698b656985f7",
+  "environmentId": "fdcc71a3-00a9-410c-8d6f-59af9bc98d36",
+  "input": {
+    "startCommand": "/bin/sh -c 'set -eu\ndeadline=$(($(date +%s) + 1800))\nuntil [ -f /app/state/.paper-ready-recovery-ea752c5 ]; do\n    if [ \"$(date +%s)\" -ge \"$deadline\" ]; then\n        echo paper_preparation_expired >&2\n        exit 78\n    fi\n    sleep 2\ndone\nexec /app/.venv/bin/python -m hermes_trading.paper_boot --root /app/state\n'"
+  }
+}

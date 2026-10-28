@@ -1,0 +1,24 @@
+{
+  "observed_at": "2026-10-28T07:23:32.581691+00:00",
+  "instance": "b295439f-053d-4911-8b55-5db4e01f00cc",
+  "native_exit_code": 0,
+  "result": {
+    "status": "read_only_capture_reconciliation",
+    "marker_absent": true,
+    "paper_boot_is_pid1": true,
+    "bundle_exists": true,
+    "bundle_members": [
+      "worker-native-snapshot"
+    ],
+    "sidecars": [
+      {
+        "path": "worker_runtime.sqlite-journal",
+        "bytes": 8720,
+        "cold_journal_header": "0000000000000000"
+      }
+    ],
+    "published_inventory_exists": true,
+    "native_files": 529
+  },
+  "stderr_bytes": 98
+}

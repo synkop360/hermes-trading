@@ -1,0 +1,40 @@
+{
+  "observed_at": "2026-10-28T07:26:16.162331+00:00",
+  "status": "pc_intent_prepared_all_bindings_original",
+  "transition_id": "2af9eb98324431a533af3bf00a9fd78af841a72f5906841e821e38f1a588a4d4",
+  "root_binding": "6adf672f6afd3efe4dcbf11f25a01368ec14699499f5e597351259396c532a82",
+  "intent_hash": "fc86c3b99a849ec71e075730710373419a2c1fea9b522870db3b583a32241317",
+  "audit_dir": "C:\\Users\\thoma\\AppData\\Local\\hermes\\cutovers\\paper-recovery-ea752c5\\pc-audit",
+  "inspection": {
+    "status": "inspected",
+    "transition_id": "2af9eb98324431a533af3bf00a9fd78af841a72f5906841e821e38f1a588a4d4",
+    "components": [
+      {
+        "name": "worker_renewal",
+        "state": "before"
+      },
+      {
+        "name": "worker_usage",
+        "state": "before"
+      },
+      {
+        "name": "worker_limits",
+        "state": "before"
+      },
+      {
+        "name": "pc_limits",
+        "state": "before"
+      },
+      {
+        "name": "pc_lifecycle",
+        "state": "before"
+      },
+      {
+        "name": "pc_launch",
+        "state": "before"
+      }
+    ],
+    "writer_quiescence": "not_established_until_apply"
+  },
+  "elapsed_seconds": 22.42200000002049
+}

@@ -1,0 +1,12 @@
+{
+  "label": "recovery-ea752c5",
+  "reference": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\r27-ea752c5",
+  "package": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-recovery-ea752c5",
+  "approval": "owner_20261027_always_deploy_paper_only",
+  "candidate": "ea752c5f3990acff2a6f7164be733fe2bf92df35",
+  "remote_base": "/tmp/hermes-recovery-ea752c5",
+  "marker": "/app/state/.paper-ready-recovery-ea752c5",
+  "pc_audit": "C:/Users/thoma/AppData/Local/hermes/cutovers/paper-recovery-ea752c5/pc-audit",
+  "pc_project": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-trading",
+  "actual_launch": "C:/Users/thoma/AppData/Local/hermes/scripts/hermes_trading_paper_6c9d520_native.json"
+}

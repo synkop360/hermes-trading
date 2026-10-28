@@ -1,0 +1,44 @@
+{
+  "observed_at": "2026-10-28T07:25:33.313453+00:00",
+  "instance": "b295439f-053d-4911-8b55-5db4e01f00cc",
+  "native_exit_code": 0,
+  "result": {
+    "observed_at": "2026-10-28T07:25:32.834545+00:00",
+    "status": "worker_intent_prepared_all_bindings_original",
+    "transition_id": "2af9eb98324431a533af3bf00a9fd78af841a72f5906841e821e38f1a588a4d4",
+    "root_binding": "db4c50d5971565eaf21336cc9e165ba02e8e26908578f39fcc8eee946a70a86a",
+    "intent_hash": "15c9258d2fd78f30f65acdee37cabc16aa72dd2d6075a9461cf3a77139778991",
+    "inspection": {
+      "status": "inspected",
+      "transition_id": "2af9eb98324431a533af3bf00a9fd78af841a72f5906841e821e38f1a588a4d4",
+      "components": [
+        {
+          "name": "worker_renewal",
+          "state": "before"
+        },
+        {
+          "name": "worker_usage",
+          "state": "before"
+        },
+        {
+          "name": "worker_limits",
+          "state": "before"
+        },
+        {
+          "name": "pc_limits",
+          "state": "before"
+        },
+        {
+          "name": "pc_lifecycle",
+          "state": "before"
+        },
+        {
+          "name": "pc_launch",
+          "state": "before"
+        }
+      ],
+      "writer_quiescence": "not_established_until_apply"
+    }
+  },
+  "stderr_bytes": 98
+}

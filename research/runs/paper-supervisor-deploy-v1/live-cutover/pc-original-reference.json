@@ -1,0 +1,21 @@
+{
+  "observed_at": "2026-10-27T21:23:16.678663+00:00",
+  "actual_supervisor": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-trading\\state\\paired-supervisor\\paper-beta-v1-20261021-6c9d520\\adaptive_200",
+  "actual_launch": "C:\\Users\\thoma\\AppData\\Local\\hermes\\scripts\\hermes_trading_paper_6c9d520_native.json",
+  "supervisor_reference": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\r27-ea752c5\\p",
+  "launch_reference": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\r27-ea752c5\\l.json",
+  "native_snapshot": {
+    "manifest_sha256": "2ad507c48b39c293fe630286fdd3bc4fbeb55327d167db8915787fd7b67984f0",
+    "files": 19,
+    "ownership_role": "supervisor",
+    "snapshot_bytes": 3904960,
+    "elapsed_seconds": 4.625,
+    "independent_backup_verified": false,
+    "retirement_authorized": false
+  },
+  "files": 19,
+  "inventory_sha256": "2ad507c48b39c293fe630286fdd3bc4fbeb55327d167db8915787fd7b67984f0",
+  "directories": [],
+  "launch_sha256": "2c4d7566c9292bcdf93fc7019a23539a89b2bcb8f6800307ad4ce48e516f285b",
+  "source_sidecar_free": true
+}

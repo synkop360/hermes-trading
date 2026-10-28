@@ -1,6 +1,6 @@
 # Checked paper supervisor recovery
 
-October 27, 2026. Local implementation only; deployment and live acknowledgment are not approved. Never use this guide to bypass a newer error, another safety blocker or missing evidence.
+Updated October 28, 2026. Candidate `ea752c5` is deployed; see [cutover evidence](PAPER_SUPERVISOR_RECOVERY_CUTOVER.md). The owner subsequently explicitly requested an unhalt. The checked acknowledgment completed at 13:26:33 UTC; see [recovery receipt and scope](PAPER_SUPERVISOR_HALT_ACKNOWLEDGMENT.md). Never use this guide to bypass a newer error, another safety blocker or missing evidence.
 
 ## Why the latch stays set
 
@@ -8,7 +8,7 @@ Three supervisor errors intentionally stop new entries. Later success records re
 
 ## Prepare a later approved action
 
-1. Prepare and review an exact two-host release transition from the installed 20eb6af runtime, including any selected Discord presentation changes. Pin the actual predecessor, candidate sources, launch configuration and deployment identity. Obtain separate deployment and live-recovery approval. The free-form `approval_ref` below records that approval; it does not grant it.
+1. Verify the completed two-host transition from `20eb6af` to `ea752c5`, the actual source, launch configuration and deployment identity. Any recovery requires explicit owner authorization; the October 28 acknowledgment records the owner's request to unhalt. The free-form `approval_ref` below records approval; it does not grant it or authorize clearing a future unrelated halt.
 2. Install the reviewed source on both hosts, preserve original clocks/history/policy, and observe successful ordinary scheduled supervision. Diagnose unexplained continuing failures before considering recovery. An operator-generated snapshot does not substitute for scheduled health.
 3. On the actual PC, call `paper_supervisor_health.prepare_recovery_pc_evidence(project, launch_file)`. It reads the checked project, activated native launcher and matching owner/account/lifecycle files. The installed wrapper must be beside the JSON file with the same stem and `.py` suffix. Maintenance, an explicit operator stop, exhausted budgets, stale/stopped lifecycle or pending health delivery rejects preparation.
 4. Transfer that small JSON evidence through the authenticated operator channel. On the worker, call `build_recovery_request(root, approval_ref=..., pc_evidence=...)`. Save the exact returned request without editing it. It binds the full safety state, last supervisor event, both-host release, manifest/opening, all eight accounts, €200 primary, current settlement, policies and PC evidence.
