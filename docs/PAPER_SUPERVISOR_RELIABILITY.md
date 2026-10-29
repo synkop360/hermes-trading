@@ -1,20 +1,23 @@
-# Supervisor snapshot reliability
+# Paper supervisor reliability: deployed October 29
 
-The October 28 investigation established two timing failures in the installed `ea752c5` release:
+Release `c7f816d` is deployed to Railway and the PC supervisor. At 2026-10-29T12:02:03.390395+00:00, the worker was healthy, entries were enabled, both error counters were zero and all eight wallet reports matched their settled batch. 8 consecutive scheduled supervisor runs completed with no failures after schedules resumed.
 
-- Three read-only attempts started at a normal publication lease onset all exhausted the existing retry after 9.709–10.000 seconds, with explicit numeric SQLite BUSY causes. The next healthy heartbeat followed about eleven seconds after the lease began. Evidence: `research/runs/paper-reliability-v1/20261028T180912Z-busy-onset.json`.
-- A deterministic eight-wallet native worker fixture reproduced the completed report being visible before its matching heartbeat. Both publication gates were clear, the previous heartbeat was healthy, and snapshot validation rejected the report hash mismatch. Publishing the ordinary matching heartbeat restored validation.
+The repair addresses two reproduced timing faults: ordinary database leases lasted longer than the previous ten-second retry window, and a new wallet report could appear just before its matching heartbeat. The supervisor now recollects the complete snapshot within a twenty-second budget for these specific conditions. All health, source, identity, account, risk and publication validation remains mandatory. Persistent invalid state still fails closed within the existing thirty-second process boundary.
 
-The correction extends the shared retry admission budget to twenty seconds, at most thirteen complete collections, inside the existing thirty-second subprocess deadline. A specific report/heartbeat mismatch exception permits recollection within the same budget. Persistent mismatches and lock contention still fail closed. Other health, source, identity, account, risk, pending publication, malformed-record and timestamp checks remain mandatory. No snapshot is returned until all validation passes.
+Two read-only probes beginning at real database-lock onset now passed in 11.054 and 11.756 seconds; all three predecessor probes had failed at 9.709–10.000 seconds. A native synthetic eight-wallet regression also verifies that the report/heartbeat gap recovers without accepting mismatched evidence.
 
-This changes one runtime module, `supervisor_sync.py`. The checked transition helper admits only the exact deployed predecessor and this module delta. Worker publication, strategies, risk limits, model cadence, paper mode, paid-call prohibition, original wallets, opening and clocks are preserved. The existing owner-authorized unhalt is preserved; this correction does not acknowledge or clear any halt.
+The exact frozen release passed full Linux discovery: 1,749 tests, zero failures or errors, three Windows-specific skips. Focused checks passed 225 cases on each platform, including one Windows skip. The initial read-only Windows-mounted full attempt had five fixture-write failures and a twenty-minute interruption. A writable, verified Linux copy resolved those harness limitations; no product changes were needed for that rerun.
 
-## Verification and deployment plan
+## Cutover and interruption
 
-1. Reproduce with real SQLite and synthetic native worker fixtures, then test recovery, bounded failure and unchanged rejection checks.
-2. Freeze the byte-preserving release over the deployed raw inventory; run affected exact-package checks on Windows and Linux and disclose broader-suite results separately.
-3. Capture current state and schedules, pause only paper supervision and backup, stop the predecessor and deploy with readiness withheld.
-4. Verify closed worker and PC references plus both checked transition rollback copies on E: before updating release bindings. Preserve all protected evidence and the current safety state.
-5. Validate both actual hosts and original identities, release readiness and restore schedules. Observe normal supervision over multiple access-renewal windows, repeat the natural lock-onset read-only probe, verify all eight wallets and a natural Discord summary.
+The owner explicitly authorized deployment and immediate supervisor-halt recovery. Checked acknowledgment `5ffdc443b5a7419fbfcb82aa2d5aa091` cleared only the two documented supervisor-latch fields at 06:50:34 UTC. Deployment then preserved that exact safety state. One runtime module changed; launchers, strategies, fees, risk limits, all eight wallets, the original October23 opening, cost clock and deadline were retained.
 
-Standing owner authorization is “Always deploy before stopping,” followed by the request to continue until the worker runs without errors. No market backtest, training, paid inference, real order or new strategy is included. A clean observed window is operational evidence, not a guarantee of zero future errors or profitability.
+Railway deployment `ccc1e87a-de24-4876-98b2-57aa3baa2945` started the new worker at 07:08:36 UTC. Fresh worker and PC references and both checked recovery copies were verified on E: before all six release bindings were updated. SQLite itself reconciled a verified cold journal without changing logical data or schema. The actual PC matched all 129 runtime module hashes.
+
+The restart exposed stale adaptive cost coverage during the operator pause. Existing free-access and usage-import routines restored complete accounting; no inference or paid call was made. The usage import completed at 11:43:51 UTC and the original schedules resumed at 11:44:51 UTC. This extended interruption and the unknown observations remain recorded. Nothing was replayed and no experiment clock was reset.
+
+The daily backup task is enabled. Its October29 00:00:35 UTC backup was verified on E:; it was already completed before cutover, not a new post-cutover capture. The fresh closed cutover copy is separate evidence. Discord delivery markers confirm later natural summaries; remote message IDs are not retained.
+
+[Native operational acceptance](../research/runs/paper-reliability-v1/live-cutover/OPERATIONAL_ACCEPTANCE.json) records the exact observation window, wallet state, backup hashes and test evidence. [Full-suite receipt](../research/runs/paper-reliability-v1/linux-full-native-20261029T070022Z-89efa4cf/receipt.json).
+
+This establishes the recorded operational window. It does not guarantee zero future errors or prove profitability. LLM reviews remain due after five new closes; no review is forced by this repair.

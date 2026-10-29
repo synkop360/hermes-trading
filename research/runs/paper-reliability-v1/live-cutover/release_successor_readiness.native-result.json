@@ -1,0 +1,14 @@
+{
+  "observed_at": "2026-10-29T07:08:36.715664+00:00",
+  "instance": "82344b11-fe45-446c-b7e5-deedce294d0e",
+  "native_exit_code": 0,
+  "result": {
+    "status": "original_experiment_successor_readiness_released",
+    "transition_id": "973d396433aa6d0feeb986b604fd55a641245e006ab0d9933e6e0b3c2de396ec",
+    "source_candidate": "c7f816d1e6dcc162ebc4ee6c7100c9d092702f15",
+    "pc_native_validation_sha256": "41811c3cb5e35dc5f50cf54fdc5c012f96443c84dd2809838fd1e50ecbf061c1",
+    "ready_at": "2026-10-29T07:08:36.190423+00:00",
+    "original_opening_hash": "50fd92318969675f72e7450148e77e5bb1d4f60d9d1963ec90cab3061e27c349"
+  },
+  "stderr_bytes": 98
+}

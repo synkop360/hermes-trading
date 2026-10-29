@@ -1,6 +1,6 @@
 # Goal progress
 
-Last updated: 2026-10-28 (Europe/Paris).
+Last updated: 2026-10-29 (Europe/Paris).
 
 **Overall estimate: 65%**
 
@@ -8,11 +8,11 @@ Last updated: 2026-10-28 (Europe/Paris).
 [#############-------] 65 / 100
 ```
 
-The paper beta retains its original October 23 opening. Candidate `ea752c5` was activated on October 28 at 08:29 Paris time, with clearer Discord reports and longer retries for verified database contention. Eight new batches and all eight matching settlements were verified; a fresh summary was acknowledged by the notifier and a new daily backup verified on E:. The first scheduled supervisor run failed after access renewal and usage bootstrap; three subsequent runs succeeded at acceptance, with a fourth success then observed. The exact first exception is unavailable because the existing launcher discards child stderr. Long-run reliability remains unproved. All eight accounts have zero orders and positions.
+**Paper operation: deployed and verified.** Release `c7f816d` runs on Railway with matching PC supervision. The latest acceptance verifies entries enabled, a healthy single worker, zero error counters, all eight matching wallet settlements and 8 consecutive successful scheduled checks. Normal supervision and daily backups are enabled; the legacy watcher remains paused. [Current deployment and verification](PAPER_SUPERVISOR_RELIABILITY.md).
 
-The owner’s standing deployment instruction was followed. Both hosts now match all 129 runtime modules and the checked release bindings. Exact-package checks passed 215 cases on Linux and 215 on Windows, including one Windows-only skip. [Deployment execution](PAPER_SUPERVISOR_RECOVERY_CUTOVER.md), [acceptance evidence](../research/runs/paper-supervisor-deploy-v1/live-cutover/OPERATIONAL_ACCEPTANCE.json). The overnight interruption expired the preparation gate; the 10-hour 6-minute observation gap is recorded without replay or clock reset. The owner then explicitly requested an unhalt. [Checked acknowledgment](PAPER_SUPERVISOR_HALT_ACKNOWLEDGMENT.md) completed at 14:26:33 Paris: both halt flags are false and new simulated entries are allowed. Risk limits and all original evidence remain intact. Intermittent supervision failures remain recorded; resetting the old latch is not proof that all failures have been eliminated.
+The correction fixes two reproduced snapshot timing faults while preserving all risk limits, original history and the October23 experiment clocks. Full Linux discovery passed 1,749 tests with zero failures/errors and three platform skips. Both deliberately sampled live database-contention windows now validated successfully. The extended deployment pause and stale-cost observations are retained and disclosed in the deployment record.
 
-This is an engineering and forward-evaluation estimate, not a probability of profit or a completion forecast. No profitable strategy or minimum profitable €50–200 wallet has been established. Archive expansion remains deferred. The records below retain the prelaunch position as historical evidence.
+This percentage is an engineering and forward-evaluation estimate, not a probability of profit. The original recovery goal remains active: operational reliability must persist, LLM changes need actual qualifying closes, and the longer forward comparison must establish performance after costs. No profitable strategy or minimum profitable EUR50–200 wallet has been demonstrated. Archive expansion remains deferred.
 
 ## Historical prelaunch status — October 21
 

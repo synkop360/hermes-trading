@@ -1,0 +1,40 @@
+{
+  "platform": "windows",
+  "started_at": "2026-10-28T20:20:20.501914+00:00",
+  "finished_at": "2026-10-28T20:24:26.448373+00:00",
+  "exit_code": 0,
+  "package": {
+    "commit": "c7f816d1e6dcc162ebc4ee6c7100c9d092702f15",
+    "package": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-reliability-c7f816d",
+    "files": 675,
+    "runtime_files": 129,
+    "runtime_hash": "22799e23c53716cae16ca6a40d5eed820d9520881ccbf6b19e966577e3cd0a4d",
+    "release_hash": "b5f86459a39b3d7a680e1042bf0a7cf510db651b1c0a5f21063617b1f27cfce2",
+    "purpose": "paper_supervisor_reliability_release_transition_v1",
+    "overlays": [
+      "AGENTS.md",
+      "docs/PAPER_SUPERVISOR_RELIABILITY.md",
+      "hermes_trading/supervisor_sync.py",
+      "research/runs/paper-reliability-v1/predecessor-release-plan.json",
+      "scripts/paper_release_transition.py",
+      "tests/test_paper_reliability_release_transition.py",
+      "tests/test_snapshot_publication_window.py",
+      "tests/test_supervisor_snapshot_retry.py"
+    ],
+    "inventory_sha256": "d09fd888ea3334a6a853c27eff862f559695de1b7415debe0c01018148c2f4cb"
+  },
+  "results": [
+    {
+      "tests": 225,
+      "failures": 0,
+      "errors": 0,
+      "skipped": [
+        "(<test_paper_safety.PaperSafetyTests testMethod=test_volume_symlink_is_not_followed_and_reports_unknown>, 'symbolic links unavailable for this Windows user')"
+      ],
+      "runtime_hash": "22799e23c53716cae16ca6a40d5eed820d9520881ccbf6b19e966577e3cd0a4d"
+    }
+  ],
+  "changed_sources": [],
+  "scope": "affected exact-package checks; not full suite",
+  "network": "synthetic fixtures"
+}

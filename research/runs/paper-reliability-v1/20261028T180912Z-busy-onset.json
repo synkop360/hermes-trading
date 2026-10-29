@@ -1,0 +1,262 @@
+{
+  "started_at": "2026-10-28T18:09:12.539912+00:00",
+  "finished_at": "2026-10-28T18:12:17.955997+00:00",
+  "exit_code": 0,
+  "stderr_bytes": 98,
+  "result": {
+    "kind": "read_only_snapshot_at_busy_onset",
+    "runtime_hash": "ffe95446f146d79441862a3eae14228865fd7bf460fc7c7311f5ead3510834eb",
+    "observations": [
+      {
+        "at": "2026-10-28T18:09:46.120005+00:00",
+        "before": {
+          "heartbeat.json": {
+            "timestamp": "2026-10-28T18:08:45.917537+00:00",
+            "observed_at": "2026-10-28T18:08:43.530784+00:00",
+            "status": "ok",
+            "model_ready": true,
+            "error": null,
+            "wallet_report_hash": "ba150beeedda55bd86847dc2fde6dc332e1f4485e906c04a448e0e47074a8b72"
+          },
+          "model_access.json": {
+            "verified_at": "2026-10-28T18:07:52.018899+00:00",
+            "valid_until": "2026-10-28T18:12:52.018899+00:00",
+            "payment": "verified_free",
+            "paid_calls_authorized": false
+          }
+        },
+        "trigger": "observed_numeric_sqlite_busy",
+        "status": "rejected",
+        "chain": [
+          {
+            "type": "ValueError",
+            "frames": [
+              {
+                "source": "hermes_trading/supervisor_sync.py",
+                "line": 193,
+                "function": "make_snapshot_with_retry"
+              },
+              {
+                "source": "hermes_trading/supervisor_sync.py",
+                "line": 145,
+                "function": "make_snapshot"
+              },
+              {
+                "source": "hermes_trading/paper_publication.py",
+                "line": 191,
+                "function": "assert_no_pending_paired_batch"
+              }
+            ],
+            "reason": "paired batch/publication lease is busy"
+          },
+          {
+            "type": "OperationalError",
+            "frames": [
+              {
+                "source": "hermes_trading/paper_publication.py",
+                "line": 169,
+                "function": "assert_no_pending_paired_batch"
+              },
+              {
+                "source": "hermes_trading/archive_quote_state.py",
+                "line": 140,
+                "function": "assert_quote_retention_complete"
+              },
+              {
+                "source": "hermes_trading/archive_quote_state.py",
+                "line": 84,
+                "function": "operations"
+              }
+            ],
+            "sqlite_code": 5
+          }
+        ],
+        "elapsed_seconds": 10.000482946634293,
+        "after": {
+          "heartbeat.json": {
+            "timestamp": "2026-10-28T18:08:45.917537+00:00",
+            "observed_at": "2026-10-28T18:08:43.530784+00:00",
+            "status": "ok",
+            "model_ready": true,
+            "error": null,
+            "wallet_report_hash": "ba150beeedda55bd86847dc2fde6dc332e1f4485e906c04a448e0e47074a8b72"
+          },
+          "model_access.json": {
+            "verified_at": "2026-10-28T18:07:52.018899+00:00",
+            "valid_until": "2026-10-28T18:12:52.018899+00:00",
+            "payment": "verified_free",
+            "paid_calls_authorized": false
+          }
+        }
+      },
+      {
+        "at": "2026-10-28T18:10:57.060671+00:00",
+        "before": {
+          "heartbeat.json": {
+            "timestamp": "2026-10-28T18:09:56.865319+00:00",
+            "observed_at": "2026-10-28T18:09:54.083361+00:00",
+            "status": "ok",
+            "model_ready": true,
+            "error": null,
+            "wallet_report_hash": "c5f324e56084050870173fa7c605d3660763741c9839c99e61d3635218ccb5dd"
+          },
+          "model_access.json": {
+            "verified_at": "2026-10-28T18:07:52.018899+00:00",
+            "valid_until": "2026-10-28T18:12:52.018899+00:00",
+            "payment": "verified_free",
+            "paid_calls_authorized": false
+          }
+        },
+        "trigger": "observed_numeric_sqlite_busy",
+        "status": "rejected",
+        "chain": [
+          {
+            "type": "ValueError",
+            "frames": [
+              {
+                "source": "hermes_trading/supervisor_sync.py",
+                "line": 193,
+                "function": "make_snapshot_with_retry"
+              },
+              {
+                "source": "hermes_trading/supervisor_sync.py",
+                "line": 145,
+                "function": "make_snapshot"
+              },
+              {
+                "source": "hermes_trading/paper_publication.py",
+                "line": 191,
+                "function": "assert_no_pending_paired_batch"
+              }
+            ],
+            "reason": "paired batch/publication lease is busy"
+          },
+          {
+            "type": "OperationalError",
+            "frames": [
+              {
+                "source": "hermes_trading/paper_publication.py",
+                "line": 169,
+                "function": "assert_no_pending_paired_batch"
+              },
+              {
+                "source": "hermes_trading/archive_quote_state.py",
+                "line": 140,
+                "function": "assert_quote_retention_complete"
+              },
+              {
+                "source": "hermes_trading/archive_quote_state.py",
+                "line": 84,
+                "function": "operations"
+              }
+            ],
+            "sqlite_code": 5
+          }
+        ],
+        "elapsed_seconds": 9.70930896513164,
+        "after": {
+          "heartbeat.json": {
+            "timestamp": "2026-10-28T18:09:56.865319+00:00",
+            "observed_at": "2026-10-28T18:09:54.083361+00:00",
+            "status": "ok",
+            "model_ready": true,
+            "error": null,
+            "wallet_report_hash": "c5f324e56084050870173fa7c605d3660763741c9839c99e61d3635218ccb5dd"
+          },
+          "model_access.json": {
+            "verified_at": "2026-10-28T18:07:52.018899+00:00",
+            "valid_until": "2026-10-28T18:12:52.018899+00:00",
+            "payment": "verified_free",
+            "paid_calls_authorized": false
+          }
+        }
+      },
+      {
+        "at": "2026-10-28T18:12:07.544456+00:00",
+        "before": {
+          "heartbeat.json": {
+            "timestamp": "2026-10-28T18:11:07.320464+00:00",
+            "observed_at": "2026-10-28T18:11:05.035818+00:00",
+            "status": "ok",
+            "model_ready": true,
+            "error": null,
+            "wallet_report_hash": "f631e3dfd09d94f89f39074abd2c094b9446445b1e92f6497491d6e9a44f0741"
+          },
+          "model_access.json": {
+            "verified_at": "2026-10-28T18:11:52.154950+00:00",
+            "valid_until": "2026-10-28T18:16:52.154950+00:00",
+            "payment": "verified_free",
+            "paid_calls_authorized": false
+          }
+        },
+        "trigger": "observed_numeric_sqlite_busy",
+        "status": "rejected",
+        "chain": [
+          {
+            "type": "ValueError",
+            "frames": [
+              {
+                "source": "hermes_trading/supervisor_sync.py",
+                "line": 193,
+                "function": "make_snapshot_with_retry"
+              },
+              {
+                "source": "hermes_trading/supervisor_sync.py",
+                "line": 145,
+                "function": "make_snapshot"
+              },
+              {
+                "source": "hermes_trading/paper_publication.py",
+                "line": 191,
+                "function": "assert_no_pending_paired_batch"
+              }
+            ],
+            "reason": "paired batch/publication lease is busy"
+          },
+          {
+            "type": "OperationalError",
+            "frames": [
+              {
+                "source": "hermes_trading/paper_publication.py",
+                "line": 169,
+                "function": "assert_no_pending_paired_batch"
+              },
+              {
+                "source": "hermes_trading/archive_quote_state.py",
+                "line": 140,
+                "function": "assert_quote_retention_complete"
+              },
+              {
+                "source": "hermes_trading/archive_quote_state.py",
+                "line": 84,
+                "function": "operations"
+              }
+            ],
+            "sqlite_code": 5
+          }
+        ],
+        "elapsed_seconds": 9.709111930802464,
+        "after": {
+          "heartbeat.json": {
+            "timestamp": "2026-10-28T18:11:07.320464+00:00",
+            "observed_at": "2026-10-28T18:11:05.035818+00:00",
+            "status": "ok",
+            "model_ready": true,
+            "error": null,
+            "wallet_report_hash": "f631e3dfd09d94f89f39074abd2c094b9446445b1e92f6497491d6e9a44f0741"
+          },
+          "model_access.json": {
+            "verified_at": "2026-10-28T18:11:52.154950+00:00",
+            "valid_until": "2026-10-28T18:16:52.154950+00:00",
+            "payment": "verified_free",
+            "paid_calls_authorized": false
+          }
+        }
+      }
+    ],
+    "elapsed_seconds": 183.6406327728182,
+    "polls": 1529,
+    "models_invoked": false,
+    "health_receipts_published": false
+  }
+}

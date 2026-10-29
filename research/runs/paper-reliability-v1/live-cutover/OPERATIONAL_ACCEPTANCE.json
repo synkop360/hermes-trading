@@ -1,0 +1,407 @@
+{
+  "status": "deployed_paper_worker_and_supervision_verified",
+  "observed_at": "2026-10-29T12:02:03.390395+00:00",
+  "candidate": "c7f816d1e6dcc162ebc4ee6c7100c9d092702f15",
+  "deployment": "ccc1e87a-de24-4876-98b2-57aa3baa2945",
+  "instance": "82344b11-fe45-446c-b7e5-deedce294d0e",
+  "release_hash": "b5f86459a39b3d7a680e1042bf0a7cf510db651b1c0a5f21063617b1f27cfce2",
+  "runtime_hash": "22799e23c53716cae16ca6a40d5eed820d9520881ccbf6b19e966577e3cd0a4d",
+  "ready_at": "2026-10-29T07:08:36.190423+00:00",
+  "schedules_restored": {
+    "at": "2026-10-29T11:44:51.546472+00:00",
+    "paper_enabled": true,
+    "legacy_paused": true,
+    "paper_state": "scheduled"
+  },
+  "original_opening_hash": "50fd92318969675f72e7450148e77e5bb1d4f60d9d1963ec90cab3061e27c349",
+  "original_clocks_history_wallets_and_risk_preserved": true,
+  "cutover_observation_gap_seconds": 649.433188,
+  "completed_scheduled_checks": 8,
+  "failed_scheduled_checks": 0,
+  "scheduled_runs": [
+    {
+      "status": "completed",
+      "started_at": "2026-10-29T12:46:26.722813+01:00",
+      "finished_at": "2026-10-29T12:46:50.976108+01:00"
+    },
+    {
+      "status": "completed",
+      "started_at": "2026-10-29T12:48:26.805134+01:00",
+      "finished_at": "2026-10-29T12:48:43.625512+01:00"
+    },
+    {
+      "status": "completed",
+      "started_at": "2026-10-29T12:50:26.887500+01:00",
+      "finished_at": "2026-10-29T12:50:41.129094+01:00"
+    },
+    {
+      "status": "completed",
+      "started_at": "2026-10-29T12:52:26.963840+01:00",
+      "finished_at": "2026-10-29T12:52:43.817851+01:00"
+    },
+    {
+      "status": "completed",
+      "started_at": "2026-10-29T12:54:27.046620+01:00",
+      "finished_at": "2026-10-29T12:54:41.121957+01:00"
+    },
+    {
+      "status": "completed",
+      "started_at": "2026-10-29T12:56:27.129344+01:00",
+      "finished_at": "2026-10-29T12:56:44.056144+01:00"
+    },
+    {
+      "status": "completed",
+      "started_at": "2026-10-29T12:58:27.206230+01:00",
+      "finished_at": "2026-10-29T12:58:41.642056+01:00"
+    },
+    {
+      "status": "completed",
+      "started_at": "2026-10-29T13:00:27.301122+01:00",
+      "finished_at": "2026-10-29T13:00:52.591961+01:00"
+    }
+  ],
+  "worker_heartbeat": {
+    "account_names_match": true,
+    "batch_id": "b2869ec7-9f5e-4329-8313-42e511d9bec9",
+    "completed_batches": 5602,
+    "error_present": false,
+    "input_hash": "99ba4e2ce9bfe8b987679f446b51829cb255823697d4b135384e98770feb1dcd",
+    "observed_at": "2026-10-29T12:00:41.600327+00:00",
+    "paper_mode": true,
+    "primary_wallet_eur": 200,
+    "simulated": true,
+    "status": "ok",
+    "timestamp": "2026-10-29T12:00:45.630990+00:00"
+  },
+  "entry_admission": {
+    "blocked": false,
+    "reasons": [],
+    "status": null
+  },
+  "safety": {
+    "experiment_id": "paper-beta-v1-20261021-6c9d520",
+    "policy_sha256": "336515ea18e6f45e514deb0947765017b9069fa3d099d9ccfd3c3c8918837925",
+    "schema_version": 1,
+    "supervisor": {
+      "consecutive_errors": 0,
+      "entry_halt": false,
+      "error_kind": null,
+      "event_id": "effcbe2cdf1e4d94b362c1fd724f84f2",
+      "last_seen": "2026-10-29T12:00:50.576820+00:00",
+      "success": true
+    },
+    "worker": {
+      "consecutive_errors": 0,
+      "entry_halt": false,
+      "error_kind": null,
+      "last_seen": "2026-10-29T12:00:45.612671+00:00",
+      "success": true
+    }
+  },
+  "all_eight_settlements_verified": true,
+  "new_completed_batches": 248,
+  "busy_onset_samples": [
+    {
+      "at": "2026-10-29T11:46:22.950402+00:00",
+      "status": "validated",
+      "elapsed_seconds": 11.054130828008056
+    },
+    {
+      "at": "2026-10-29T11:47:33.835611+00:00",
+      "status": "validated",
+      "elapsed_seconds": 11.75593475997448
+    }
+  ],
+  "discord": {
+    "before": 722,
+    "after": 772,
+    "pending": null,
+    "counters": {
+      "coalesced": 0,
+      "delivery_unknown": 2,
+      "dropped": 0,
+      "gaps": 6,
+      "invalid": 0,
+      "omitted_events": 0,
+      "oversized": 0,
+      "repeated_states": 0,
+      "restarts": 4
+    }
+  },
+  "daily_backup": {
+    "captured_at": "2026-10-29T00:00:35.159221+00:00",
+    "name": "state-2026-10-29-73a6a6a8ab53",
+    "off_host_verified": true,
+    "path": "\\\\?\\E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-trading\\backups\\paper-beta-v1\\paper-beta-v1-20261021-6c9d520\\state-2026-10-29-73a6a6a8ab53",
+    "purpose": "paper_daily_state_backup_v1",
+    "schema_version": 1,
+    "sha256": "6735f85d3ea8a618b36cf97b00edecf8a334b0a12fd3986decd76a0128d2375d",
+    "source_identity": "73a6a6a8ab53e85a99a84f69d46ec026099d429f5ae9cfc2069fdb46f67bf5ba",
+    "status": "already_completed"
+  },
+  "closed_cutover_backup": {
+    "observed_at": "2026-10-29T07:02:52.666695+00:00",
+    "worker_reference": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\r28-c7f816d\\w",
+    "native_files_verified": 533,
+    "native_inventory_sha256": "249800f755b90bee34190daed98f84685187f6dc0d69c21f508d3e155b84fe2c",
+    "wire_bytes": 265799680,
+    "wire_sha256": "29595d7b6bedfc913492339ec6724e525e7cdd09197c71a3dd43efa6531d98e0",
+    "directories_preserved": 19,
+    "source_sidecar_free": true,
+    "original_opening_hash": "50fd92318969675f72e7450148e77e5bb1d4f60d9d1963ec90cab3061e27c349",
+    "elapsed_seconds": 14.047000000020489
+  },
+  "full_suite": {
+    "error_tests": [],
+    "errors": 0,
+    "expected_failures": 0,
+    "failure_tests": [],
+    "failures": 0,
+    "runtime_hash": "22799e23c53716cae16ca6a40d5eed820d9520881ccbf6b19e966577e3cd0a4d",
+    "skipped": [
+      {
+        "reason": "Windows junction regression",
+        "test": "test_windows_junction_not_followed (test_archive_store.ArchiveTests.test_windows_junction_not_followed)"
+      },
+      {
+        "reason": "Windows file locking behavior",
+        "test": "test_append_event_retries_windows_deadlock_contention (test_artifacts.ArtifactTests.test_append_event_retries_windows_deadlock_contention)"
+      },
+      {
+        "reason": "Windows file locking behavior",
+        "test": "test_append_event_times_out_after_persistent_windows_lock_contention (test_artifacts.ArtifactTests.test_append_event_times_out_after_persistent_windows_lock_contention)"
+      }
+    ],
+    "successful": true,
+    "tests": 1749,
+    "unexpected_successes": 0
+  },
+  "model_attempts_reserved": 0,
+  "wallets": {
+    "adaptive_100": {
+      "account_hash": "ab01234ad2feb966dda08ae4d7334835a08d838cba55bb5ff515723c3f6e7c4d",
+      "account_hash_matches": true,
+      "closed_net_pnl": "0",
+      "common_heartbeat_time": true,
+      "cost_quality": {
+        "ai": "estimated",
+        "funding": "actual",
+        "hosting": "estimated",
+        "tools": "estimated"
+      },
+      "currency": "EUR",
+      "known_accrued_costs": "1.301289235384953703703703704",
+      "matches_latest_settlement": true,
+      "missing_field_count": 0,
+      "net_equity": "98.69871076461504629629629630",
+      "observed_at": "2026-10-29T12:00:41.600327+00:00",
+      "status": "observed"
+    },
+    "adaptive_150": {
+      "account_hash": "114e0c50abc0237b326b8b8be92e01cee16ff58dbf549f2dee037028c5aa2ff4",
+      "account_hash_matches": true,
+      "closed_net_pnl": "0",
+      "common_heartbeat_time": true,
+      "cost_quality": {
+        "ai": "estimated",
+        "funding": "actual",
+        "hosting": "estimated",
+        "tools": "estimated"
+      },
+      "currency": "EUR",
+      "known_accrued_costs": "1.301289235384953703703703704",
+      "matches_latest_settlement": true,
+      "missing_field_count": 0,
+      "net_equity": "148.6987107646150462962962963",
+      "observed_at": "2026-10-29T12:00:41.600327+00:00",
+      "status": "observed"
+    },
+    "adaptive_200": {
+      "account_hash": "8537e0f7f17abc8a092f2ca8e39ad8b1d290f8ee222296fbdc834fe00bb488f3",
+      "account_hash_matches": true,
+      "closed_net_pnl": "0",
+      "common_heartbeat_time": true,
+      "cost_quality": {
+        "ai": "estimated",
+        "funding": "actual",
+        "hosting": "estimated",
+        "tools": "estimated"
+      },
+      "currency": "EUR",
+      "known_accrued_costs": "1.301289235384953703703703704",
+      "matches_latest_settlement": true,
+      "missing_field_count": 0,
+      "net_equity": "198.6987107646150462962962963",
+      "observed_at": "2026-10-29T12:00:41.600327+00:00",
+      "status": "observed"
+    },
+    "adaptive_50": {
+      "account_hash": "c6cb98dfffbfefb519cd7dc6cfe213cc61f2bfc741d13bc7d23f18e652f2cb72",
+      "account_hash_matches": true,
+      "closed_net_pnl": "0",
+      "common_heartbeat_time": true,
+      "cost_quality": {
+        "ai": "estimated",
+        "funding": "actual",
+        "hosting": "estimated",
+        "tools": "estimated"
+      },
+      "currency": "EUR",
+      "known_accrued_costs": "1.301289235384953703703703704",
+      "matches_latest_settlement": true,
+      "missing_field_count": 0,
+      "net_equity": "48.69871076461504629629629630",
+      "observed_at": "2026-10-29T12:00:41.600327+00:00",
+      "status": "observed"
+    },
+    "control_100": {
+      "account_hash": "d2bf582f19519c6ea828762c53115a20009668676338fbdba9b7712b8fd0aec3",
+      "account_hash_matches": true,
+      "closed_net_pnl": "0",
+      "common_heartbeat_time": true,
+      "cost_quality": {
+        "ai": "estimated",
+        "funding": "actual",
+        "hosting": "estimated",
+        "tools": "estimated"
+      },
+      "currency": "EUR",
+      "known_accrued_costs": "1.301289235384953703703703704",
+      "matches_latest_settlement": true,
+      "missing_field_count": 0,
+      "net_equity": "98.69871076461504629629629630",
+      "observed_at": "2026-10-29T12:00:41.600327+00:00",
+      "status": "observed"
+    },
+    "control_150": {
+      "account_hash": "33aead4b07aeddd677babf6b1f344df77f3c0ab2a71932ec3f086d0847468527",
+      "account_hash_matches": true,
+      "closed_net_pnl": "0",
+      "common_heartbeat_time": true,
+      "cost_quality": {
+        "ai": "estimated",
+        "funding": "actual",
+        "hosting": "estimated",
+        "tools": "estimated"
+      },
+      "currency": "EUR",
+      "known_accrued_costs": "1.301289235384953703703703704",
+      "matches_latest_settlement": true,
+      "missing_field_count": 0,
+      "net_equity": "148.6987107646150462962962963",
+      "observed_at": "2026-10-29T12:00:41.600327+00:00",
+      "status": "observed"
+    },
+    "control_200": {
+      "account_hash": "25288c8ffd776d40ef0a1cac47b63f1b033e7093a5b01bd551734d62eac589bc",
+      "account_hash_matches": true,
+      "closed_net_pnl": "0",
+      "common_heartbeat_time": true,
+      "cost_quality": {
+        "ai": "estimated",
+        "funding": "actual",
+        "hosting": "estimated",
+        "tools": "estimated"
+      },
+      "currency": "EUR",
+      "known_accrued_costs": "1.301289235384953703703703704",
+      "matches_latest_settlement": true,
+      "missing_field_count": 0,
+      "net_equity": "198.6987107646150462962962963",
+      "observed_at": "2026-10-29T12:00:41.600327+00:00",
+      "status": "observed"
+    },
+    "control_50": {
+      "account_hash": "164833f1175f88b92747e404a0d963fec6344debbe4a07d2f8548df3b7544268",
+      "account_hash_matches": true,
+      "closed_net_pnl": "0",
+      "common_heartbeat_time": true,
+      "cost_quality": {
+        "ai": "estimated",
+        "funding": "actual",
+        "hosting": "estimated",
+        "tools": "estimated"
+      },
+      "currency": "EUR",
+      "known_accrued_costs": "1.301289235384953703703703704",
+      "matches_latest_settlement": true,
+      "missing_field_count": 0,
+      "net_equity": "48.69871076461504629629629630",
+      "observed_at": "2026-10-29T12:00:41.600327+00:00",
+      "status": "observed"
+    }
+  },
+  "trading": {
+    "adaptive_100": {
+      "decisions": {
+        "no_trade": 342
+      },
+      "orders": 0,
+      "positions": {},
+      "status": "observed"
+    },
+    "adaptive_150": {
+      "decisions": {
+        "no_trade": 342
+      },
+      "orders": 0,
+      "positions": {},
+      "status": "observed"
+    },
+    "adaptive_200": {
+      "decisions": {
+        "no_trade": 342
+      },
+      "orders": 0,
+      "positions": {},
+      "status": "observed"
+    },
+    "adaptive_50": {
+      "decisions": {
+        "no_trade": 342
+      },
+      "orders": 0,
+      "positions": {},
+      "status": "observed"
+    },
+    "control_100": {
+      "decisions": {
+        "no_trade": 342
+      },
+      "orders": 0,
+      "positions": {},
+      "status": "observed"
+    },
+    "control_150": {
+      "decisions": {
+        "no_trade": 342
+      },
+      "orders": 0,
+      "positions": {},
+      "status": "observed"
+    },
+    "control_200": {
+      "decisions": {
+        "no_trade": 342
+      },
+      "orders": 0,
+      "positions": {},
+      "status": "observed"
+    },
+    "control_50": {
+      "decisions": {
+        "no_trade": 342
+      },
+      "orders": 0,
+      "positions": {},
+      "status": "observed"
+    }
+  },
+  "limitations": [
+    "A bounded observed window is not a guarantee against future errors.",
+    "Runtime started07:08UTC; stale cost coverage delayed healthy supervision until the11:43usage import and11:44schedule restore. This gap and unknown observations are retained.",
+    "Daily backup was already completed before cutover; the fresh closed cutover copy is separate evidence.",
+    "Discord evidence is local confirmed delivery markers, not retained remote message IDs.",
+    "No profitability or minimum profitable wallet has been established."
+  ]
+}
