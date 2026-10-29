@@ -403,11 +403,12 @@ def _normalized_price(payload: Mapping[str, Any]) -> dict[str, Any]:
         values["closes"] = tuple(_decimal(value) for value in raw_closes)
     raw_candles = payload.get("candles")
     if isinstance(raw_candles, list):
-        # Indicators need OHLC history as well as closes. Keep only numeric fields.
+        # Entry cost checks must verify the same closed history used by indicators.
+        # Preserve source times; missing times stay missing and fail that check.
         values["candles"] = tuple(
             {
-                field: _decimal(candle[field])
-                for field in ("open", "high", "low", "close")
+                **{field: _decimal(candle[field]) for field in ("open", "high", "low", "close")},
+                **({"timestamp": _timestamp(candle["timestamp"]).isoformat()} if "timestamp" in candle else {}),
             }
             for candle in raw_candles
             if isinstance(candle, Mapping) and all(field in candle for field in ("open", "high", "low", "close"))
