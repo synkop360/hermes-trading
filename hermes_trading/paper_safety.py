@@ -321,6 +321,9 @@ def entry_status(root, *, policy, now=None):
                     raise ValueError('future health state')
                 if row['entry_halt']:
                     reasons.append(name + '_error_halt')
+        # Check after the state read: a recovery may have begun during it.
+        if _recovery_pending(root):
+            reasons.append('supervisor_recovery_pending')
         supervisor = state['supervisor']
         if policy['supervisor_health_required']:
             if supervisor is None:
@@ -331,6 +334,187 @@ def entry_status(root, *, policy, now=None):
         reasons.append('safety_state_unknown')
     result['blocked'] = bool(reasons)
     return result
+
+
+_RECOVERY_PENDING = 'paper_supervisor_recovery_pending.json'
+
+
+def _recovery_pending(root):
+    return _regular(root / _RECOVERY_PENDING, missing=True) is not None
+
+
+def _recovery_hash(value):
+    return hashlib.sha256(_json(value).encode()).hexdigest()
+
+
+def _recovery_once(path, value):
+    """Immutable bounded artifact; caller owns the safety lock."""
+    raw = (_json(value) + '\n').encode()
+    if len(raw) > _JSON_LIMIT:
+        raise ValueError('recovery artifact exceeds bound')
+    if _regular(path, missing=True) is not None:
+        if _read(path) != value:
+            raise ValueError('conflicting recovery artifact')
+        return
+    stage = path.parent / ('.recovery.' + uuid.uuid4().hex + '.tmp')
+    try:
+        with stage.open('xb') as stream:
+            stream.write(raw); stream.flush(); os.fsync(stream.fileno())
+        if _regular(path, missing=True) is not None:
+            raise ValueError('recovery artifact appeared during preparation')
+        os.replace(stage, path)
+        _fsync_directory(path.parent)
+    finally:
+        if stage.exists(): stage.unlink()
+
+
+def _recovery_clear_marker(root, marker):
+    path = root / _RECOVERY_PENDING
+    if _read(path) != marker:
+        raise ValueError('recovery pending marker changed')
+    path.unlink()
+    _fsync_directory(root)
+
+
+def recover_supervisor(root, request, *, preflight, now=None, enabled=False, abort=False):
+    """Opt-in operator transition, never called by normal health/snapshot paths.
+
+    preflight is a context manager holding verified read-only publication/account
+    transactions. It is entered BEFORE the safety lock (worker lock order).
+    It must yield the exact checked binding dictionary from the request.
+    """
+    from contextlib import nullcontext
+    if enabled is not True or type(abort) is not bool:
+        raise ValueError('explicit recovery opt-in required')
+    root = _directory(Path(root))
+    request = _pairs(list(request.items())) if isinstance(request, dict) else None
+    if request is None or len(_json(request).encode()) > _JSON_LIMIT:
+        raise ValueError('bounded recovery request required')
+    identifier = request.get('request_id')
+    if not isinstance(identifier, str) or re.fullmatch('[0-9a-f]{32}', identifier) is None:
+        raise ValueError('recovery request identity differs')
+    policy = load_policy(root, request.get('experiment_id'))
+    if policy is None: raise ValueError('recovery requires existing safety policy')
+    state_path = root / 'paper_safety_state.json'
+    _regular(state_path); _regular(state_path.with_suffix('.json.lock'), missing=True)
+    directory = root / 'paper_supervisor_recovery'
+    if directory.exists(): _directory(directory)
+    intent_path = directory / (identifier + '.intent.json')
+    receipt_path = directory / (identifier + '.receipt.json')
+    abort_path = directory / (identifier + '.abort.json')
+    request_hash = _recovery_hash(request)
+    root_hash = _recovery_hash(str(root))
+    marker = dict(schema_version=1, request_id=identifier, request_hash=request_hash, root_hash=root_hash)
+
+    def read_intent():
+        intent = _read(intent_path)
+        if (set(intent) != {'schema_version', 'request', 'request_hash', 'root_hash', 'before', 'after_hash'} or
+                intent['schema_version'] != 1 or intent['request'] != request or
+                intent['request_hash'] != request_hash or intent['root_hash'] != root_hash or
+                _recovery_hash(intent['before']) != request['state_hash']):
+            raise ValueError('recovery intent differs')
+        after = json.loads(_json(intent['before']))
+        after['supervisor'].update(entry_halt=False, consecutive_errors=0)
+        if _recovery_hash(after) != intent['after_hash']:
+            raise ValueError('recovery target differs')
+        return intent, after
+
+    def receipt(intent, outcome, before, after):
+        return dict(schema_version=1, request_id=identifier, request_hash=request_hash,
+                    root_hash=root_hash, intent_hash=_recovery_hash(intent),
+                    before_hash=_recovery_hash(before), after_hash=_recovery_hash(after),
+                    before=before, after=after, outcome=outcome)
+
+    def checked_receipt(path, intent, outcome):
+        done = _read(path)
+        before = done['before']
+        after = json.loads(_json(before))
+        after['supervisor'].update(entry_halt=outcome == 'aborted',
+                                   consecutive_errors=3 if outcome == 'aborted' else 0)
+        if ((outcome == 'completed' and before != intent['before']) or
+                done != receipt(intent, outcome, before, after)):
+            raise ValueError('recovery receipt differs')
+        return done
+
+    # A confirmed historical retry must not reset a newer health state.
+    with _artifact_lock(state_path):
+        if load_policy(root, policy['experiment_id']) != policy:
+            raise ValueError('recovery safety policy changed')
+        if _regular(abort_path, missing=True) is not None:
+            intent, after = read_intent()
+            done = checked_receipt(abort_path, intent, 'aborted')
+            state = _state(root, policy)
+            if _recovery_pending(root):
+                if state['supervisor']['entry_halt'] is not True:
+                    raise ValueError('aborted recovery no longer halted')
+                _recovery_clear_marker(root, marker)
+            return dict(done, status='already_aborted',
+                        current_supervisor_halted=state['supervisor']['entry_halt'])
+        if _regular(receipt_path, missing=True) is not None:
+            intent, after = read_intent()
+            done = checked_receipt(receipt_path, intent, 'completed')
+            if not _recovery_pending(root):
+                return dict(done, status='already_completed',
+                            current_supervisor_halted=_state(root, policy)['supervisor']['entry_halt'])
+            # A remaining marker needs fresh preflight, or conservative abort.
+
+    with (nullcontext(request.get('bindings')) if abort else preflight()) as bindings:
+        if bindings != request.get('bindings'):
+            raise ValueError('recovery preflight binding differs')
+        with _artifact_lock(state_path):
+            if load_policy(root, policy['experiment_id']) != policy:
+                raise ValueError('recovery safety policy changed')
+            at = _time(_utc_now() if now is None else now)
+            if not abort and not (_time(request['prepared_at']) <= at < _time(request['valid_until']) and
+                                  (_time(request['valid_until'])-_time(request['prepared_at'])).total_seconds() == 120):
+                raise ValueError('recovery request expired or future-dated')
+            state = _state(root, policy)
+            if _regular(intent_path, missing=True) is not None:
+                intent, after = read_intent()
+            else:
+                if abort: raise ValueError('no recovery intent to abort')
+                if _recovery_hash(state) != request.get('state_hash'):
+                    raise ValueError('recovery safety state changed')
+                after = json.loads(_json(state))
+                after['supervisor'].update(entry_halt=False, consecutive_errors=0)
+                intent = dict(schema_version=1, request=request, request_hash=request_hash,
+                              root_hash=root_hash, before=state, after_hash=_recovery_hash(after))
+            before = intent['before']
+            if not abort and state not in (before, after):
+                raise ValueError('recovery cannot replace newer health')
+            if not abort and state == after and not _recovery_pending(root):
+                raise ValueError('unreceipted cleared state requires pending marker')
+            supervisor = before['supervisor']; worker = before['worker']
+            if (supervisor is None or supervisor['entry_halt'] is not True or supervisor['consecutive_errors'] != 3 or
+                    supervisor['success'] is not True or supervisor['event_id'] != request['supervisor_event_id'] or
+                    supervisor['last_seen'] != request['supervisor_observed_at'] or worker is None or
+                    worker['entry_halt'] is not False or worker['success'] is not True):
+                raise ValueError('recovery health or latch differs')
+            if not abort and any(not 0 <= (at-_time(row['last_seen'])).total_seconds() <= 60 for row in (supervisor, worker)):
+                raise ValueError('recovery health is stale')
+            if _recovery_pending(root) and _read(root/_RECOVERY_PENDING) != marker:
+                raise ValueError('another recovery is pending')
+            if not directory.exists(): directory.mkdir(); _fsync_directory(root)
+            _directory(directory)
+            members = list(directory.iterdir())
+            targets={intent_path,abort_path if abort else receipt_path}
+            if (len(set(members)|targets)>96 or any(not _regular(path) or
+                    re.fullmatch('[0-9a-f]{32}\\.(intent|receipt|abort)\\.json',path.name) is None for path in members)):
+                raise ValueError('recovery audit inventory differs')
+            if not intent_path.exists() and len(list(directory.glob('*.intent.json'))) >= 32:
+                raise ValueError('recovery audit capacity reached')
+            _recovery_once(intent_path, intent)
+            _recovery_once(root/_RECOVERY_PENDING, marker)
+            target = json.loads(_json(state)) if abort else after
+            if abort:
+                # Cancellation adds a halt; it never restores older health.
+                target['supervisor'].update(entry_halt=True, consecutive_errors=3)
+            if state != target: _write(root, target)
+            if _state(root, policy) != target: raise ValueError('recovery transition verification failed')
+            done = receipt(intent, 'aborted' if abort else 'completed', state if abort else before, target)
+            _recovery_once(abort_path if abort else receipt_path, done)
+            _recovery_clear_marker(root, marker)
+            return dict(done, status=done['outcome'], current_supervisor_halted=target['supervisor']['entry_halt'])
 
 
 def rotate_diagnostics(root, *, policy):

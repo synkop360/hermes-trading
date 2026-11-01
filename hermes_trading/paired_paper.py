@@ -11,6 +11,7 @@ import base64
 from pathlib import Path
 import uuid
 import sqlite3
+import time
 
 from hermes_trading.domain import json_value
 from hermes_trading.loop import run_cycle,_load_yaml
@@ -266,7 +267,46 @@ def market_source_status(snapshots,at,*,packet_schema=2):
     return result
 
 
-async def run_paired_cycle(root,market_data,*,now=None,process_account=None,entries_blocked=False,not_after=None,packet_preflight=None,operational_stop=None,reservation_id=None):
+def _notification_events(path,at):
+    """Bounded read after native financial writes; the sender never owns this DB."""
+    db=sqlite3.connect((path/'trading.db').resolve().as_uri()+'?mode=ro',uri=True,timeout=.05)
+    try:
+        deadline=time.monotonic()+.05
+        db.set_progress_handler(lambda: int(time.monotonic()>deadline),1000)
+        db.row_factory=sqlite3.Row
+        db.execute('PRAGMA query_only=ON');db.execute('BEGIN')
+        closes=[dict(row) for row in db.execute(
+            "SELECT position_id,asset,quantity,closed_at,realized_pnl AS realized_pnl_eur "
+            "FROM positions WHERE status='closed' AND closed_at=? ORDER BY position_id LIMIT 257",(at,))]
+        orders=[dict(row) for row in db.execute(
+            'SELECT order_id,client_order_id,asset,side,status,filled_quantity AS quantity '
+            'FROM orders WHERE created_at=? ORDER BY order_id LIMIT 257',(at,))]
+        bounded=len(closes)<=256 and len(orders)<=256
+        return dict(closes=closes[:256],orders=orders[:256],
+                    event_source_status='observed' if bounded else 'truncated')
+    finally:db.close()
+
+
+def _notification_capture(profiles,packet,completed,measurements,batch_id,input_hash):
+    accounts={}
+    for (arm,wallet),(path,profile,config) in profiles.items():
+        name=f'{arm}_{wallet}';final=completed[name]
+        try:events=_notification_events(path,packet['created_at'])
+        except Exception:
+            events=dict(closes=[],orders=[],event_source_status='unavailable')
+        for close in events['closes']:close['account']=name
+        for order in events['orders']:order['account']=name
+        accounts[name]=dict(account_hash=packet['bindings'][name]['account_hash'],
+            finalized=final.get('finalized') is True,observed_at=final.get('observed_at'),
+            observation=deepcopy(measurements[name]['observation']),
+            decisions=[{k:row[k] for k in ('decision_id','asset','action','reason')}
+                       for row in final.get('decisions',[])],
+            halted=final.get('halted'),liquidation_pending=final.get('liquidation_pending'),**events)
+    return dict(status='observed',batch_id=batch_id,input_hash=input_hash,
+                manifest_hash=packet['manifest_hash'],observed_at=packet['created_at'],accounts=accounts)
+
+
+async def run_paired_cycle(root,market_data,*,now=None,process_account=None,entries_blocked=False,not_after=None,packet_preflight=None,operational_stop=None,reservation_id=None,notification_capture=False):
     from hermes_trading.operational_exits import PAIRED_OPERATIONAL_STOP_REASONS
     if operational_stop is not None and operational_stop not in PAIRED_OPERATIONAL_STOP_REASONS:
         raise ValueError('unknown paired operational stop')
@@ -430,8 +470,14 @@ async def run_paired_cycle(root,market_data,*,now=None,process_account=None,entr
             db.execute('BEGIN EXCLUSIVE')
             db.execute('UPDATE paired_batches SET completed=? WHERE batch_id=?',(store_record(db,completed),batch_id));db.commit()
         db.execute("UPDATE paired_batches SET status='complete' WHERE batch_id=?",(batch_id,));db.commit()
-        return {'status':'halted' if risk_state['global_halted'] else 'complete','batch_id':batch_id,
+        result={'status':'halted' if risk_state['global_halted'] else 'complete','batch_id':batch_id,
                 'input_hash':input_hash,'accounts':list(completed.values()),'risk_state':risk_state}
+        if notification_capture is True:
+            try:result['notification']=_notification_capture(profiles,packet,completed,measurements,batch_id,input_hash)
+            except Exception as error:
+                result['notification']=dict(status='unavailable',error_kind=type(error).__name__,
+                    batch_id=batch_id,input_hash=input_hash,accounts={})
+        return result
     except BaseException:
         db.rollback();raise
     finally:db.close()

@@ -1,5 +1,7 @@
 # EUR50–200 wallet and LLM-steered evaluation
 
+**Historical research note, preserved for provenance.** The October9 sizing sample and proposed volume-reversal steering menu below are not the current frozen paper beta. The current primary wallet is€200, with all eight adaptive/control scenarios retained. See the [current menu and combined sizing review](PAPER_STRATEGY_ECONOMICS_REVIEW.md), [dated EUR market feasibility](PAPER_PUBLIC_FEASIBILITY.md) and [cost envelope](PAPER_WALLET_COST_ENVELOPE.md). Neither this old table nor its proposed EUR100 primary selection authorizes current trading or establishes a profitable minimum.
+
 October9,2026 scope update requested by the user: assess minimum starting wallets between EUR50 and EUR200 and include an LLM steering the strategy every few trades. No money is committed and no model API calls are authorized by this document.
 
 ## Preliminary order feasibility

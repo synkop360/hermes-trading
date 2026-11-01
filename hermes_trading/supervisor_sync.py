@@ -4,6 +4,8 @@ import base64
 import json
 import os
 from pathlib import Path
+import sqlite3
+from time import monotonic, sleep
 import uuid
 
 import yaml
@@ -14,6 +16,10 @@ from hermes_trading.paired_primary import PrimarySelection,read_primary_context,
 
 FILES = ('reflection_owner.json', 'goal.yaml', 'strategy.yaml', 'trades.jsonl', 'heartbeat.json', 'wallet_metrics.json')
 CONFIG_FILES = ('reflection_owner.json', 'goal.yaml', 'strategy.yaml')
+
+
+class SnapshotReportHeartbeatMismatch(ValueError):
+    """The report projection is not yet bound to the observed heartbeat."""
 
 
 def _pid_is_live(pid):
@@ -118,7 +124,7 @@ def validate_snapshot(snapshot, expected_policy, *, now=None,expected_primary=No
         if not isinstance(report,dict) or report.get('status')!='observed' or report.get('experiment_id')!=policy['experiment_id']:
             raise ValueError('wallet report is not a current experiment observation')
         if heartbeat.get('wallet_report_hash')!=_hash(report):
-            raise ValueError('wallet report does not match the worker heartbeat')
+            raise SnapshotReportHeartbeatMismatch('wallet report does not match the worker heartbeat')
         if not 0<=(current-_time(report.get('observed_at'))).total_seconds()<=600:
             raise ValueError('wallet report is stale or future-dated')
         if versioned:
@@ -164,11 +170,48 @@ def make_snapshot(state_dir, *, now=None):
     return snapshot
 
 
+def _snapshot_busy(error):
+    """Only a typed SQLite BUSY cause permits recollecting a rejected snapshot."""
+    seen = set()
+    for _ in range(8):
+        if error is None or id(error) in seen:
+            return False
+        seen.add(id(error))
+        code = getattr(error, 'sqlite_errorcode', None)
+        if isinstance(error, sqlite3.OperationalError) and type(code) is int and code & 255 == sqlite3.SQLITE_BUSY:
+            return True
+        error = error.__cause__
+    return False
+
+
+def make_snapshot_with_retry(state_dir, *, now=None):
+    """Recollect after BUSY or a report/heartbeat publication gap.
+
+    Twenty seconds bounds waiting and admission, not an in-flight filesystem read.
+    The caller's existing subprocess deadline remains the hard process boundary.
+    Persistent mismatches fail closed; every attempt retains full validation.
+    """
+    deadline = monotonic() + 20.0
+    waits = (0.2, 0.5, 1) + (2,) * 9
+    for attempt in range(13):
+        try:
+            return make_snapshot(state_dir, now=now)
+        except Exception as error:
+            if attempt == 12 or not (_snapshot_busy(error) or isinstance(error, SnapshotReportHeartbeatMismatch)):
+                raise
+            remaining = deadline - monotonic()
+            if remaining <= 0:
+                raise
+            sleep(min(waits[attempt], remaining))
+            if monotonic() >= deadline:
+                raise
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--state-dir', required=True)
     args = parser.parse_args()
-    print(json.dumps(make_snapshot(Path(args.state_dir)), separators=(',', ':')))
+    print(json.dumps(make_snapshot_with_retry(Path(args.state_dir)), separators=(',', ':')))
 
 
 if __name__ == '__main__': main()

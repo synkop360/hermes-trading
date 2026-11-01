@@ -43,3 +43,4 @@ graphify-out/
 research/runs/
 .test-results*.txt
 /*.log
+.claude/settings.local.json

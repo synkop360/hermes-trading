@@ -9,7 +9,15 @@ from hermes_trading.paired_inception import initialize_paired_inception,read_pai
 from hermes_trading.paired_primary import resolve_primary
 from hermes_trading.paired_worker import run_worker,_model_ready
 from hermes_trading.paper_safety import load_policy
-from hermes_trading.reflection_supervision import assert_writer_owner,_now,_json
+from hermes_trading.reflection_supervision import assert_writer_owner,_now,_json,_hash
+
+
+def _reporter_finished(task):
+    """Observe optional task failures without changing worker health or its result."""
+    if task.cancelled():return
+    error=task.exception()
+    if error is not None:
+        print('paper notification sender failed: '+type(error).__name__,flush=True)
 
 
 async def run_paper(root,*,env=None):
@@ -41,8 +49,30 @@ async def run_paper(root,*,env=None):
         raise ValueError('fresh authorized model access is required before inception')
     # Fresh activation/venue/cost requirements are checked by the original
     # initializer. Restart reads the authoritative receipt without resetting it.
-    initialize_paired_inception(root)
-    return await run_worker(root)
+    opening=initialize_paired_inception(root)
+    reporter=None
+    if env.get('HERMES_NOTIFY_ENABLED','').strip().lower()=='true':
+        try:
+            from hermes_trading import notifications
+            settings=notifications.resolve_notification_settings(env)
+            identity=dict(experiment_id=owner['experiment_id'],opening_at=opening['at'],
+                opening_hash=_hash(opening),manifest_hash=_hash(manifest),primary_wallet_eur=200,
+                account_hashes={name:row['account_config_hash'] for name,row in opening['accounts'].items()})
+            candidate=notifications.PaperDiscordReporter(root,identity,settings)
+            if candidate.enabled:reporter=candidate
+        except Exception as error:
+            print('paper notification configuration unavailable: '+type(error).__name__,flush=True)
+    if reporter is None:return await run_worker(root)
+    task=asyncio.create_task(reporter.run(),name='paper-discord-reporter')
+    task.add_done_callback(_reporter_finished)
+    try:
+        return await run_worker(root,observer=reporter.offer)
+    finally:
+        # run_worker has already unwound its financial leases. Notification-only
+        # shutdown never waits for network delivery or retries indefinitely.
+        task.cancel()
+        done,_=await asyncio.wait({task},timeout=2)
+        if not done:print('paper notification sender shutdown pending',flush=True)
 
 
 def main():

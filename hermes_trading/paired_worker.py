@@ -162,9 +162,32 @@ def _write_heartbeat(root,primary,state,release,stats,*,at,model_ready,error=Non
             'coverage_requires_validation':True,
             'profitability_qualified':False,'lifecycle':state,'heartbeat':heartbeat,
             'wallet_reports':{name:json.loads((root/name/'wallet_metrics.json').read_text(encoding='utf-8')) for name in accounts}})
+    return heartbeat
 
 
-async def run_worker(root,*,collector_factory=None,clock=None,sleep=asyncio.sleep,storage_probe=None,witness=None,archive_boundary=None):
+def _offer_notification(observer,heartbeat,identity,capture=None):
+    """Memory-only handoff, after settlement; notification faults are not trading faults."""
+    try:
+        settled=(isinstance(capture,dict) and capture.get('status')=='observed'
+                 and capture.get('batch_id')==heartbeat.get('batch_id')
+                 and capture.get('input_hash')==heartbeat.get('input_hash')
+                 and capture.get('manifest_hash')==identity['manifest_hash'])
+        envelope=dict(schema_version=1,kind='settled' if settled else 'operational',
+            **{key:identity[key] for key in ('experiment_id','opening_at','opening_hash','manifest_hash')},
+            at=heartbeat['timestamp'],observed_at=heartbeat.get('observed_at'),
+            batch_id=heartbeat.get('batch_id'),input_hash=heartbeat.get('input_hash'),
+            completed_batches=heartbeat['worker_lifecycle']['completed_batches'],
+            status=heartbeat['status'],entry_admission=heartbeat.get('entry_admission'),
+            model_ready=heartbeat.get('model_ready'),strategy_version=heartbeat.get('strategy_version'),
+            error=heartbeat.get('error'),accounts=capture['accounts'] if settled else {})
+        if capture is not None and not settled:envelope['notification_source_status']='unavailable'
+        from copy import deepcopy
+        observer(deepcopy(envelope))
+    except Exception as error:
+        print('paper notification handoff failed: '+type(error).__name__,flush=True)
+
+
+async def run_worker(root,*,collector_factory=None,clock=None,sleep=asyncio.sleep,storage_probe=None,witness=None,archive_boundary=None,observer=None):
     from hermes_trading.paired_primary import resolve_primary,reporting_protocol_for
     root=Path(root);manifest=json.loads((root/'manifest.json').read_text(encoding='utf-8'))
     selection=resolve_primary(manifest)
@@ -215,6 +238,14 @@ async def run_worker(root,*,collector_factory=None,clock=None,sleep=asyncio.slee
     if safety is not None:configuration['paper_safety']=safety
     administrative=profiles[('adaptive',selection.wallet_eur)][2]['activated_at']
     activated=administrative if opening is None else opening['at']
+    notification_identity=dict(experiment_id=policy['experiment_id'],opening_at=activated,
+        opening_hash=None if opening is None else _hash(opening),manifest_hash=_hash(manifest))
+    notification_pending={}
+    def publish_heartbeat(*args,**kwargs):
+        heartbeat=_write_heartbeat(*args,**kwargs)
+        if observer is not None:
+            _offer_notification(observer,heartbeat,notification_identity,notification_pending.pop('capture',None))
+        return heartbeat
     if any(_time(config['activated_at'])!=_time(administrative) for _,_,config in profiles.values()):raise ValueError('paired inception times differ')
     if _time(activated)>current():raise ValueError('paired inception is future-dated')
     try:db=_connect(root/'worker_runtime.sqlite')
@@ -388,8 +419,10 @@ async def run_worker(root,*,collector_factory=None,clock=None,sleep=asyncio.slee
                     'reservation_id':token,'observed_at':current().isoformat()}
                 db.execute('UPDATE lifecycle SET state=? WHERE id=1',(_json(state),));db.commit()
                 if collector is None:collector=(collector_factory or (lambda:PublicQuoteCollector(manifest['timeframe'])))()
-                await run_paired_cycle(root,collector,now=clock,entries_blocked=True,not_after=_time(state['deadline']),
-                    packet_preflight=archive_preflight,operational_stop='paired_archive_stop',reservation_id=token)
+                cycle_result=await run_paired_cycle(root,collector,now=clock,entries_blocked=True,not_after=_time(state['deadline']),
+                    packet_preflight=archive_preflight,operational_stop='paired_archive_stop',reservation_id=token,
+                    **({'notification_capture':True} if observer is not None else {}))
+                if observer is not None:notification_pending['capture']=cycle_result.get('notification')
                 stats=_stats(primary);state['completed_batches']=stats['complete']
                 counts=_active_storage_positions(profiles)
                 state['archive_protection'].update(status='positions_pending' if any(counts.values()) else 'flat',active_positions=counts)
@@ -397,17 +430,17 @@ async def run_worker(root,*,collector_factory=None,clock=None,sleep=asyncio.slee
                 try:protective_session.reconcile()
                 except (OSError,TimeoutError):
                     if not protective_session.outage:raise
-                    _write_heartbeat(root,primary,state,release,stats,at=current(),model_ready=False,error='archive_acknowledgement_pending')
+                    publish_heartbeat(root,primary,state,release,stats,at=current(),model_ready=False,error='archive_acknowledgement_pending')
                     return False
                 state['status']='running';state.pop('stop_reason',None)
                 state['archive_protection']['acknowledgement']='acknowledged'
                 db.execute('UPDATE lifecycle SET state=? WHERE id=1',(_json(state),));db.commit()
                 return True
             except Exception as failure:
-                _write_heartbeat(root,primary,state,release,_stats(primary),at=current(),model_ready=False,
+                publish_heartbeat(root,primary,state,release,_stats(primary),at=current(),model_ready=False,
                     error='archive_protection_failed:'+type(failure).__name__)
                 raise
-        _write_heartbeat(root,primary,state,release,stats,at=current(),model_ready=False,error='worker_starting')
+        publish_heartbeat(root,primary,state,release,stats,at=current(),model_ready=False,error='worker_starting')
         while True:
             stats=_stats(primary)
             if protective_session is not None:
@@ -416,10 +449,10 @@ async def run_worker(root,*,collector_factory=None,clock=None,sleep=asyncio.slee
                     if protective_session.live and protective_session.outage:
                         if await archive_protect(error):continue
                         return state
-                    _write_heartbeat(root,primary,state,release,stats,at=current(),model_ready=False,error='witness_failed:'+type(error).__name__)
+                    publish_heartbeat(root,primary,state,release,stats,at=current(),model_ready=False,error='witness_failed:'+type(error).__name__)
                     raise
                 except Exception as error:
-                    _write_heartbeat(root,primary,state,release,stats,at=current(),model_ready=False,error='witness_failed:'+type(error).__name__)
+                    publish_heartbeat(root,primary,state,release,stats,at=current(),model_ready=False,error='witness_failed:'+type(error).__name__)
                     raise
                 if protective_head['state']['pending_protection'] is not None:
                     if await archive_protect(replay=True):continue
@@ -431,7 +464,7 @@ async def run_worker(root,*,collector_factory=None,clock=None,sleep=asyncio.slee
             if witness_identity is not None:
                 try:reconcile_worker(root,witness_config,witness,witness_identity)
                 except Exception as error:
-                    _write_heartbeat(root,primary,state,release,stats,at=current(),model_ready=False,
+                    publish_heartbeat(root,primary,state,release,stats,at=current(),model_ready=False,
                                      error='witness_failed:'+type(error).__name__)
                     raise
             if stats['complete']<state['completed_batches'] or stats.get('archive_revision',0)<state.get('archive_revision',0):
@@ -442,14 +475,14 @@ async def run_worker(root,*,collector_factory=None,clock=None,sleep=asyncio.slee
             retention_pending=assert_quote_cohort(root,manifest=manifest,protective=True)
             if not retention_pending and archive_limits is not None and stats['complete'] and not stats['pending']:
                 if _release_hashes()!=release['hashes']:
-                    _write_heartbeat(root,primary,state,release,stats,at=current(),model_ready=False,error='disk_release_changed')
+                    publish_heartbeat(root,primary,state,release,stats,at=current(),model_ready=False,error='disk_release_changed')
                     raise ValueError('archive boundary release changed')
                 try:owner_hash=_hash(assert_writer_owner(primary,'external_llm'))
                 except Exception:
-                    _write_heartbeat(root,primary,state,release,stats,at=current(),model_ready=False,error='owner_changed')
+                    publish_heartbeat(root,primary,state,release,stats,at=current(),model_ready=False,error='owner_changed')
                     raise
                 if owner_hash!=release['policy_hash']:
-                    _write_heartbeat(root,primary,state,release,stats,at=current(),model_ready=False,error='owner_changed')
+                    publish_heartbeat(root,primary,state,release,stats,at=current(),model_ready=False,error='owner_changed')
                     raise ValueError('archive boundary owner changed')
                 db.execute('UPDATE lifecycle SET state=? WHERE id=1',(_json(state),));db.commit()
                 boundary=WorkerCapture(root,db,stats,manifest,release,policy,archive_limits)
@@ -493,24 +526,24 @@ async def run_worker(root,*,collector_factory=None,clock=None,sleep=asyncio.slee
                     if 'storage_stop' not in state['entry_admission']['reasons']:
                         state['entry_admission']['reasons'].append('storage_stop')
                     db.execute('UPDATE lifecycle SET state=? WHERE id=1',(_json(state),));db.commit()
-                    _write_heartbeat(root,primary,state,release,stats,at=at,model_ready=False,error='storage_entry_halt')
+                    publish_heartbeat(root,primary,state,release,stats,at=at,model_ready=False,error='storage_entry_halt')
                     await sleep(limits['interval_seconds'])
                     continue
                 if reason=='storage_stop' and safety is not None and at>=_time(state['deadline']):reason='deadline'
                 state.update(status='completed' if reason in {'deadline','cycle_bound','protective_capacity_reserved'} else 'stopped',stop_reason=reason)
                 db.execute('UPDATE lifecycle SET state=? WHERE id=1',(_json(state),));db.commit()
-                _write_heartbeat(root,primary,state,release,stats,at=at,model_ready=False)
+                publish_heartbeat(root,primary,state,release,stats,at=at,model_ready=False)
                 return state
             if retention_pending and not protective:
                 waiting=dict(state,status='waiting_for_retention')
-                _write_heartbeat(root,primary,waiting,release,stats,at=at,model_ready=False,error='quote_retention_pending')
+                publish_heartbeat(root,primary,waiting,release,stats,at=at,model_ready=False,error='quote_retention_pending')
                 return waiting
             ready=_model_ready(primary,policy,at)
             if _release_hashes()!=release['hashes']:
-                _write_heartbeat(root,primary,state,release,stats,at=at,model_ready=False,error='disk_release_changed')
+                publish_heartbeat(root,primary,state,release,stats,at=at,model_ready=False,error='disk_release_changed')
                 raise ValueError('loaded paper release changed on disk')
             if _hash(assert_writer_owner(primary,'external_llm'))!=release['policy_hash']:
-                _write_heartbeat(root,primary,state,release,stats,at=at,model_ready=False,error='owner_changed')
+                publish_heartbeat(root,primary,state,release,stats,at=at,model_ready=False,error='owner_changed')
                 raise ValueError('paper worker owner changed')
             try:
                 reservation_id=None if witness_identity is None else reconcile_worker(
@@ -524,12 +557,14 @@ async def run_worker(root,*,collector_factory=None,clock=None,sleep=asyncio.slee
                         raise
                     reservation_id=reserved['state']['reservation']['reservation_id']
                 if collector is None:collector=(collector_factory or (lambda:PublicQuoteCollector(manifest['timeframe'])))()
-                await run_paired_cycle(root,collector,now=clock,
+                cycle_result=await run_paired_cycle(root,collector,now=clock,
                                       entries_blocked=True if protective else lambda:entry_admission() or bool(state.get('local_archive_capture_error')) or not _model_ready(primary,policy,current()),
                                       not_after=_time(state['deadline']),
                                       packet_preflight=protective_preflight if protective else packet_preflight,
                                       operational_stop='paired_storage_stop' if protective else None,
-                                      reservation_id=reservation_id)
+                                      reservation_id=reservation_id,
+                                      **({'notification_capture':True} if observer is not None else {}))
+                if observer is not None:notification_pending['capture']=cycle_result.get('notification')
                 if witness_identity is not None:
                     reconcile_worker(root,witness_config,witness,witness_identity)
                 if protective_session is not None:
@@ -544,7 +579,7 @@ async def run_worker(root,*,collector_factory=None,clock=None,sleep=asyncio.slee
                 db.execute('UPDATE lifecycle SET state=? WHERE id=1',(_json(state),));db.commit()
                 daily_backup()
                 db.execute('UPDATE lifecycle SET state=? WHERE id=1',(_json(state),));db.commit()
-                _write_heartbeat(root,primary,state,release,stats,at=current(),model_ready=_model_ready(primary,policy,current()))
+                publish_heartbeat(root,primary,state,release,stats,at=current(),model_ready=_model_ready(primary,policy,current()))
             except (PairedDeadlineReached,PairedStopReached,StorageStopReached):
                 if witness_identity is not None or protective_session is not None:
                     # A reserved but unfrozen attempt cannot be silently reused
@@ -555,10 +590,10 @@ async def run_worker(root,*,collector_factory=None,clock=None,sleep=asyncio.slee
                 if safety is not None:
                     record_result(False,error)
                     db.execute('UPDATE lifecycle SET state=? WHERE id=1',(_json(state),));db.commit()
-                    _write_heartbeat(root,primary,state,release,_stats(primary),at=current(),model_ready=False,error='cycle_failed:'+type(error).__name__)
+                    publish_heartbeat(root,primary,state,release,_stats(primary),at=current(),model_ready=False,error='cycle_failed:'+type(error).__name__)
                     await sleep(limits['interval_seconds'])
                     continue
-                _write_heartbeat(root,primary,state,release,_stats(primary),at=current(),model_ready=False,error='cycle_failed:'+type(error).__name__)
+                publish_heartbeat(root,primary,state,release,_stats(primary),at=current(),model_ready=False,error='cycle_failed:'+type(error).__name__)
                 raise
             if not state.get('storage_stop'):await sleep(limits['interval_seconds'])
     finally:
