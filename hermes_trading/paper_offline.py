@@ -151,6 +151,10 @@ def _write_yaml(path: Path, data: dict[str, Any]) -> None:
     path.write_text(yaml.safe_dump(data, sort_keys=False), encoding="utf-8")
 
 
+def _write_json(path: Path, data: dict[str, Any]) -> None:
+    path.write_text(json.dumps(data, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+
 def _ensure_state_files(account_dir: Path, fixture: dict[str, Any]) -> None:
     account_dir.mkdir(parents=True, exist_ok=True)
     fixture_strategy = fixture.get("strategy", {})
@@ -194,6 +198,24 @@ def _deep_merge(base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any
         else:
             merged[key] = value
     return merged
+
+
+def _write_reflection_owner(account_dir: Path, session_id: str) -> None:
+    """Mark the offline session as owned by the deterministic worker.
+
+    This lets ``reflect --fallback`` consume the session's closed trades
+    without converting the account to an external-LLM experiment.
+    """
+    _write_json(
+        account_dir / "reflection_owner.json",
+        {
+            "schema_version": 1,
+            "owner": "deterministic_worker",
+            "experiment_id": session_id,
+            "cadence_closed_trades": 5,
+            "one_variable_only": True,
+        },
+    )
 
 
 def _activity_record(result: Any) -> dict[str, Any] | None:
@@ -250,6 +272,7 @@ def _build_result(
             "decisions_jsonl": str(account_dir / "decisions.jsonl"),
             "trades_jsonl": str(account_dir / "trades.jsonl"),
             "result_json": str(account_dir / "result.json"),
+            "reflection_owner": str(account_dir / "reflection_owner.json"),
         },
         "financials": {
             "start_equity": str(start_equity),
@@ -291,13 +314,14 @@ async def run_paper_offline(
         raise ValueError(f"--cycles must be between 1 and {len(fixture['cycles'])}")
 
     account_dir = root / "account"
+    session_id = f"paper-offline-{uuid.uuid4()}"
     _ensure_state_files(account_dir, fixture)
+    _write_reflection_owner(account_dir, session_id)
 
     state = StateRepository.open(account_dir / "trading.db")
     state.migrate()
     projector = ArtifactProjector(account_dir)
 
-    session_id = f"paper-offline-{uuid.uuid4()}"
     start_time = datetime(2026, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
     tick = [start_time]
 
