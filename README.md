@@ -53,6 +53,7 @@ docs/
   HERMES.md
   KRAKEN.md
   OPERATIONS.md
+  PAPER_PILOT.md
   SAFETY.md
   STATE_FILES.md
   TROUBLESHOOTING.md
@@ -87,6 +88,27 @@ uv run python -m unittest discover -s tests
 Get-Content .\state\heartbeat.json
 Get-Content .\state\decisions.jsonl -Tail 20
 ```
+
+## Pilote paper reproductible (local)
+
+Un mode opératoire offline, borné et vérifiable est disponible pour prouver que
+le moteur paper produit des résultats sans secret, sans réseau et sans ordre
+réel. Voir `docs/PAPER_PILOT.md` pour les commandes exactes, les pré-requis, la
+durée mesurée, le schéma des preuves et les limites.
+
+Résumé des deux commandes :
+
+```bash
+HERMES_TRADING_MODE=paper HERMES_NOTIFY_ENABLED=false \
+uv run python -m hermes_trading.paper_offline \
+  --root .test-tmp-paper-pilot/session-001 --cycles 6 --interval-seconds 0
+
+uv run python -m hermes_trading.reflect --fallback \
+  --state-dir .test-tmp-paper-pilot/session-001/account
+```
+
+Ce pilote porte uniquement sur le moteur local de simulation ; il ne prouve pas
+la reprise du worker à huit comptes ni de son superviseur.
 
 ## Reflexion
 
