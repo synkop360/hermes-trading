@@ -15,7 +15,7 @@ from decimal import Decimal
 from pathlib import Path
 from unittest.mock import AsyncMock, patch
 
-import pilot_market
+from hermes_trading import pilot_market
 from hermes_trading.market_data import ClosedCandle, MarketSnapshot
 
 AT = datetime(2026, 11, 3, 18, 30, tzinfo=timezone.utc)

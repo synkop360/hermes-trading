@@ -15,7 +15,7 @@ Runtime outputs are confined to a ``.test-tmp*`` directory.
 
 Bounded collection (15 minutes maximum, one sample every 60 seconds)::
 
-    uv run python pilot_market.py --root .test-tmp-pilot/market \
+    uv run python -m hermes_trading.pilot_market --root .test-tmp-pilot/market \
         --duration-seconds 900 --interval-seconds 60
 
 Exit code 0 only if at least one sample is a complete public observation,
