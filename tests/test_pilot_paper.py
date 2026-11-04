@@ -22,7 +22,7 @@ from unittest.mock import patch
 
 import yaml
 
-import pilot_paper
+from hermes_trading import pilot_paper
 from hermes_trading.execution_policy import strategy_is_frozen
 from hermes_trading.reflection_supervision import load_owner_policy, writer_allowed
 
