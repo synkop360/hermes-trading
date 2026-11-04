@@ -57,13 +57,24 @@ BASE_STRATEGY = {
 
 
 def _validate_root(root: Path) -> Path:
-    """A pilot root must be new and live under a .test-tmp* tree."""
-    root = Path(root).resolve()
-    if root.exists() or root.is_symlink():
-        raise ValueError(f"root already exists: {root}")
-    if not any(part.startswith(".test-tmp") for part in root.parts):
+    """A pilot root must be new and live under a .test-tmp* tree.
+
+    The supplied path and every parent are checked for symlinks before any
+    resolution, so a dangling or redirecting link is refused instead of being
+    followed; confinement is then checked on the resolved path.
+    """
+    raw = Path(root).absolute()
+    for candidate in (raw, *raw.parents):
+        if candidate.is_symlink():
+            raise ValueError(f"root path contains a symlink: {candidate}")
+    if raw.exists():
+        raise ValueError(f"root already exists: {raw}")
+    resolved = raw.resolve()
+    if resolved.exists():
+        raise ValueError(f"root already exists: {resolved}")
+    if not any(part.startswith(".test-tmp") for part in resolved.parts):
         raise ValueError("root must be inside a .test-tmp* directory")
-    return root
+    return resolved
 
 
 def _write_json(path: Path, data: dict) -> None:

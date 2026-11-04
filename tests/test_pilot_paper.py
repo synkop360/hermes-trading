@@ -87,6 +87,27 @@ class PilotPaperTests(unittest.TestCase):
             pilot_paper.init_pilot_accounts(self.root, now=self.at)
         self.assertEqual(list(self.root.iterdir()), [])
 
+    def test_dangling_symlink_root_is_refused_and_target_not_created(self) -> None:
+        target = self.base / f"target-{os.urandom(4).hex()}"
+        self.addCleanup(lambda: shutil.rmtree(target, ignore_errors=True))
+        self.root.symlink_to(target, target_is_directory=True)
+        self.addCleanup(lambda: self.root.unlink() if self.root.is_symlink() else None)
+        with self.assertRaises(ValueError):
+            pilot_paper.init_pilot_accounts(self.root, now=self.at)
+        self.assertFalse(target.exists())
+        self.assertTrue(self.root.is_symlink())
+
+    def test_symlinked_parent_is_refused_and_target_not_written(self) -> None:
+        target = self.base / f"target-{os.urandom(4).hex()}"
+        target.mkdir()
+        self.addCleanup(lambda: shutil.rmtree(target, ignore_errors=True))
+        alias = self.base / f"alias-{os.urandom(4).hex()}"
+        alias.symlink_to(target, target_is_directory=True)
+        self.addCleanup(lambda: alias.unlink() if alias.is_symlink() else None)
+        with self.assertRaises(ValueError):
+            pilot_paper.init_pilot_accounts(alias / "pilot", now=self.at)
+        self.assertEqual(list(target.iterdir()), [])
+
     def test_root_outside_test_tmp_is_refused(self) -> None:
         outside = Path(tempfile.mkdtemp()) / "pilot-outside"
         self.addCleanup(lambda: shutil.rmtree(outside.parent, ignore_errors=True))
