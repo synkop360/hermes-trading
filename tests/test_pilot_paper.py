@@ -444,6 +444,116 @@ class PilotSessionTests(unittest.TestCase):
         self.assertEqual(rows[0][1]["candidate_sha256"],
                          hashlib.sha256(self.strategy_bytes("adaptive_100")).hexdigest())
 
+    def crash_before_receipt(self):
+        """Replace the adaptive strategy (v1 -> v2) then crash before the receipt."""
+        from hermes_trading import paper_publication
+
+        pilot_paper.activate_pilot_manifest(self.root)
+        with patch.object(paper_publication, "_commit_receipt", side_effect=OSError("crash before receipt")):
+            with self.assertRaises(OSError):
+                pilot_paper.reflect_adaptive_primary(self.root, now=self.clock())
+        rows = self.publications()
+        self.assertEqual(len(rows), 1)
+        self.assertIsNone(rows[0][1])
+        self.assertEqual(int(yaml.safe_load(self.strategy_bytes("adaptive_100"))["version"]), 2)
+        self.clock.now += timedelta(hours=1)
+
+    def assert_recovered_chain(self, controls, *, publications):
+        rows = self.publications()
+        self.assertEqual(len(rows), publications)  # no duplicate intent
+        self.assertTrue(all(receipt is not None for _, receipt in rows))
+        self.assertEqual(len({receipt["review_id"] for _, receipt in rows}), publications)
+        versions = [(int(r["base_strategy"]["version"]), int(r["candidate"]["version"])) for r, _ in rows]
+        self.assertEqual(versions, [(v, v + 1) for v in range(1, publications + 1)])
+        self.assertEqual(rows[-1][1]["candidate_sha256"],
+                         hashlib.sha256(self.strategy_bytes("adaptive_100")).hexdigest())
+        for wallet, before in controls.items():
+            self.assertEqual(self.strategy_bytes(f"control_{wallet}"), before)
+        return rows
+
+    def test_session_recovers_a_strategy_replaced_before_its_receipt(self) -> None:
+        controls = {w: self.strategy_bytes(f"control_{w}") for w in (50, 100, 150, 200)}
+        self.crash_before_receipt()
+        double = PriceDouble(self.clock, ["80"])
+        report = self.run_session(double, max_cycles=1, reflect_every=2)
+        self.assertEqual(report["completed_cycles"], 1)
+        self.assertEqual(report["recovered_publication"]["status"], "recovered")
+        rows = self.assert_recovered_chain(controls, publications=1)
+        self.assertEqual(report["recovered_publication"]["receipt"], rows[0][1])
+        # The chain continues from the recovered version, without a second recovery.
+        self.clock.now += timedelta(hours=1)
+        report = self.run_session(PriceDouble(self.clock, ["70"]), max_cycles=1)
+        self.assertIsNone(report["recovered_publication"])
+        self.assertEqual(report["cycles"][0]["reflection"]["status"], "published")
+        self.assert_recovered_chain(controls, publications=2)
+
+    def test_cli_run_recovers_a_strategy_replaced_before_its_receipt(self) -> None:
+        controls = {w: self.strategy_bytes(f"control_{w}") for w in (50, 100, 150, 200)}
+        self.crash_before_receipt()
+        double = PriceDouble(self.clock, ["80", "70"])
+        argv = ["--root", str(self.root), "--run", "--max-cycles", "2",
+                "--max-runtime-seconds", "7200", "--interval-seconds", "3600"]
+        stdout = io.StringIO()
+        with contextlib.redirect_stdout(stdout):
+            pilot_paper.main(argv, collector=double, clock=self.clock, sleep=self.clock.sleep,
+                             environ=PAPER_ENV)
+        report = json.loads(stdout.getvalue())
+        self.assertEqual(report["completed_cycles"], 2)
+        self.assertEqual(report["recovered_publication"]["status"], "recovered")
+        self.assertEqual([c["reflection"]["status"] for c in report["cycles"]], ["published", "published"])
+        self.assert_recovered_chain(controls, publications=3)
+
+    def assert_report_link_refused(self, link, target, double, *, run=None):
+        with self.assertRaises(ValueError):
+            (run or self.run_session)(double)
+        self.assertEqual(double.calls, 0)
+        self.assertTrue(link.is_symlink())
+        self.assertEqual(os.readlink(link), str(target))
+        leftovers = [p.name for p in self.root.iterdir() if p.name.startswith(".pilot_session-")]
+        self.assertEqual(leftovers, [])
+
+    def test_dangling_report_symlink_is_refused_before_any_write(self) -> None:
+        target = self.base / f"outside-{os.urandom(4).hex()}.json"
+        link = self.root / pilot_paper.SESSION_REPORT
+        link.symlink_to(target)
+        manifest = (self.root / "manifest.json").read_bytes()
+        self.assert_report_link_refused(link, target, PriceDouble(self.clock, ["80"]))
+        self.assertFalse(target.exists())
+        self.assertEqual((self.root / "manifest.json").read_bytes(), manifest)  # not even activated
+
+    def test_dangling_report_symlink_is_refused_even_with_an_engine_error(self) -> None:
+        target = self.base / f"outside-{os.urandom(4).hex()}.json"
+        pilot_paper.activate_pilot_manifest(self.root)
+        control = self.root / "control_50" / "strategy.yaml"
+        control.write_text(control.read_text() + "\n# drift\n")
+        link = self.root / pilot_paper.SESSION_REPORT
+        link.symlink_to(target)
+        self.assert_report_link_refused(link, target, PriceDouble(self.clock, ["80"]))
+        self.assertFalse(target.exists())
+
+    def test_report_symlink_to_an_existing_file_is_not_followed(self) -> None:
+        target = self.base / f"outside-{os.urandom(4).hex()}.json"
+        target.write_text("untouched")
+        self.addCleanup(lambda: target.unlink(missing_ok=True))
+        link = self.root / pilot_paper.SESSION_REPORT
+        link.symlink_to(target)
+        self.assert_report_link_refused(link, target, PriceDouble(self.clock, ["80"]))
+        self.assertEqual(target.read_text(), "untouched")
+
+    def test_cli_refuses_a_dangling_report_symlink(self) -> None:
+        target = self.base / f"outside-{os.urandom(4).hex()}.json"
+        link = self.root / pilot_paper.SESSION_REPORT
+        link.symlink_to(target)
+        double = PriceDouble(self.clock, ["80"])
+        argv = ["--root", str(self.root), "--run", "--max-cycles", "1", "--max-runtime-seconds", "60"]
+        with contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit) as ctx:
+            pilot_paper.main(argv, collector=double, clock=self.clock, sleep=self.clock.sleep,
+                             environ=PAPER_ENV)
+        self.assertEqual(ctx.exception.code, 2)
+        self.assertEqual(double.calls, 0)
+        self.assertTrue(link.is_symlink())
+        self.assertFalse(target.exists())
+
     def test_cli_run_is_bounded_and_prints_the_report(self) -> None:
         double = PriceDouble(self.clock, ["80", "70"])
         argv = ["--root", str(self.root), "--run", "--max-cycles", "2",

@@ -216,7 +216,20 @@ class PilotCollectionUnavailable(RuntimeError):
 
 
 def _validate_session_root(root: Path) -> Path:
-    root = Path(root).resolve()
+    """An existing bootstrap under .test-tmp*, whose report path follows no link.
+
+    The supplied root, its parents and ``pilot_session.json`` are checked for
+    symlinks (dangling ones included) before any resolution or write, so the
+    session report can never be redirected outside the pilot root.
+    """
+    raw = Path(root).absolute()
+    for candidate in (raw / SESSION_REPORT, raw, *raw.parents):
+        if candidate.is_symlink():
+            raise ValueError(f"session path contains a symlink: {candidate}")
+    root = raw.resolve()
+    report = root / SESSION_REPORT
+    if report.is_symlink() or (report.exists() and not report.is_file()):
+        raise ValueError(f"session report is not a regular file: {report}")
     if not any(part.startswith(".test-tmp") for part in root.parts):
         raise ValueError("root must be inside a .test-tmp* directory")
     if not (root / "manifest.json").is_file():
@@ -415,6 +428,28 @@ def recover_fallback_publication(state_dir: Path, *, now) -> dict | None:
         db.close()
 
 
+def _owned_adaptive_primary(root: Path, manifest: dict) -> tuple[Path, dict]:
+    from hermes_trading.paired_primary import resolve_primary
+    from hermes_trading.reflection_supervision import assert_writer_owner
+
+    primary = Path(root) / resolve_primary(manifest).profile_directory(manifest, "adaptive")
+    policy = assert_writer_owner(primary, FALLBACK_WRITER)
+    if policy is None:
+        raise PilotSessionError("adaptive primary has no explicit deterministic owner")
+    return primary, policy
+
+
+def recover_adaptive_primary(root: Path, manifest: dict, *, now) -> dict | None:
+    """Finish an interrupted fallback publication before the engine reads the strategy.
+
+    A crash between the strategy replacement and the receipt leaves an active
+    candidate without receipt, which the engine rightly refuses. Completing the
+    durable intent first keeps the causal chain continuous without a duplicate.
+    """
+    primary, _ = _owned_adaptive_primary(root, manifest)
+    return recover_fallback_publication(primary, now=now)
+
+
 def reflect_adaptive_primary(root: Path, *, now) -> dict:
     """Run the local fallback on the adaptive primary and publish it causally.
 
@@ -422,17 +457,13 @@ def reflect_adaptive_primary(root: Path, *, now) -> dict:
     strategy is only replaced after a durable intent exists. At most one
     variable may change (plus the version); controls are never touched.
     """
-    from hermes_trading.paired_primary import resolve_primary
     from hermes_trading.paper_publication import assert_no_pending_paired_batch
     from hermes_trading.reflect import run_fallback_reflection
-    from hermes_trading.reflection_supervision import _connect, assert_writer_owner
+    from hermes_trading.reflection_supervision import _connect
 
     root = Path(root)
     manifest = json.loads((root / "manifest.json").read_text(encoding="utf-8"))
-    primary = root / resolve_primary(manifest).profile_directory(manifest, "adaptive")
-    policy = assert_writer_owner(primary, FALLBACK_WRITER)
-    if policy is None:
-        raise PilotSessionError("adaptive primary has no explicit deterministic owner")
+    primary, policy = _owned_adaptive_primary(root, manifest)
     recovered = recover_fallback_publication(primary, now=now)
     if recovered is not None:
         return {"status": "recovered", "receipt": recovered}
@@ -564,6 +595,7 @@ async def run_pilot_session(
     if (root / STOP_FILE).exists():
         raise PilotSessionError(f"remove {root / STOP_FILE} before starting a session")
     manifest = activate_pilot_manifest(root)
+    recovered = recover_adaptive_primary(root, manifest, now=clock())
 
     pilot = PilotMarketCollector(collector=collector, assets=tuple(manifest["assets"]),
                                  timeframe=manifest["timeframe"], clock=clock, sleep=sleep,
@@ -573,6 +605,7 @@ async def run_pilot_session(
     deadline = started + timedelta(seconds=max_runtime_seconds)
     cycles: list[dict] = []
     stop = {"reason": "max_cycles_reached", "error": None}
+    recovery = None if recovered is None else {"status": "recovered", "receipt": recovered}
 
     def cycle_sample(samples_before: int):
         return market.samples[-1] if len(market.samples) > samples_before else None
@@ -641,13 +674,13 @@ async def run_pilot_session(
         try:
             await market.aclose()
         finally:
-            report = _session_report(root, manifest, market, cycles, stop, started, clock(),
+            report = _session_report(root, manifest, market, cycles, stop, started, clock(), recovery,
                                      max_cycles=max_cycles, max_runtime_seconds=max_runtime_seconds,
                                      interval_seconds=interval_seconds, reflect_every=reflect_every)
     return report
 
 
-def _session_report(root, manifest, market, cycles, stop, started, finished, **bounds) -> dict:
+def _session_report(root, manifest, market, cycles, stop, started, finished, recovery, **bounds) -> dict:
     counts = _trade_counts(root, manifest)
     entries = sum(row["entries"] for row in counts.values())
     exits = sum(row["exits"] for row in counts.values())
@@ -677,6 +710,7 @@ def _session_report(root, manifest, market, cycles, stop, started, finished, **b
         "stop_reason": stop["reason"],
         "error": stop["error"],
         "collector_closed": market.pilot._closed,
+        "recovered_publication": recovery,
         "completed_cycles": sum(1 for row in cycles if row.get("status") == "complete"),
         "cycles": cycles,
         "samples": len(market.samples),
@@ -686,8 +720,27 @@ def _session_report(root, manifest, market, cycles, stop, started, finished, **b
         "exits": exits,
         "public_proof": proof,
     }
-    _write_json(root / SESSION_REPORT, json.loads(_json_text(report)))
+    _write_report(root, json.loads(_json_text(report)))
     return report
+
+
+def _write_report(root: Path, data: dict) -> None:
+    """Write the report through a sibling temporary file and an atomic rename.
+
+    ``os.replace`` swaps the directory entry itself, so a link planted during
+    the session is replaced rather than followed.
+    """
+    path = root / SESSION_REPORT
+    if path.is_symlink() or (path.exists() and not path.is_file()):
+        raise ValueError(f"session report is not a regular file: {path}")
+    fd, temporary = tempfile.mkstemp(prefix=".pilot_session-", suffix=".json", dir=root)
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as handle:
+            handle.write(json.dumps(data, indent=2, sort_keys=True) + "\n")
+        os.replace(temporary, path)
+    except BaseException:
+        Path(temporary).unlink(missing_ok=True)
+        raise
 
 
 def main(argv=None, *, collector=None, clock=None, sleep=None, environ=None) -> None:
