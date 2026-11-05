@@ -251,8 +251,21 @@ class PilotMarketCollector:
         return body
 
 
+def _refuse_output_links(root: Path) -> None:
+    """Refuse output files that are symlinks, dangling ones included.
+
+    ``Path.exists`` follows links, so a dangling ``market_samples.jsonl`` link
+    would pass as absent and the append would create its target elsewhere.
+    """
+    for name in (SAMPLES_FILE, SUMMARY_FILE):
+        if (root / name).is_symlink():
+            raise ValueError(f"refusing symlinked {name} in {root}")
+
+
 def _validate_root(root: Path) -> Path:
+    _refuse_output_links(Path(root).absolute())
     root = Path(root).resolve()
+    _refuse_output_links(root)
     if not any(part.startswith(".test-tmp") for part in root.parts):
         raise ValueError("collection root must be inside a .test-tmp* directory")
     if root.is_symlink() or (root.exists() and not root.is_dir()):

@@ -207,6 +207,28 @@ class PilotMarketTests(unittest.IsolatedAsyncioTestCase):
             await pilot_market.run_collection(self.root, duration_seconds=60, collector=Injected({}),
                                               clock=self.clock, sleep=self.clock.sleep, environ={})
 
+    async def _assert_dangling_output_link_refused(self, name):
+        self.root.mkdir(parents=True)
+        target = TMP / f"{self.id().rsplit('.', 1)[-1]}-target-{name}"
+        target.unlink(missing_ok=True)
+        self.addCleanup(target.unlink, True)
+        (self.root / name).symlink_to(target)
+        collector = Injected({"ETH/EUR": snapshot()})
+        with self.assertRaises(ValueError):
+            await pilot_market.run_collection(self.root, duration_seconds=60, collector=collector,
+                                              clock=self.clock, sleep=self.clock.sleep, environ={})
+        self.assertFalse(target.exists())
+        self.assertFalse(target.is_symlink())
+        self.assertTrue((self.root / name).is_symlink())
+        self.assertEqual(collector.calls, 0)
+        self.assertEqual(sorted(p.name for p in self.root.iterdir()), [name])
+
+    async def test_dangling_samples_symlink_is_refused_and_target_not_created(self):
+        await self._assert_dangling_output_link_refused(pilot_market.SAMPLES_FILE)
+
+    async def test_dangling_summary_symlink_is_refused_and_target_not_created(self):
+        await self._assert_dangling_output_link_refused(pilot_market.SUMMARY_FILE)
+
     async def test_hard_deadline_cuts_a_late_sample_without_writing_it(self):
         class Hanging:
             calls = 0
