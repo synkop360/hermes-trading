@@ -22,9 +22,14 @@ Le PASS du rejeu est un **candidat soumis à revue** (Stella puis Thomas). Il ne
 ## 1. Observation publique actuelle
 
 ```
+uv run python -m hermes_trading.pilot_paper --root .test-tmp-lat34/live --init-only \
+  --experiment-id lat34-live
 uv run python -m hermes_trading.pilot_paper --root .test-tmp-lat34/live --run \
   --experiment-id lat34-live --max-cycles 4 --max-runtime-seconds 540 --interval-seconds 150
 ```
+
+Le bootstrap `--init-only` (racine neuve, même `--root` que le `--run`) précède obligatoirement le `--run` ;
+sans lui, le `--run` refuse avec le code 2 (`no pilot bootstrap in … ; run --init-only first`).
 
 - 2026-11-06T14:24:12Z → 14:33:16Z (≈ 9 min), 4 cycles, `stop_reason=max_cycles_reached`.
 - 4 échantillons `kraken_public_unauthenticated`, 0 entrée / 0 clôture sur les 8 comptes.
@@ -49,10 +54,16 @@ uv run python -m hermes_trading.pilot_replay --root .test-tmp-lat34/replay
 ### Session de preuve
 
 ```
+uv run python -m hermes_trading.pilot_paper --root .test-tmp-lat34/replay-proof --init-only \
+  --experiment-id lat34-replay-proof --replay-archive .test-tmp-lat34/replay/replay_archive.json
 uv run python -m hermes_trading.pilot_paper --root .test-tmp-lat34/replay-proof --run \
   --experiment-id lat34-replay-proof --replay-archive .test-tmp-lat34/replay/replay_archive.json \
   --max-cycles 23 --max-runtime-seconds 604800 --interval-seconds 3600
 ```
+
+- Bootstrap `--init-only` sur racine neuve avec la même archive et la même racine que le `--run` :
+  activation à l'horloge de l'archive, `activated_at=2026-10-29T01:00:00+00:00` (`replay-proof.init.json`),
+  et non à l'horloge murale. Sans ce bootstrap, le `--run` refuse avec le code 2.
 
 - Durée mesurée : 2026-11-06T14:57:02Z → 15:06:47Z (585 s).
 - Temps simulé : 2026-10-29T02:00:01Z → 2026-10-30T00:00:01Z, 23 cycles, warmup 50 bougies,
@@ -121,6 +132,71 @@ bases SQLite) pour `live`, `replay-trial`, `replay-run` et `replay-proof`, `TIMI
 `SHA256SUMS` (sha256 de chaque fichier). Aucun secret : aucun identifiant ni jeton (recherche
 `api_key|secret|token|password|Authorization` sans résultat). Le rejeu est reproductible hors ligne avec
 l'archive du paquet (`--replay-archive`) ; un nouvel appel public ne garantit pas la même archive.
+
+## Reproduction depuis le paquet (LAT-51)
+
+Procédure complète, depuis la racine du dépôt (`origin/integration/lat-26`), avec uv et Python 3.11. Toutes
+les sorties restent sous `.test-tmp*/` (ignoré par git). Chaque `--root` doit être une **racine neuve** :
+`--init-only` refuse une racine existante (`root already exists`). Ne jamais réutiliser comme racine
+runtime l'état extrait du paquet (`.test-tmp-lat34-pkg/.test-tmp-lat34/…`), qui est déjà initialisé et activé.
+
+```
+# 1. Télécharger le paquet exact (pièce jointe LAT-34) et vérifier son empreinte
+mkdir -p .test-tmp-lat34-pkg
+curl -sSf -H "Authorization: Bearer $PAPERCLIP_API_KEY" -o .test-tmp-lat34-pkg/lat34-proof-artifacts.zip \
+  "$PAPERCLIP_API_URL/api/attachments/2201371f-e2a4-4438-a1bd-9c96d11662e5/content"
+sha256sum .test-tmp-lat34-pkg/lat34-proof-artifacts.zip
+# attendu : e505d70bbb06645ef0a071e399a495a289a339f970b209d86c0861993def4381
+
+# 2. Extraire le paquet et vérifier l'archive exacte
+python3 -I -m zipfile -e .test-tmp-lat34-pkg/lat34-proof-artifacts.zip .test-tmp-lat34-pkg/
+sha256sum .test-tmp-lat34-pkg/.test-tmp-lat34/replay/replay_archive.json
+# attendu : a75ccec9ae6871499c635f0770282062b885179e55d9f209a476fe7ddaa506ea
+
+# 3. Observation publique (appelle Kraken public non authentifié au --run)
+uv run --python 3.11 python -m hermes_trading.pilot_paper --root .test-tmp-lat34-repro/live --init-only \
+  --experiment-id lat34-live
+uv run --python 3.11 python -m hermes_trading.pilot_paper --root .test-tmp-lat34-repro/live --run \
+  --experiment-id lat34-live --max-cycles 4 --max-runtime-seconds 540 --interval-seconds 150
+
+# 4. Rejeu hors ligne de l'archive exacte (aucun appel réseau)
+uv run --python 3.11 python -m hermes_trading.pilot_paper --root .test-tmp-lat34-repro/replay-proof --init-only \
+  --experiment-id lat34-replay-proof --replay-archive .test-tmp-lat34-pkg/.test-tmp-lat34/replay/replay_archive.json
+uv run --python 3.11 python -m hermes_trading.pilot_paper --root .test-tmp-lat34-repro/replay-proof --run \
+  --experiment-id lat34-replay-proof --replay-archive .test-tmp-lat34-pkg/.test-tmp-lat34/replay/replay_archive.json \
+  --max-cycles 23 --max-runtime-seconds 604800 --interval-seconds 3600
+```
+
+L'observation publique dépend du marché au moment du lancement : elle ne reproduit pas les cycles de
+2026-11-06 et son bootstrap s'active à l'horloge murale. Seul le rejeu de l'archive exacte est
+reproductible : bootstrap attendu `activated_at=2026-10-29T01:00:00+00:00`, manifest attendu
+`4efe77d9c0549979477d73e66ad12dd03fe1ef7c2a37122d9de3a0f640547992`. Le rejeu complet dure environ 10 min.
+
+### Vérification de la procédure (LAT-51, 2026-11-06)
+
+uv 0.13.6, Python 3.11.18, paquet exact (1 890 263 octets, ZIP et archive aux empreintes attendues),
+racines neuves distinctes de l'état extrait.
+
+| Étape | Exécutant | Code | Durée | Résultat |
+|---|---|---|---|---|
+| `--run` rejeu **sans** bootstrap, racine neuve | Scotty | 2 | — | `refused: no pilot bootstrap … run --init-only first` (défaut I-1 reproduit) |
+| Bootstrap observation (étape 3, `--init-only`) | Scotty, Stella | 0 | 0,11 s (Scotty) | `initialized`, 8 comptes |
+| Bootstrap rejeu (étape 4, `--init-only`) | Scotty, Stella | 0 | 1,13 s (Scotty) | 8 comptes, `activated_at=2026-10-29T01:00:00+00:00` |
+| `--init-only` relancé sur la même racine | Scotty | 1 | — | `root already exists` (garde attendue) |
+| Rejeu complet 23 cycles (étape 4, `--run`) | Stella (revue indépendante) | 0 | 613,5946 s | voir ci-dessous |
+
+Rejeu complet : `completed_cycles=23`, `stop_reason=max_cycles_reached`, `error=null`,
+`collector_closed=true`, `mode=paper`, `authenticated=false`, `model_access=not_used`,
+`reflection_writer=deterministic_worker` ; six entrées, six clôtures ; manifest
+`4efe77d9c0549979477d73e66ad12dd03fe1ef7c2a37122d9de3a0f640547992`. Journaux : `decisions` 184,
+`orders` 12, `fills` 12, `trades` 6 lignes, identiques octet par octet au paquet LAT-34 pour chaque compte.
+Une première tentative de Scotty, bornée par `timeout 590` (code 124), avait déjà produit ces journaux
+identiques sans atteindre l'écriture de `pilot_session.json` ; le rejeu de Stella la complète.
+
+Observation publique : seul le bootstrap a été exécuté, **aucun nouvel appel marché**. La séquence `--run`
+a été inspectée (`hermes_trading/pilot_paper.py:594-611`) : bornes, refus hors paper, refus d'identifiants, validation de
+racine et du fichier d'arrêt, puis activation exigeant le bootstrap, avant création du collecteur public. Le `--run` de
+l'observation n'est donc pas réexécuté ; c'est une limite déclarée de cette vérification.
 
 ## Réserves
 
