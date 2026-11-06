@@ -243,6 +243,16 @@ def validate_archive(archive: Any, *, assets=None, timeframe=None, now: datetime
             raise ReplayArchiveError(f"{name} series digest mismatch")
         if archive.get("endpoints", {}).get(name) != public_endpoints(name, frame):
             raise ReplayArchiveError(f"{name} endpoints are not the public Kraken reads")
+    first_open, last_close = archive.get("first_open"), archive.get("last_close")
+    if (not isinstance(first_open, dict) or set(first_open) != set(names)
+            or not isinstance(last_close, dict) or set(last_close) != set(names)):
+        raise ReplayArchiveError("archive series dates do not match its assets")
+    for name in names:
+        rows = candles[name]
+        if first_open[name] != _iso(_from_ms(rows[0]["timestamp"])):
+            raise ReplayArchiveError(f"{name} first_open differs from its first candle")
+        if last_close[name] != _iso(_from_ms(rows[-1]["timestamp"]) + timeframe_interval(frame)):
+            raise ReplayArchiveError(f"{name} last_close differs from its last candle")
     stamps = {name: [row["timestamp"] for row in candles[name]] for name in names}
     if len({tuple(values) for values in stamps.values()}) != 1:
         raise ReplayArchiveError("asset series are not aligned on the same candles")

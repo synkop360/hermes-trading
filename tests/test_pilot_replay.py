@@ -165,6 +165,21 @@ class ArchiveTests(ReplayBase):
             with self.subTest(pattern):
                 self.assert_refused(mutate, pattern)
 
+    def test_series_dates_must_match_the_archived_candles(self) -> None:
+        later = (self.start + timedelta(hours=1)).isoformat()
+        cases = {
+            "first_open differs": lambda a: a["first_open"].update({ASSET: "2999-01-01T00:00:00+00:00"}),
+            "last_close differs": lambda a: a["last_close"].update({ASSET: "1900-01-01T00:00:00+00:00"}),
+            "first_open differs from its first candle": lambda a: a["first_open"].update({ASSET: later}),
+            "last_close differs from its last candle": lambda a: a["last_close"].update({ASSET: later}),
+            "series dates": lambda a: a.pop("first_open"),
+            "series dates do not match": lambda a: a.update(last_close={}),
+            "series dates do not match its": lambda a: a.update(first_open=self.start.isoformat()),
+        }
+        for pattern, mutate in cases.items():
+            with self.subTest(pattern):
+                self.assert_refused(mutate, pattern)
+
     def test_archive_must_match_pilot_assets_and_timeframe(self) -> None:
         with self.assertRaisesRegex(pilot_replay.ReplayArchiveError, "timeframe"):
             pilot_replay.load_archive(self.path, timeframe="15m")
