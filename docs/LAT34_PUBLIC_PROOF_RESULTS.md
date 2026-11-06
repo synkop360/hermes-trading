@@ -22,9 +22,14 @@ Le PASS du rejeu est un **candidat soumis à revue** (Stella puis Thomas). Il ne
 ## 1. Observation publique actuelle
 
 ```
+uv run python -m hermes_trading.pilot_paper --root .test-tmp-lat34/live --init-only \
+  --experiment-id lat34-live
 uv run python -m hermes_trading.pilot_paper --root .test-tmp-lat34/live --run \
   --experiment-id lat34-live --max-cycles 4 --max-runtime-seconds 540 --interval-seconds 150
 ```
+
+Le bootstrap `--init-only` (racine neuve, même `--root` que le `--run`) précède obligatoirement le `--run` ;
+sans lui, le `--run` refuse avec le code 2 (`no pilot bootstrap in … ; run --init-only first`).
 
 - 2026-11-06T14:24:12Z → 14:33:16Z (≈ 9 min), 4 cycles, `stop_reason=max_cycles_reached`.
 - 4 échantillons `kraken_public_unauthenticated`, 0 entrée / 0 clôture sur les 8 comptes.
@@ -49,10 +54,16 @@ uv run python -m hermes_trading.pilot_replay --root .test-tmp-lat34/replay
 ### Session de preuve
 
 ```
+uv run python -m hermes_trading.pilot_paper --root .test-tmp-lat34/replay-proof --init-only \
+  --experiment-id lat34-replay-proof --replay-archive .test-tmp-lat34/replay/replay_archive.json
 uv run python -m hermes_trading.pilot_paper --root .test-tmp-lat34/replay-proof --run \
   --experiment-id lat34-replay-proof --replay-archive .test-tmp-lat34/replay/replay_archive.json \
   --max-cycles 23 --max-runtime-seconds 604800 --interval-seconds 3600
 ```
+
+- Bootstrap `--init-only` sur racine neuve avec la même archive et la même racine que le `--run` :
+  activation à l'horloge de l'archive, `activated_at=2026-10-29T01:00:00+00:00` (`replay-proof.init.json`),
+  et non à l'horloge murale. Sans ce bootstrap, le `--run` refuse avec le code 2.
 
 - Durée mesurée : 2026-11-06T14:57:02Z → 15:06:47Z (585 s).
 - Temps simulé : 2026-10-29T02:00:01Z → 2026-10-30T00:00:01Z, 23 cycles, warmup 50 bougies,
@@ -121,6 +132,45 @@ bases SQLite) pour `live`, `replay-trial`, `replay-run` et `replay-proof`, `TIMI
 `SHA256SUMS` (sha256 de chaque fichier). Aucun secret : aucun identifiant ni jeton (recherche
 `api_key|secret|token|password|Authorization` sans résultat). Le rejeu est reproductible hors ligne avec
 l'archive du paquet (`--replay-archive`) ; un nouvel appel public ne garantit pas la même archive.
+
+## Reproduction depuis le paquet (LAT-51)
+
+Procédure complète, depuis la racine du dépôt (`origin/integration/lat-26`), avec uv et Python 3.11. Toutes
+les sorties restent sous `.test-tmp*/` (ignoré par git). Chaque `--root` doit être une **racine neuve** :
+`--init-only` refuse une racine existante (`root already exists`). Ne jamais réutiliser comme racine
+runtime l'état extrait du paquet (`.test-tmp-lat34-pkg/.test-tmp-lat34/…`), qui est déjà initialisé et activé.
+
+```
+# 1. Télécharger le paquet exact (pièce jointe LAT-34) et vérifier son empreinte
+mkdir -p .test-tmp-lat34-pkg
+curl -sSf -H "Authorization: Bearer $PAPERCLIP_API_KEY" -o .test-tmp-lat34-pkg/lat34-proof-artifacts.zip \
+  "$PAPERCLIP_API_URL/api/attachments/2201371f-e2a4-4438-a1bd-9c96d11662e5/content"
+sha256sum .test-tmp-lat34-pkg/lat34-proof-artifacts.zip
+# attendu : e505d70bbb06645ef0a071e399a495a289a339f970b209d86c0861993def4381
+
+# 2. Extraire le paquet et vérifier l'archive exacte
+python3 -I -m zipfile -e .test-tmp-lat34-pkg/lat34-proof-artifacts.zip .test-tmp-lat34-pkg/
+sha256sum .test-tmp-lat34-pkg/.test-tmp-lat34/replay/replay_archive.json
+# attendu : a75ccec9ae6871499c635f0770282062b885179e55d9f209a476fe7ddaa506ea
+
+# 3. Observation publique (appelle Kraken public non authentifié au --run)
+uv run --python 3.11 python -m hermes_trading.pilot_paper --root .test-tmp-lat34-repro/live --init-only \
+  --experiment-id lat34-live
+uv run --python 3.11 python -m hermes_trading.pilot_paper --root .test-tmp-lat34-repro/live --run \
+  --experiment-id lat34-live --max-cycles 4 --max-runtime-seconds 540 --interval-seconds 150
+
+# 4. Rejeu hors ligne de l'archive exacte (aucun appel réseau)
+uv run --python 3.11 python -m hermes_trading.pilot_paper --root .test-tmp-lat34-repro/replay-proof --init-only \
+  --experiment-id lat34-replay-proof --replay-archive .test-tmp-lat34-pkg/.test-tmp-lat34/replay/replay_archive.json
+uv run --python 3.11 python -m hermes_trading.pilot_paper --root .test-tmp-lat34-repro/replay-proof --run \
+  --experiment-id lat34-replay-proof --replay-archive .test-tmp-lat34-pkg/.test-tmp-lat34/replay/replay_archive.json \
+  --max-cycles 23 --max-runtime-seconds 604800 --interval-seconds 3600
+```
+
+L'observation publique dépend du marché au moment du lancement : elle ne reproduit pas les cycles de
+2026-11-06 et son bootstrap s'active à l'horloge murale. Seul le rejeu de l'archive exacte est
+reproductible : bootstrap attendu `activated_at=2026-10-29T01:00:00+00:00`, manifest attendu
+`4efe77d9c0549979477d73e66ad12dd03fe1ef7c2a37122d9de3a0f640547992`. Le rejeu complet dure environ 10 min.
 
 ## Réserves
 
