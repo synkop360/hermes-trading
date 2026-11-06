@@ -574,6 +574,7 @@ async def run_pilot_session(
     sleep=None,
     environ=None,
     collector_options: dict | None = None,
+    replay=None,
 ) -> dict:
     """Run at most ``max_cycles`` shared paper cycles within ``max_runtime_seconds``.
 
@@ -582,11 +583,25 @@ async def run_pilot_session(
     recorded and re-raised. The collector is always closed and
     ``pilot_session.json`` is always written. ``collector``, ``clock`` and
     ``sleep`` are injection points for test doubles only.
+
+    ``replay`` is a ``pilot_replay.HistoricalReplayCollector``: it then
+    supplies the collector, the simulated clock and its ``sleep``, every cycle
+    sees only the candles closed at its replay instant, and one attempt is
+    made per cycle (a replay failure is never retried).
     """
     from hermes_trading.paired_paper import PairedDeadlineReached, run_paired_cycle
     from hermes_trading.pilot_market import PilotMarketCollector, refuse_credentials
 
     _check_session_bounds(max_cycles, max_runtime_seconds, interval_seconds, reflect_every)
+    if replay is not None:
+        if collector is not None or clock is not None or sleep is not None:
+            raise ValueError("a replay supplies its own collector, clock and sleep")
+        if max_cycles > replay.available_cycles:
+            raise ValueError(f"replay archive holds only {replay.available_cycles} cycle(s)")
+        if interval_seconds != replay.interval.total_seconds():
+            raise ValueError("replay interval must equal one archived candle")
+        collector, clock, sleep = replay, replay.clock, replay.sleep
+        collector_options = dict(collector_options or {}, max_attempts=1, retry_delay_seconds=0)
     _refuse_non_paper_mode(environ)
     refuse_credentials(environ)
     root = _validate_session_root(root)
@@ -600,6 +615,8 @@ async def run_pilot_session(
     pilot = PilotMarketCollector(collector=collector, assets=tuple(manifest["assets"]),
                                  timeframe=manifest["timeframe"], clock=clock, sleep=sleep,
                                  environ=environ, **(collector_options or {}))
+    if replay is not None:
+        pilot.source = replay.source
     market = PilotCycleMarket(pilot)
     started = clock()
     deadline = started + timedelta(seconds=max_runtime_seconds)
@@ -675,25 +692,33 @@ async def run_pilot_session(
             await market.aclose()
         finally:
             report = _session_report(root, manifest, market, cycles, stop, started, clock(), recovery,
-                                     max_cycles=max_cycles, max_runtime_seconds=max_runtime_seconds,
+                                     replay=replay, max_cycles=max_cycles, max_runtime_seconds=max_runtime_seconds,
                                      interval_seconds=interval_seconds, reflect_every=reflect_every)
     return report
 
 
-def _session_report(root, manifest, market, cycles, stop, started, finished, recovery, **bounds) -> dict:
+def _session_report(root, manifest, market, cycles, stop, started, finished, recovery, *, replay=None,
+                    **bounds) -> dict:
+    from hermes_trading.pilot_replay import SOURCE_REPLAY
+
     counts = _trade_counts(root, manifest)
     entries = sum(row["entries"] for row in counts.values())
     exits = sum(row["exits"] for row in counts.values())
-    public = market.source == "kraken_public_unauthenticated"
-    eligible_samples = sum(1 for sample in market.samples if sample["public_proof_eligible"])
+    if replay is None:
+        public = market.source == "kraken_public_unauthenticated"
+        eligible_samples = sum(1 for sample in market.samples if sample["public_proof_eligible"])
+    else:
+        # A replay sample is public only through its validated public archive.
+        public = market.source == SOURCE_REPLAY
+        eligible_samples = sum(1 for sample in market.samples if public and sample["status"] == "available")
     if not public:
-        proof = "not_eligible_injected_collector"
+        proof = "not_eligible_injected_collector" if replay is None else "not_eligible_replay_not_public"
     elif eligible_samples == 0:
         proof = "not_eligible_no_public_sample"
     elif entries == 0 or exits == 0:
         proof = "not_eligible_zero_trade"
     else:
-        proof = "candidate_requires_review"
+        proof = "candidate_requires_review" if replay is None else "candidate_requires_review_public_replay"
     report = {
         "schema_version": 1,
         "kind": "pilot_paper_session",
@@ -720,6 +745,8 @@ def _session_report(root, manifest, market, cycles, stop, started, finished, rec
         "exits": exits,
         "public_proof": proof,
     }
+    if replay is not None:
+        report["replay"] = replay.provenance()
     _write_report(root, json.loads(_json_text(report)))
     return report
 
@@ -759,13 +786,26 @@ def main(argv=None, *, collector=None, clock=None, sleep=None, environ=None) -> 
     parser.add_argument("--interval-seconds", type=float, default=3600.0)
     parser.add_argument("--reflect-every", type=int, default=1, help="fallback reflection every N cycles")
     parser.add_argument("--max-attempts", type=int, default=3, help="public collection attempts per cycle")
+    parser.add_argument("--replay-archive", type=Path,
+                        help="replay a pilot_replay archive chronologically (with --init-only and --run)")
+    parser.add_argument("--replay-warmup", type=int, default=50, help="archived candles visible before cycle 1")
     args = parser.parse_args(argv)
     if not (args.init_only or args.run):
         print("error: choose --init-only or --run", file=sys.stderr, flush=True)
         raise SystemExit(1)
+    replay = None
+    if args.replay_archive is not None:
+        from hermes_trading.pilot_replay import HistoricalReplayCollector
+        try:
+            replay = HistoricalReplayCollector(args.replay_archive, assets=ASSETS, timeframe=TIMEFRAME,
+                                               warmup_candles=args.replay_warmup)
+        except ValueError as exc:
+            print(f"refused: {exc}", file=sys.stderr, flush=True)
+            raise SystemExit(2)
     if args.init_only:
         try:
-            receipt = init_pilot_accounts(Path(args.root), experiment_id=args.experiment_id)
+            receipt = init_pilot_accounts(Path(args.root), experiment_id=args.experiment_id,
+                                          now=None if replay is None else replay.activation_at)
         except ValueError as exc:
             print(f"error: {exc}", file=sys.stderr, flush=True)
             raise SystemExit(1)
@@ -778,7 +818,7 @@ def main(argv=None, *, collector=None, clock=None, sleep=None, environ=None) -> 
         Path(args.root), max_cycles=args.max_cycles, max_runtime_seconds=args.max_runtime_seconds,
         interval_seconds=args.interval_seconds, reflect_every=args.reflect_every,
         collector=collector, clock=clock, sleep=sleep, environ=environ,
-        collector_options={"max_attempts": args.max_attempts})
+        collector_options={"max_attempts": args.max_attempts}, replay=replay)
     try:
         report = asyncio.run(session)
     except (ValueError, PermissionError, PilotSessionError) as exc:
