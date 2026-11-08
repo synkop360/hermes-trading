@@ -109,8 +109,13 @@ class PilotPaperTests(unittest.TestCase):
         self.assertEqual(list(target.iterdir()), [])
 
     def test_root_outside_test_tmp_is_refused(self) -> None:
-        outside = Path(tempfile.mkdtemp()) / "pilot-outside"
-        self.addCleanup(lambda: shutil.rmtree(outside.parent, ignore_errors=True))
+        probe = Path(tempfile.gettempdir()).resolve()
+        while probe.parent != probe and any(
+            part.startswith(".test-tmp") for part in probe.parts
+        ):
+            probe = probe.parent
+        self.assertFalse(any(part.startswith(".test-tmp") for part in probe.parts))
+        outside = probe / f"pilot-outside-{os.urandom(8).hex()}"
         with self.assertRaises(ValueError):
             pilot_paper.init_pilot_accounts(outside, now=self.at)
         self.assertFalse(outside.exists())
