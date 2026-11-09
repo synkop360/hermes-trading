@@ -33,8 +33,13 @@ def _baseline(policy,access):
 
 def _subscription():
     # Use only the read-only billing route, never a privileged spending method.
-    from hermes_cli.nous_billing import _resolve_token_and_base
-    token,base=_resolve_token_and_base(use_cache=False)
+    from hermes_trading.proposal_transport import _environment_credentials
+    dedicated=_environment_credentials()
+    if dedicated is None:
+        from hermes_cli.nous_billing import _resolve_token_and_base
+        token,base=_resolve_token_and_base(use_cache=False)
+    else:
+        token,base=dedicated['HERMES_NOUS_PORTAL_TOKEN'],'https://portal.nousresearch.com'
     if base.rstrip('/')!='https://portal.nousresearch.com':raise ValueError('unexpected account endpoint')
     request=Request(SUBSCRIPTION_URL,method='GET',headers={'Authorization':'Bearer '+token,'Accept':'application/json'})
     with build_opener(NoRedirect()).open(request,timeout=20) as response:

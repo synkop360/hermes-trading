@@ -18,6 +18,7 @@ STATE_DIR = PROJECT_DIR / "state"
 MIRROR_DIR = Path(r"C:\Users\thoma\hermes-trading-config")
 REMOTE_STATE_DIR = "/app/state"
 LAUNCH_CONFIG = None
+WORKER_TRANSPORT = None
 STATE_FILES = [
     "goal.yaml",
     "strategy.yaml",
@@ -35,13 +36,27 @@ DEFAULT_NO_TRADE_DECISIONS = 30
 
 @contextmanager
 def supervised_launch(path):
-    global STATE_DIR,MIRROR_DIR,REMOTE_STATE_DIR,LAUNCH_CONFIG
+    global STATE_DIR,MIRROR_DIR,REMOTE_STATE_DIR,LAUNCH_CONFIG,WORKER_TRANSPORT
     from hermes_trading.supervisor_launch import validate_launch
     config=validate_launch(path,PROJECT_DIR,_supervisor_release())
-    previous=STATE_DIR,MIRROR_DIR,REMOTE_STATE_DIR,LAUNCH_CONFIG
+    mode=config.get('transport','ssh')
+    if mode not in {'ssh','local'}:raise ValueError('unsupported supervisor transport')
+    transport=None
+    if mode=='local':
+        from scripts.native_hermes_watch import validate_local_transport
+        from scripts.paper_local_transport import LocalPaperTransport
+        from hermes_trading.supervisor_budget import active_budget
+        validate_local_transport(PROJECT_DIR)
+        def timeout():
+            budget=active_budget()
+            return budget.timeout(30) if budget is not None else 30
+        transport=LocalPaperTransport(PROJECT_DIR,PROJECT_DIR/'state',
+            config['remote_state_dir'].rsplit('/',1)[-1],timeout_seconds=timeout)
+    previous=STATE_DIR,MIRROR_DIR,REMOTE_STATE_DIR,LAUNCH_CONFIG,WORKER_TRANSPORT
     STATE_DIR,MIRROR_DIR,REMOTE_STATE_DIR,LAUNCH_CONFIG=config['local_state_dir'],config['mirror_dir'],config['remote_state_dir'],config
+    WORKER_TRANSPORT=transport
     try:yield config
-    finally:STATE_DIR,MIRROR_DIR,REMOTE_STATE_DIR,LAUNCH_CONFIG=previous
+    finally:STATE_DIR,MIRROR_DIR,REMOTE_STATE_DIR,LAUNCH_CONFIG,WORKER_TRANSPORT=previous
 
 
 def _maintenance_active():
@@ -251,22 +266,25 @@ def _remote_json(result):
 
 
 def _remote_snapshot():
+    if WORKER_TRANSPORT is not None:return WORKER_TRANSPORT.snapshot()
     command = f"{_remote_python()} -m hermes_trading.supervisor_sync --state-dir {shlex.quote(REMOTE_STATE_DIR)}"
     return _remote_json(_run(["railway.cmd", "ssh", "--", command],timeout_seconds=30))
 
 
 def _publish_remote(request):
+    if WORKER_TRANSPORT is not None:return WORKER_TRANSPORT.publish(request)
     command = f"{_remote_python()} -m hermes_trading.paper_publication --state-dir {shlex.quote(REMOTE_STATE_DIR)}"
     return _remote_json(_run(["railway.cmd", "ssh", "--", command], input_text=json.dumps(request, allow_nan=False),timeout_seconds=30))
 
 
 def _install_remote_usage(request):
+    if WORKER_TRANSPORT is not None:return WORKER_TRANSPORT.usage(request)
     command = f"{_remote_python()} -m hermes_trading.supervisor_usage_feed --state-dir {shlex.quote(REMOTE_STATE_DIR)}"
     return _remote_json(_run(["railway.cmd", "ssh", "--", command], input_text=json.dumps(request, allow_nan=False),timeout_seconds=30))
 
 
 def _probe_model_access(policy, existing):
-    python=os.environ.get('HERMES_PROPOSAL_PYTHON')
+    python=sys.executable if WORKER_TRANSPORT is not None else os.environ.get('HERMES_PROPOSAL_PYTHON')
     if not python:
         hermes=shutil.which('hermes')
         adjacent=Path(hermes).parent/('python.exe' if os.name=='nt' else 'python') if hermes else None
@@ -276,6 +294,7 @@ def _probe_model_access(policy, existing):
 
 
 def _install_remote_access(request):
+    if WORKER_TRANSPORT is not None:return WORKER_TRANSPORT.access(request)
     command=f"{_remote_python()} -m hermes_trading.model_access_refresh install --state-dir {shlex.quote(REMOTE_STATE_DIR)}"
     return _remote_json(_run(['railway.cmd','ssh','--',command],input_text=json.dumps(request,allow_nan=False),timeout_seconds=30))
 
@@ -401,7 +420,8 @@ def _deliver_supervisor_health(path):
     encoded=base64.b64encode(json.dumps(request,allow_nan=False,separators=(',',':')).encode()).decode('ascii')
     command=(f'{_remote_python()} -m hermes_trading.paper_supervisor_health '
              f'--root /app/state --request-base64 {shlex.quote(encoded)}')
-    receipt=_remote_json(_run(['railway.cmd','ssh','--',command],timeout_seconds=10))
+    receipt=(WORKER_TRANSPORT.health(request) if WORKER_TRANSPORT is not None else
+        _remote_json(_run(['railway.cmd','ssh','--',command],timeout_seconds=10)))
     if receipt!=dict(request,status='recorded'):
         raise ValueError('supervisor health acknowledgment differs')
     path.unlink()
@@ -560,8 +580,9 @@ def _main() -> int:
     if _maintenance_active():
         print("Hermes watch paused: maintenance marker is active; no sync or model review started")
         return 0
-    _load_dotenv(PROJECT_DIR / ".env")
-    _load_dotenv(Path(os.environ.get("LOCALAPPDATA", "")) / "hermes" / ".env")
+    if WORKER_TRANSPORT is None:
+        _load_dotenv(PROJECT_DIR / ".env")
+        _load_dotenv(Path(os.environ.get("LOCALAPPDATA", "")) / "hermes" / ".env")
     STATE_DIR.mkdir(parents=True, exist_ok=True)
 
     from hermes_trading.reflection_supervision import load_owner_policy

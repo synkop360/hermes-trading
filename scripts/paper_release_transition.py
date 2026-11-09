@@ -44,6 +44,9 @@ RELIABILITY_BASE_RUNTIME = 'ffe95446f146d79441862a3eae14228865fd7bf460fc7c7311f5
 ENTRY_HISTORY_BASE_COMMIT = 'c7f816d1e6dcc162ebc4ee6c7100c9d092702f15'
 ENTRY_HISTORY_BASE_RELEASE = 'b5f86459a39b3d7a680e1042bf0a7cf510db651b1c0a5f21063617b1f27cfce2'
 ENTRY_HISTORY_BASE_RUNTIME = '22799e23c53716cae16ca6a40d5eed820d9520881ccbf6b19e966577e3cd0a4d'
+CLOUD_BASE_COMMIT = '37e1be8672371d0d6acc14fb708049bc849e4a90'
+CLOUD_BASE_RELEASE = '35de7eb4d483b9a277e5f2203cb67b51a3a36e40bdb20fdc0f79677701be1292'
+CLOUD_TARGET_RELEASE = '5a302bb9df4f3289cc3b0b16c233ff281cf8c33964abb70603e0fee2e50240c1'
 TARGET = dict(project='f78f42d9-20ec-44f6-ae3f-f8bb79ee7000',
               service='8b94cbc9-293e-4222-a8a7-698b656985f7',
               environment='fdcc71a3-00a9-410c-8d6f-59af9bc98d36')
@@ -53,6 +56,7 @@ SNAPSHOT_PURPOSE = 'paper_snapshot_busy_release_transition_v1'
 RECOVERY_PURPOSE = 'paper_supervisor_recovery_release_transition_v1'
 RELIABILITY_PURPOSE = 'paper_supervisor_reliability_release_transition_v1'
 ENTRY_HISTORY_PURPOSE = 'paper_supervisor_entry_history_release_transition_v1'
+CLOUD_PURPOSE = 'paper_cloud_supervision_release_transition_v1'
 NAMES = {f'{arm}_{wallet}' for arm in ('adaptive', 'control') for wallet in (50, 100, 150, 200)}
 COMPONENTS = (
     ('worker_renewal', 'worker', 'adaptive_200/model_access_refresh.sqlite', 'binding'),
@@ -774,6 +778,8 @@ def _digest(value, length=64):
 
 
 def _purpose(plan):
+    if plan['old_commit'] == CLOUD_BASE_COMMIT:
+        return CLOUD_PURPOSE
     if plan['old_commit'] == ENTRY_HISTORY_BASE_COMMIT:
         return ENTRY_HISTORY_PURPOSE
     if plan['old_commit'] == RELIABILITY_BASE_COMMIT:
@@ -788,7 +794,7 @@ def _purpose(plan):
 def validate_release_plan(plan):
     if not isinstance(plan, dict) or set(plan) != {'old_commit', 'new_commit', 'target', 'old', 'new'}:
         raise ValueError('exact correction release plan required')
-    if plan['old_commit'] not in {BASE_COMMIT,REPORTING_BASE_COMMIT,SNAPSHOT_BASE_COMMIT,RECOVERY_BASE_COMMIT,RELIABILITY_BASE_COMMIT,ENTRY_HISTORY_BASE_COMMIT}:
+    if plan['old_commit'] not in {BASE_COMMIT,REPORTING_BASE_COMMIT,SNAPSHOT_BASE_COMMIT,RECOVERY_BASE_COMMIT,RELIABILITY_BASE_COMMIT,ENTRY_HISTORY_BASE_COMMIT,CLOUD_BASE_COMMIT}:
         raise ValueError('correction must retain approved base commit')
     _digest(plan['new_commit'], 40)
     if plan['new_commit'] == plan['old_commit']:
@@ -813,11 +819,18 @@ def validate_release_plan(plan):
                 raise ValueError('runtime source path differs')
             _digest(value)
     old, new = plan['old'], plan['new']
-    if old['watcher'] != new['watcher'] or old['native_launcher'] != new['native_launcher']:
+    cloud=plan['old_commit']==CLOUD_BASE_COMMIT
+    if not cloud and (old['watcher'] != new['watcher'] or old['native_launcher'] != new['native_launcher']):
         raise ValueError('watcher and native launcher must remain unchanged')
     if set(old['runtime']) != set(new['runtime']):
         raise ValueError('runtime source inventory changed')
-    if plan['old_commit'] == ENTRY_HISTORY_BASE_COMMIT:
+    if cloud:
+        if _hash(old)!=CLOUD_BASE_RELEASE or _hash(new)!=CLOUD_TARGET_RELEASE:
+            raise ValueError('cloud supervision source differs from its pinned predecessor or successor')
+        # The complete successor is pinned above. Its other Python files only
+        # change from Windows checkout line endings to the canonical Git bytes.
+        return
+    elif plan['old_commit'] == ENTRY_HISTORY_BASE_COMMIT:
         if _hash(old) != ENTRY_HISTORY_BASE_RELEASE or _hash(old['runtime']) != ENTRY_HISTORY_BASE_RUNTIME:
             raise ValueError('entry history correction predecessor differs from deployed release')
         allowed = {'market_data.py'}

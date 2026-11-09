@@ -1,0 +1,39 @@
+name: Paper cloud supervision
+on:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  cloud-supervision:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      PYTHONPATH: tests
+      HERMES_TRADING_MODE: paper
+      HERMES_TRADING_ALLOW_REAL_ORDERS: 'false'
+      HERMES_NOTIFY_ENABLED: 'false'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
+        with:
+          python-version: '3.11'
+      - run: python -m pip install uv==0.11.32
+      - run: uv sync --locked
+      - name: Validate pinned Nous auth imports without a session
+        run: |
+          uv pip install --python .venv/bin/python --no-deps 'hermes-agent @ git+https://github.com/NousResearch/hermes-agent@eb52760564dbba2e5971fa54bd67384e281cd3b8'
+          uv run --no-sync python -c 'import hermes_cli.auth, hermes_cli.nous_billing'
+      - name: Native supervision and process containment
+        run: >-
+          uv run --no-sync python -m unittest
+          test_cloud_model_credentials test_proposal_transport test_model_access_refresh
+          test_cloud_supervisor_launch test_native_supervisor_launcher
+          test_paper_local_transport test_paper_supervisor_service
+          test_paper_cloud_release_transition
+          test_reflection_supervision test_supervisor_lifecycle test_supervisor_budget
+          test_global_reflection test_model_runner test_paper_publication
+          test_supervisor_usage_source test_supervisor_usage_feed test_supervisor_sync
+          test_paper_supervisor_health test_paper_supervisor_recovery

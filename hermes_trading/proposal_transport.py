@@ -38,7 +38,24 @@ def _exchange(method,path,*,payload=None,token=None,raw_capture=None):
     return json.loads(raw,parse_float=Decimal)
 
 
+def _environment_credentials():
+    names=('HERMES_NOUS_AUTH','HERMES_NOUS_API_KEY','HERMES_NOUS_PORTAL_TOKEN')
+    if not any(name in os.environ for name in names):return None
+    if (os.environ.get('HERMES_NOUS_AUTH')!='environment' or
+            os.environ.get('HERMES_TRADING_MODE')!='paper' or
+            os.environ.get('HERMES_TRADING_ALLOW_REAL_ORDERS')!='false'):
+        raise ValueError('dedicated Nous credentials require explicit paper environment authentication')
+    values={name:os.environ.get(name,'') for name in names[1:]}
+    if any(not value or len(value)>8192 or any(not 33<=ord(char)<=126 for char in value)
+           for value in values.values()):
+        raise ValueError('valid dedicated Nous credentials are required')
+    return values
+
+
 def _credentials():
+    dedicated=_environment_credentials()
+    if dedicated is not None:
+        return {'provider':'nous','base_url':BASE,'api_key':dedicated['HERMES_NOUS_API_KEY']}
     # Authentication only: never import the agent, tool, plugin or fallback runner.
     from hermes_cli.auth import resolve_nous_runtime_credentials
     return resolve_nous_runtime_credentials()

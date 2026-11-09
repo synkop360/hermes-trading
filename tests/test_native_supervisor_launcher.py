@@ -5,6 +5,23 @@ import hashlib,json,subprocess,tempfile,unittest
 
 
 class NativeLauncherTests(unittest.TestCase):
+    def test_local_launch_uses_a_separate_persistent_auth_home(self):
+        import os,shutil
+        from unittest.mock import patch
+        from scripts import native_hermes_watch as native
+        scripts=self.root/'scripts';scripts.mkdir()
+        for name in ['paper_local_transport.py','paper_supervisor_service.py']:
+            shutil.copyfile(Path(native.__file__).with_name(name),scripts/name)
+        relative='.venv/Scripts/python.exe' if os.name=='nt' else '.venv/bin/python'
+        python=self.root/relative;python.parent.mkdir(parents=True,exist_ok=True);python.touch()
+        self.config(transport='local');run=Mock(return_value=subprocess.CompletedProcess([],0,'',''))
+        with patch.dict(os.environ,{'HERMES_TRADING_MODE':'paper','HERMES_TRADING_ALLOW_REAL_ORDERS':'false'}):
+            self.invoke(run)
+        env=run.call_args.kwargs['env']
+        self.assertEqual(env['HERMES_HOME'],str(self.root/'state/cloud-auth'))
+        self.assertEqual(env['HERMES_SHARED_AUTH_DIR'],str(self.root/'state/cloud-auth/shared'))
+        self.assertEqual(env['HERMES_PROPOSAL_PYTHON'],str(python))
+
     def setUp(self):
         self.tmp=tempfile.TemporaryDirectory();self.root=Path(self.tmp.name).resolve();self.now=datetime.now(timezone.utc)
         self.state=self.root/'state/paired-supervisor/test/adaptive_100';self.state.mkdir(parents=True)
