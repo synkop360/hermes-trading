@@ -1,0 +1,2 @@
+# Raw SHA-256 pins in the disabled candidate must survive Windows checkouts.
+/config/paper-beta-v1/** text eol=lf
