@@ -33,3 +33,7 @@ Fresh validation: 104 targeted tests passed under Python 3.11.9, plus three
 cloud transition tests (including interrupted native state, 94.7 seconds).
 The wider combined suite was interrupted after slow SQLite fsync processing;
 no full-suite pass is claimed. Linux CI includes the wider relevant suite.
+
+Linux CI attempt 1 reached the auth installation and failed because the pinned
+upstream explicitly disallows wheel builds. Use its supported editable install
+from the exact detached revision, via one script shared by Docker and CI.

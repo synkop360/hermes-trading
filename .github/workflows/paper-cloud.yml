@@ -24,8 +24,7 @@ jobs:
       - run: uv sync --locked
       - name: Validate pinned Nous auth imports without a session
         run: |
-          uv pip install --python .venv/bin/python --no-deps 'hermes-agent @ git+https://github.com/NousResearch/hermes-agent@eb52760564dbba2e5971fa54bd67384e281cd3b8'
-          uv run --no-sync python -c 'import hermes_cli.auth, hermes_cli.nous_billing'
+          sh scripts/install_nous_auth.sh "$RUNNER_TEMP/hermes-auth" "$GITHUB_WORKSPACE/.venv/bin/python"
       - name: Native supervision and process containment
         run: >-
           uv run --no-sync python -m unittest

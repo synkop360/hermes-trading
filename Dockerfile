@@ -9,8 +9,7 @@ COPY scripts ./scripts
 RUN uv sync --locked
 # Reuse only the existing Nous credential resolver and its rotation lock.
 # No agent loop, tools, billing mutation or model fallback is invoked.
-RUN uv pip install --python /app/.venv/bin/python --no-deps "hermes-agent @ git+https://github.com/NousResearch/hermes-agent@eb52760564dbba2e5971fa54bd67384e281cd3b8"
-RUN /app/.venv/bin/python -c "import hermes_cli.auth, hermes_cli.nous_billing"
+RUN sh scripts/install_nous_auth.sh /opt/hermes-auth /app/.venv/bin/python
 ENV HERMES_TRADING_MODE=paper
 ENV HERMES_TRADING_ALLOW_REAL_ORDERS=false
 CMD ["uv", "run", "--no-sync", "python", "-m", "hermes_trading.paper_boot", "--root", "/app/state"]

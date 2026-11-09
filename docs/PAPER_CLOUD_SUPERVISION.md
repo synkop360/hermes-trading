@@ -27,7 +27,8 @@ Une annulation ou un depassement de sortie arrete les descendants.
 
 Le Dockerfile installe uniquement le code client Hermes epingle au commit
 `eb52760564dbba2e5971fa54bd67384e281cd3b8`, sans modifier les dependances
-verrouillees du moteur. Il verifie que ses modules d'authentification s'importent.
+verrouillees du moteur, via l'installation editable officiellement supportee.
+Il verifie que ses modules d'authentification s'importent.
 Le parcours paper utilise son resolveur Nous et son verrou de renouvellement ;
 il ne lance pas l'agent, ses outils ou ses fonctions de facturation.
 
