@@ -22,6 +22,58 @@ nouvelle racine `.test-tmp*/` ; changer le suffixe pour une seconde exécution.
 racine, identifiant et archive éventuelle. Ne pas utiliser l'état extrait d'un
 paquet comme racine d'exécution.
 
+## Parcours Windows PowerShell
+
+Depuis la racine du depot, Windows PowerShell 5.1 ou PowerShell 7 :
+
+```powershell
+# Premiere execution : installation verrouillee, bootstrap puis observation.
+.\scripts\run_paper_pilot.ps1 -Install
+
+# Executions suivantes : nouvelle racine et nouvelle identite automatiques.
+.\scripts\run_paper_pilot.ps1
+```
+
+Le lanceur utilise Python 3.11 et `uv run --no-sync` : sans `-Install`, il ne
+synchronise pas les dependances. Par defaut, il lance un cycle, borne a 120 s,
+avec un intervalle de 60 s. Il refuse une racine existante, initialise avant
+le run et s'arrete des qu'une commande echoue. Une erreur de run conserve
+les traces de la session pour inspection ; une nouvelle execution choisit une
+nouvelle racine. Les chemins relatifs de `-Root` sont relatifs au depot.
+Ne charger aucun `.env` ni identifiant pour ce parcours public.
+
+Pour un rejeu, preparer le paquet public exact de la section suivante, sans
+utiliser son etat extrait comme racine runtime. Avec le ZIP telecharge dans
+`.test-tmp-lat28-pkg/proof.zip`, verifier puis extraire sous PowerShell :
+
+```powershell
+& {
+    $ErrorActionPreference = 'Stop'
+    $zip = '.test-tmp-lat28-pkg/proof.zip'
+    $expectedZip = 'e505d70bbb06645ef0a071e399a495a289a339f970b209d86c0861993def4381'
+    if ((Get-FileHash -LiteralPath $zip -Algorithm SHA256).Hash -ne $expectedZip) {
+        throw 'Empreinte du paquet public incorrecte'
+    }
+    Expand-Archive -LiteralPath $zip -DestinationPath '.test-tmp-lat28-pkg/extracted'
+    $archive = '.test-tmp-lat28-pkg/extracted/.test-tmp-lat34/replay/replay_archive.json'
+    $expectedArchive = 'a75ccec9ae6871499c635f0770282062b885179e55d9f209a476fe7ddaa506ea'
+    if ((Get-FileHash -LiteralPath $archive -Algorithm SHA256).Hash -ne $expectedArchive) {
+        throw 'Empreinte de l''archive publique incorrecte'
+    }
+    .\scripts\run_paper_pilot.ps1 -ReplayArchive $archive `
+        -ExperimentId 'lat34-replay-proof' -MaxCycles 23 `
+        -MaxRuntimeSeconds 604800 -IntervalSeconds 3600
+}
+```
+
+L'intervalle du rejeu avance l'horloge simulee ; ce n'est pas une attente d'une
+heure. Les durees et limites historiques ci-dessous restent applicables.
+Le lanceur conserve les strategies du pilote, y compris ses frais nuls de
+reference ; ce parcours ne remplace pas la beta avec frais declares.
+Verifier `error`, `stop_reason`, `trade_counts`, `entries`, `exits` et
+`public_proof` dans la sortie JSON et `pilot_session.json`. Un code de sortie
+nul ou zero trade ne suffit pas a etablir une preuve financiere.
+
 ## Observation du marché actuel
 
 ```bash
