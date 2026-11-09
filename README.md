@@ -89,26 +89,30 @@ Get-Content .\state\heartbeat.json
 Get-Content .\state\decisions.jsonl -Tail 20
 ```
 
-## Pilote paper reproductible (local)
+## Pilote paper reproductible (huit comptes)
 
-Un mode opératoire offline, borné et vérifiable est disponible pour prouver que
-le moteur paper produit des résultats sans secret, sans réseau et sans ordre
-réel. Voir `docs/PAPER_PILOT.md` pour les commandes exactes, les pré-requis, la
-durée mesurée, le schéma des preuves et les limites.
-
-Résumé des deux commandes :
+Le parcours principal utilise des prix Kraken publics sans authentification et
+huit comptes simulés : adaptive/control × 50/100/150/200 EUR. Depuis la racine :
 
 ```bash
-HERMES_TRADING_MODE=paper HERMES_NOTIFY_ENABLED=false \
-uv run python -m hermes_trading.paper_offline \
-  --root .test-tmp-paper-pilot/session-001 --cycles 6 --interval-seconds 0
-
-uv run python -m hermes_trading.reflect --fallback \
-  --state-dir .test-tmp-paper-pilot/session-001/account
+uv sync --python 3.11 --locked
+uv run --python 3.11 python -m hermes_trading.pilot_paper \
+  --root .test-tmp-lat28-repro/public --init-only --experiment-id lat28-public
+uv run --python 3.11 python -m hermes_trading.pilot_paper \
+  --root .test-tmp-lat28-repro/public --run --experiment-id lat28-public \
+  --max-cycles 1 --max-runtime-seconds 120 --interval-seconds 60
 ```
 
-Ce pilote porte uniquement sur le moteur local de simulation ; il ne prouve pas
-la reprise du worker à huit comptes ni de son superviseur.
+Choisir une racine neuve à chaque session. Le fallback adaptive est local et
+automatique ; les control restent fixes. Aucun ordre réel ni appel LLM.
+Une observation peut finir sans trade et reste alors inconclusive.
+Voir [la procédure complète](docs/PAPER_PILOT.md) pour l'installation séparée,
+le rejeu hors ligne du paquet public exact, les huit sorties et les limites de
+valorisation. La [preuve LAT-34](docs/LAT34_PUBLIC_PROOF_RESULTS.md) rapporte
+six entrées/six clôtures en rejeu historique (~10 min), pas en temps réel ;
+les deux comptes 50 EUR restent sans trade et les frais sont nuls.
+L'ancien `paper_offline` utilise une fixture synthétique et ne constitue pas
+cette preuve publique.
 
 ## Reflexion
 
