@@ -46,7 +46,7 @@ ENTRY_HISTORY_BASE_RELEASE = 'b5f86459a39b3d7a680e1042bf0a7cf510db651b1c0a5f2106
 ENTRY_HISTORY_BASE_RUNTIME = '22799e23c53716cae16ca6a40d5eed820d9520881ccbf6b19e966577e3cd0a4d'
 CLOUD_BASE_COMMIT = '37e1be8672371d0d6acc14fb708049bc849e4a90'
 CLOUD_BASE_RELEASE = '35de7eb4d483b9a277e5f2203cb67b51a3a36e40bdb20fdc0f79677701be1292'
-CLOUD_TARGET_RELEASE = '5a302bb9df4f3289cc3b0b16c233ff281cf8c33964abb70603e0fee2e50240c1'
+CLOUD_TARGET_RELEASE = 'e55a303b2fa9e50aef8b4ac0287a62da84be649e0134b030487441f31f3cd606'
 TARGET = dict(project='f78f42d9-20ec-44f6-ae3f-f8bb79ee7000',
               service='8b94cbc9-293e-4222-a8a7-698b656985f7',
               environment='fdcc71a3-00a9-410c-8d6f-59af9bc98d36')
@@ -67,6 +67,29 @@ COMPONENTS = (
     ('pc_launch', 'launch', '', 'release_hash'),
 )
 _DEADLINE = ContextVar('paper_transition_deadline', default=None)
+_VOLUME_AUX = ContextVar('paper_volume_auxiliary', default=None)
+
+
+@contextmanager
+def volume_cutover_layout(worker_root):
+    """Admit only the bootstrap-owned metadata namespace on one volume.
+
+    Bootstrap creates this previously absent directory exclusively. Ordinary
+    callers keep the original disjoint-root rules. Account files, retained
+    evidence and the supervisor copy still participate in native protection.
+    """
+    if _VOLUME_AUX.get() is not None:raise ValueError('nested volume cutover forbidden')
+    root=_safe_root(Path(worker_root).absolute())
+    auxiliary=_safe_root(root/'.paper-cloud-cutover')
+    owner=_read(auxiliary/'owner.json')
+    expected=dict(schema_version=1,purpose='paper_cloud_auxiliary_v1',worker_root=str(root),
+        policy_hash=_hash(_read(root/'adaptive_200/reflection_owner.json')),
+        account_hash=_hash(_read(root/'adaptive_200/wallet_account.json')))
+    if owner!=expected or type(owner.get('schema_version')) is not int:
+        raise ValueError('volume auxiliary owner differs')
+    token=_VOLUME_AUX.set(dict(root=root,auxiliary=auxiliary,owner_hash=_hash(owner)))
+    try:yield auxiliary
+    finally:_VOLUME_AUX.reset(token)
 
 
 def _check():
@@ -123,15 +146,23 @@ def _layout(worker_root, supervisor_root, launch_file, audit_dir=None):
     result = {key: _safe_root(Path(value).absolute()) for key, value in
               (('worker', worker_root), ('supervisor', supervisor_root), ('launch', launch_file))}
     roots = (result['worker'], result['supervisor'])
+    volume=_VOLUME_AUX.get()
+    if volume is not None:
+        auxiliary=volume['auxiliary']
+        if (result['worker']!=volume['root'] or result['supervisor']!=auxiliary/'supervisor' or
+                result['launch']!=auxiliary/'launch.json' or _hash(_read(auxiliary/'owner.json'))!=volume['owner_hash']):
+            raise ValueError('volume cutover paths or ownership differ')
     if any(not root.is_dir() for root in roots) or not result['launch'].is_file():
         raise ValueError('existing closed worker/supervisor copies and launch required')
-    if roots[0] == roots[1] or any(left in right.parents for left, right in (roots, roots[::-1])):
+    if volume is None and (roots[0] == roots[1] or any(left in right.parents for left, right in (roots, roots[::-1]))):
         raise ValueError('worker and supervisor copies must be separate')
-    if any(result['launch'].is_relative_to(root) for root in roots):
+    if volume is None and any(result['launch'].is_relative_to(root) for root in roots):
         raise ValueError('launch must remain separate from state copies')
     if audit_dir is not None:
         result['audit'] = _safe_root(Path(audit_dir).absolute())
-        if any(result['audit'] == root or result['audit'].is_relative_to(root) or
+        if volume is not None and result['audit'] not in {volume['auxiliary']/'entry-history',volume['auxiliary']/'cloud-source'}:
+            raise ValueError('volume audit namespace differs')
+        if volume is None and any(result['audit'] == root or result['audit'].is_relative_to(root) or
                root.is_relative_to(result['audit']) for root in (*roots, result['launch'])):
             raise ValueError('transition audit must be outside all inputs')
     return result
@@ -157,8 +188,13 @@ def _members(layout):
     result = {}
     for role in ('worker', 'supervisor'):
         root = layout[role]
+        volume=_VOLUME_AUX.get()
+        owned=role=='worker' and volume is not None and root==volume['root']
+        if owned and _hash(_read(volume['auxiliary']/'owner.json'))!=volume['owner_hash']:
+            raise ValueError('volume auxiliary ownership changed')
         for path in root.rglob('*'):
             _check()
+            if owned and path.is_relative_to(volume['auxiliary']):continue
             path = _safe_root(path)
             if len(result) >= 8192: raise ValueError('transition file budget exceeded')
             name = role+'/'+path.relative_to(root).as_posix()

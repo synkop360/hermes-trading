@@ -32,6 +32,8 @@ jobs:
           test_cloud_supervisor_launch test_native_supervisor_launcher
           test_paper_local_transport test_paper_supervisor_service
           test_paper_cloud_release_transition
+          test_paper_cloud_install test_paper_cloud_auth test_paper_cloud_service test_paper_service_health
+          test_paper_handoff
           test_reflection_supervision test_supervisor_lifecycle test_supervisor_budget
           test_global_reflection test_model_runner test_paper_publication
           test_supervisor_usage_source test_supervisor_usage_feed test_supervisor_sync

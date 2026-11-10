@@ -6,6 +6,7 @@ import unittest
 import sqlite3
 from contextlib import closing
 from unittest.mock import patch
+import shutil
 from scripts import paper_release_transition as transition
 import release_transition_fixtures as fixtures
 
@@ -34,6 +35,33 @@ class CloudReleaseTransitionTests(unittest.TestCase):
 
 
 class CloudClosedCopyTests(unittest.IsolatedAsyncioTestCase):
+    async def test_volume_owned_auxiliary_layout_survives_context_restart(self):
+        source=CloudReleaseTransitionTests().plan()
+        with patch.object(fixtures,'OLD_COMMIT',source['old_commit']), \
+                patch.object(fixtures.NativeTransitionFixture,'_releases',return_value=(source['old'],source['new'])):
+            f=await fixtures.NativeTransitionFixture.create(self)
+        aux=f.worker_root/'.paper-cloud-cutover';aux.mkdir()
+        supervisor=aux/'supervisor';shutil.copytree(f.supervisor_root,supervisor)
+        launch=aux/'launch.json';shutil.copyfile(f.launch_file,launch)
+        from hermes_trading.reflection_supervision import _hash
+        owner=dict(schema_version=1,purpose='paper_cloud_auxiliary_v1',worker_root=str(f.worker_root),
+            policy_hash=_hash(f.policy),account_hash=_hash(f.account))
+        (aux/'owner.json').write_text(json.dumps(owner))
+        options=dict(worker_root=f.worker_root,supervisor_root=supervisor,launch_file=launch,audit_dir=aux/'cloud-source')
+        account_before=(f.primary/'wallet_account.json').read_bytes()
+        def interrupt(stage,name):
+            if stage=='component_commit':raise RuntimeError('synthetic restart')
+        with transition.volume_cutover_layout(f.worker_root):
+            plan=transition.prepare_plan(f.worker_root,supervisor,launch,release_plan=f.release_plan,expected_identity=f.expected_identity)
+            with self.assertRaisesRegex(RuntimeError,'synthetic restart'):
+                transition.apply_transition(plan,**options,apply=True,approval_ref='synthetic-volume-owner',fault=interrupt)
+        with transition.volume_cutover_layout(f.worker_root):
+            result=transition.apply_transition(plan,**options,apply=True,reconcile=True,approval_ref='synthetic-volume-owner')
+        self.assertEqual(result['status'],'completed')
+        self.assertEqual((f.primary/'wallet_account.json').read_bytes(),account_before)
+        self.assertTrue((aux/'cloud-source/receipt.json').is_file())
+        with self.assertRaises(ValueError):transition.inspect_transition(plan,**options)
+
     async def test_reconciled_transition_preserves_actual_native_history_and_counters(self):
         source=CloudReleaseTransitionTests().plan()
         with patch.object(fixtures,'OLD_COMMIT',source['old_commit']), \

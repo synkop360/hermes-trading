@@ -12,4 +12,4 @@ RUN uv sync --locked
 RUN sh scripts/install_nous_auth.sh /opt/hermes-auth /app/.venv/bin/python
 ENV HERMES_TRADING_MODE=paper
 ENV HERMES_TRADING_ALLOW_REAL_ORDERS=false
-CMD ["uv", "run", "--no-sync", "python", "-m", "hermes_trading.paper_boot", "--root", "/app/state"]
+CMD ["/bin/sh", "-c", "export HERMES_TRADING_MODE=paper HERMES_TRADING_ALLOW_REAL_ORDERS=false; exec /app/.venv/bin/python -u -m scripts.paper_cloud_service"]

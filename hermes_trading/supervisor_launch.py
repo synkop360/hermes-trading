@@ -20,7 +20,7 @@ def launch_primary(config):
     return PrimarySelection(100)
 
 
-def validate_launch(path,project,release):
+def validate_launch(path,project,release,*,allow_expired=False):
     path=Path(path)
     if path.stat().st_size>65536:raise ValueError('supervisor launch configuration exceeds bound')
     config=json.loads(path.read_text(encoding='utf-8'))
@@ -55,6 +55,9 @@ def validate_launch(path,project,release):
     if type(seconds) is not int or not 1<=seconds<=180*86400:raise ValueError('launch needs finite lifecycle duration')
     activated=_time(account.get('activated_at'))
     expires=activated+timedelta(seconds=seconds)
-    if _time(limits.get('activated_at'))!=activated or _time(config.get('expires_at'))!=expires or not activated<=_now()<expires:
+    if type(allow_expired) is not bool:raise ValueError('literal lifetime validation option required')
+    now=_now()
+    if (_time(limits.get('activated_at'))!=activated or _time(config.get('expires_at'))!=expires or
+            now<activated or (now>=expires and not allow_expired)):
         raise ValueError('launch lifetime differs or expired')
     return dict(config,local_state_dir=state,mirror_dir=mirror)

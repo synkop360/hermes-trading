@@ -260,7 +260,7 @@
       "strategy.py": "9da81a7fbcda97e4c925657914b3b108d9ce7625c612c0a50bdfdd93c17983d8",
       "strategy_registry.py": "165193aef2128f177699ada1deb9784245d478356e62eb697c8434135808e383",
       "supervisor_budget.py": "713241b7ac0da7e21a2da563226d0b62cc67754387e5555d70000b1f140c1389",
-      "supervisor_launch.py": "8130384a2b0e1425524d8d89fff568387c85807313a9bf8878bd7bce6404ba53",
+      "supervisor_launch.py": "e5b6d527e6fe9021cd0cccbf6b33fd6d3947ebab3d314fbc3ead1cb9530f6b67",
       "supervisor_lifecycle.py": "8676f05001cc4c8a3ada681072a15ae1966e41e8674ef67809010f44f1493bbb",
       "supervisor_sync.py": "c9e61bda9e47cba7ab433d103d5ee1b429e664018155ba6de8c12d7a69c78ff4",
       "supervisor_usage_feed.py": "1b2507280b62e6867aa578f765b72797928650ae7f38afa2b91d820657bfc8ef",
@@ -275,6 +275,6 @@
       "wallet_observer.py": "d5a0f9517fbe1ef22a92025b4894ce848efcd7fa6ee827dd370f650420f7252a"
     },
     "watcher": "ae712bcbc853ea46c0a9bb09a8363f648f6a80eab0140a3aab1e9aaf0eb6d83f",
-    "native_launcher": "74e3c510f5ce1c43c5efcd4d0898ae42bc5abc27c7575d9ea9b4d4ada3078518"
+    "native_launcher": "80d159557e858fc593ab331b6c659cba27983528b4f1eaec3c5d22d1957c7c22"
   }
 }

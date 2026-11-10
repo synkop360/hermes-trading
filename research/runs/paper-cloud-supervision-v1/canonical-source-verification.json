@@ -1,11 +1,12 @@
 {
   "baseline_commit": "37e1be8672371d0d6acc14fb708049bc849e4a90",
   "runtime_files": 129,
-  "unchanged_modules_verified_against_git": 127,
+  "unchanged_modules_verified_against_git": 126,
   "changed_code_modules": [
     "model_access_refresh.py",
-    "proposal_transport.py"
+    "proposal_transport.py",
+    "supervisor_launch.py"
   ],
-  "successor_release_sha256": "5a302bb9df4f3289cc3b0b16c233ff281cf8c33964abb70603e0fee2e50240c1",
+  "successor_release_sha256": "e55a303b2fa9e50aef8b4ac0287a62da84be649e0134b030487441f31f3cd606",
   "canonical_line_endings": "LF"
 }

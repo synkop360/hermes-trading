@@ -104,7 +104,8 @@ def _process_tree(command, *, cwd, env, source):
     return child,stop,lambda:kernel.CloseHandle(job)
 
 
-def _run_bounded(command, *, input=None, cwd, env, timeout, max_bytes, stop_event=None, **options):
+def _run_bounded(command, *, input=None, cwd, env, timeout, max_bytes, stop_event=None,
+                 retain_stdout=True, stdout_observer=None, **options):
     """Drain both streams concurrently and kill at a combined byte ceiling."""
     output = bytearray()
     total = 0
@@ -130,8 +131,10 @@ def _run_bounded(command, *, input=None, cwd, env, timeout, max_bytes, stop_even
                         if total > max_bytes:
                             exceeded.set()
                             stop_tree()
-                        elif keep:
+                        elif keep and retain_stdout:
                             output.extend(chunk)
+                    if keep and not exceeded.is_set() and stdout_observer is not None:
+                        stdout_observer(chunk)
             except (OSError, ValueError):
                 failed.set()
                 stop_tree()

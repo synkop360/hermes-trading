@@ -29,7 +29,7 @@ def _read(path):
         raise ValueError('existing supervisor metadata required') from None
 
 
-def supervise(launch_file, *, stop=None, launch_run=None, wait=None, clock=None, stream=None):
+def supervise(launch_file, *, stop=None, launch_run=None, wait=None, clock=None, stream=None, wait_for_auth=False):
     path=Path(launch_file).resolve(strict=True)
     stop=stop if stop is not None else threading.Event()
     wait=wait or stop.wait
@@ -54,6 +54,12 @@ def supervise(launch_file, *, stop=None, launch_run=None, wait=None, clock=None,
         if type(interval) is not int or not 60<=interval<=240:raise ValueError('finite supervisor interval required')
         if lifecycle.get('status')=='stopped':return 'stopped'
         if lifecycle.get('status')!='running':raise ValueError('existing running supervisor lifecycle required')
+        if wait_for_auth and os.environ.get('HERMES_NOUS_AUTH')!='environment':
+            auth=Path(config['project_dir'])/'state/cloud-auth/auth.json'
+            if not auth.is_file():
+                print(json.dumps({'kind':'paper_supervisor_cycle','status':'auth_pending'}),file=stream,flush=True)
+                wait(min(interval,(expires-clock()).total_seconds()))
+                continue
         def command_run(command, **kwargs):
             return _run_bounded(command,max_bytes=65536,stop_event=stop,**kwargs)
         try:result=launch_run(path,command_run=command_run)
@@ -76,7 +82,7 @@ def main(argv=None):
     stop=threading.Event()
     for name in ('SIGTERM','SIGINT'):
         if hasattr(signal,name):signal.signal(getattr(signal,name),lambda *_:stop.set())
-    try:status=supervise(args.launch_file,stop=stop)
+    try:status=supervise(args.launch_file,stop=stop,wait_for_auth=True)
     except Exception:
         print(json.dumps({'kind':'paper_supervisor_stopped','status':'configuration_rejected'}),flush=True)
         return 1
