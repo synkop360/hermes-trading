@@ -28,7 +28,7 @@ Do not raise the logical state budget/reserve to hide the admission failure.
 ## Reviewed source candidate
 
 PR 18: https://github.com/synkop360/hermes-trading/pull/18
-Code commit: c7780dc95649a0c070a5c4e491779113acde8d2d.
+Code commit: f3daae5350d92f3e33d8a99aacdd2d0e1389b8e2.
 Supervisor release:
 e55a303b2fa9e50aef8b4ac0287a62da84be649e0134b030487441f31f3cd606.
 Canonical source verification proves 126 of 129 modules unchanged from Git37e1be8.
