@@ -8,7 +8,7 @@ existing 500 MB volume; use verified compression and bounded migration backups.
 Project f78f42d9-20ec-44f6-ae3f-f8bb79ee7000, production environment
 fdcc71a3-00a9-410c-8d6f-59af9bc98d36, service8b94cbc9-293e-4222-a8a7-698b656985f7.
 Volume0ae9532a-b9cf-4df6-a911-f51d4b9daa6d remains at /app/state,500MB.
-Live deployment a85513c6-53cb-4dc9-9ed3-9a401e763526 is SUCCESS, one replica.
+Live deployment ee45fb39-daaa-47c6-aa85-2a968d123cb0 is SUCCESS, one replica.
 Runtime fingerprint19fdcb676120b21b44d54076de08e148259e34bdfe61bbdbdffbf20b694e12ed
 is the original installed37e1be8 package.
 
@@ -23,8 +23,10 @@ the user's explicit accept and a successful reviewed deployment.
 Fresh closed preflight: state_bytes267819995, free_bytes174321664,
 reserve_bytes134217728, max_state_bytes500000000, storage_ready=true,
 all_positions_closed=true, pending_batch=false, last_batch_storage_stop=false,
-worker_running=true. The old storage_stop remains latched. Stale supervisor
-health also blocks new exposure. Do not claim the beta functional yet.
+worker_running=true. The reviewed native storage recovery has now executed. Fresh production health
+reports storage_status=ready and storage_stop=false, with eight accounts observed.
+Supervisor health remains stale and admission still includes another redacted
+reason; do not claim full entry readiness or a functional beta yet.
 
 ## Reviewed implementation
 
@@ -53,9 +55,12 @@ The following storage phase changes scripts and tests, not that runtime map:
   Actual native interruption/reconciliation and negative admission tests exist.
 
 Independent reviews report no blocking findings in these storage changes.
-Require the exact storage candidate's Linux CI before its production recovery.
-No storage recovery, checkpoint upload, image-source switch or Nous login has
-yet been performed at this checkpoint.
+The exact storage candidate364d3a96b4d9ddbbcb3814133f33c9090adc582b passed281
+Linux tests in16.041s, run42871033508/job130022052277. Its five affected script
+blobs were verified identical to local reviewed files. Production native recovery
+reported recovered; it retained the original lifecycle/marker evidence and
+restored only storage admission. No checkpoint upload, image-source switch or
+Nous login has been performed.
 
 ## Workspace/private checkpoint
 
@@ -70,8 +75,13 @@ Never publish its contents, financial state, access tokens or refresh tokens.
 
 ## Continue activation
 
-1. Verify storage candidate CI. Execute reviewed one-shot recovery on the OLD
-   image, then observe fresh native storage_ready and storage_stop=false.
+1. Obtain explicit user approval to transfer the private supervisor checkpoint
+   (252335bytes,19files) into the existing Railway hermes-trading/production
+   service via29 bounded temporary variables. Automatic review rejected the
+   first upload because payload-specific external-transfer consent was missing.
+   Verified checkpoint variable names are absent; no payload was transferred.
+   Do not work around the rejection or quiesce the current worker before consent.
+   Storage recovery and candidate CI are already complete.
 2. Quiesce old image after an actual settled batch with pinned handoff helper,
    then privately transfer the checkpoint with bounded variables.
 3. Stage exact CI-passed GitHub commitSha, Dockerfile, cloud start command and
