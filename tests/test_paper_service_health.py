@@ -15,6 +15,19 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class PaperServiceHealthTests(unittest.TestCase):
+    def test_inventory_exposes_only_fixed_bucket_sizes(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp);(root/'adaptive_200').mkdir();(root/'private-identity').mkdir()
+            (root/'adaptive_200/trading.db').write_bytes(b'1234')
+            (root/'private-identity/secret-account.json').write_bytes(b'123')
+            (root/'decisions.jsonl').write_bytes(b'12')
+            report=self.api.storage_inventory(root)
+            self.assertEqual(report['buckets']['adaptive_200'],{'bytes':4,'files':1})
+            self.assertEqual(report['buckets']['other_directories'],{'bytes':3,'files':1})
+            self.assertEqual(report['buckets']['root_logs'],{'bytes':2,'files':1})
+            self.assertNotIn('private-identity',json.dumps(report))
+            self.assertNotIn('secret-account',json.dumps(report))
+
     def setUp(self):
         self.assertTrue((ROOT / 'scripts/paper_service.py').is_file(), 'paper service launcher missing')
         self.api = importlib.import_module('scripts.paper_service')

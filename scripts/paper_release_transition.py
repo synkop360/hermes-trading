@@ -553,6 +553,16 @@ def _intent(plan, layout):
     return intent
 
 
+def _component_evidence(plan):
+    names=set()
+    for component in plan['components']:
+        name='launch' if component['role']=='launch' else component['role']+'/'+component['path']
+        names.add(name)
+        parts=name.split('/')
+        for length in range(2,len(parts)):names.add('/'.join(parts[:length])+'/')
+    return {name:plan['protected'][name] for name in sorted(names)}
+
+
 def _prepare_audit(plan, layout, connections, approval_ref):
     audit = layout['audit']
     if audit.exists(): raise ValueError('existing audit requires explicit reconciliation')
@@ -561,8 +571,14 @@ def _prepare_audit(plan, layout, connections, approval_ref):
     copied = dict(worker=stage/'rollback/worker', supervisor=stage/'rollback/supervisor',
                   launch=stage/'rollback/launch.json')
     for role in ('worker','supervisor'): copied[role].mkdir(parents=True)
+    compact=_VOLUME_AUX.get() is not None
+    expected=_component_evidence(plan) if compact else plan['protected']
     for name, path in sorted(_members(layout).items()):
         _check()
+        # Only the six fixed release-binding components are modified. Within
+        # the owned volume, retain their complete preimages; all untouched
+        # historical files remain in place under the FULL protected-state map.
+        if compact and name not in expected:continue
         if name == 'launch': target = copied['launch']
         else:
             role, relative = name.split('/',1); target = copied[role]/relative.rstrip('/')
@@ -583,13 +599,14 @@ def _prepare_audit(plan, layout, connections, approval_ref):
     for directory in sorted((p for p in (stage/'rollback').rglob('*') if p.is_dir()),reverse=True):
         _sync_dir(directory)
     _sync_dir(stage/'rollback')
-    if _protected(copied) != plan['protected']:
+    if _protected(copied) != expected:
         raise ValueError('consistent rollback copy differs from frozen inputs')
     if any(_component_state(copied,c) != 'before' for c in plan['components']):
         raise ValueError('rollback component does not match original bytes')
     body = dict(schema_version=1, transition_id=plan['transition_id'], plan=plan,
                 root_binding=_root_binding(layout), approval_ref=approval_ref,
                 prepared_at=datetime.now(timezone.utc).isoformat(), rollback_protected_hash=_hash(plan['protected']))
+    if compact:body['rollback_mode']='changed_components_v1'
     _save(stage/'intent.json', dict(body,intent_hash=_hash(body)))
     (stage/'components').mkdir(); _sync_dir(stage)
     # This is the first durable intent; no state component has been changed.
@@ -602,7 +619,11 @@ def _verify_rollback(plan, layout):
     copied = dict(worker=audit/'rollback/worker', supervisor=audit/'rollback/supervisor',
                   launch=audit/'rollback/launch.json')
     _closed_inputs(copied)
-    if _protected(copied) != plan['protected'] or any(_component_state(copied,c) != 'before' for c in plan['components']):
+    mode=_read(audit/'intent.json').get('rollback_mode')
+    if mode is not None and (mode!='changed_components_v1' or _VOLUME_AUX.get() is None):
+        raise ValueError('compact rollback requires explicit owned-volume context')
+    expected=_component_evidence(plan) if mode else plan['protected']
+    if _protected(copied) != expected or any(_component_state(copied,c) != 'before' for c in plan['components']):
         raise ValueError('original consistent rollback evidence changed')
 
 
@@ -707,6 +728,9 @@ def apply_transition(plan, *, worker_root, supervisor_root, launch_file, audit_d
         _intent(plan,layout)
         complete = layout['audit']/'receipt.json'
         if complete.exists():
+            _verify_rollback(plan,layout)
+            if _protected(layout)!=plan['protected']:
+                raise ValueError('non-binding state changed after transition')
             _preflight(plan,layout)
             receipt = _read(complete)
             if receipt.get('transition_id') != plan['transition_id'] or receipt.get('status') != 'completed':

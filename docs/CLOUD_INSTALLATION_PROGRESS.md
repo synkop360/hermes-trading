@@ -48,8 +48,27 @@ new source image, authentication session or bootstrap have been installed.
 The existing 500 MB volume cannot hold the two full rollback copies. Requested
 the user resize that existing volume to 2 GB through Railway; the connector
 does not expose resize. Keep the logical state budget and reserve unchanged.
-After actual capacity is available, inspect and recover the durable storage
-halt through a reviewed native procedure before claiming paper entry readiness.
+The user cannot upgrade the volume and instead authorized historical
+compression and, if required, fewer active wallets. Keep all eight wallets:
+lossless compression already reclaimed40,111,226bytes from seven obsolete
+root logs. Production deployment a85513c6 confirms actual state267,819,995bytes,
+free174,321,664bytes, storage_ready=true, all_positions_closed=true,
+pending_batch=false and last_batch_storage_stop=false. The old durable storage
+latch remains active until the reviewed one-shot recovery executes.
+
+The native owned-volume transition now copies preimages of only its six fixed
+mutable source-binding components. Full financial/history protection maps still
+cover every retained file, including compressed logs. Ordinary callers retain
+their full rollback copies. Completed reconciliation verifies original rollback
+preimages and the entire unchanged history map before returning.
+
+scripts/paper_storage_recovery.py source-pins the original worker, requires
+fresh headroom, no positions, no pending financial batches/publications, an
+unexpired running lifecycle and a nonterminal last packet. Under the real worker
+and publication leases it preserves a durable full lifecycle preimage and exact
+halt bytes, compare-and-sets only storage fields, and moves the original halt
+into its private audit directory. It never resets clocks/counters or clears
+other safety reasons. No storage recovery has yet been deployed.
 
 Fresh pre-review validation: 30 Windows tests passed in 64.062 seconds. Review
 identified two restart defects, reproduced and corrected: reserve only the

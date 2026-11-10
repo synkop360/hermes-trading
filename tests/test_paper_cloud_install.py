@@ -24,14 +24,19 @@ class CheckpointTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root=Path(tmp);aux=root/'.paper-cloud-cutover';aux.mkdir()
             (root/'retained.bin').write_bytes(b'x'*1000)
-            expected=2*(1000+100)+100+16*1024*1024
+            from scripts import paper_release_transition as transition
+            roots={'worker':root,'supervisor':aux/'supervisor','launch':aux/'launch.json'}
+            for _,role,name,_ in transition.COMPONENTS:
+                path=roots[role]/name if role!='launch' else roots[role]
+                path.parent.mkdir(parents=True,exist_ok=True);path.write_bytes(b'x'*10)
+            expected=2*60+100+16*1024*1024
             self.assertEqual(required_cutover_space(root,aux,100,phases=2),expected)
             stage=aux/'.entry-history-prepare-orphan';stage.mkdir();(stage/'copy').write_bytes(b'x'*500)
             self.assertEqual(required_cutover_space(root,aux,100,phases=2),expected)
             # A durable native intent establishes that its rollback copy has
             # already been published; native reconciliation verifies it.
             phase=aux/'entry-history';phase.mkdir();(phase/'intent.json').write_text('{}')
-            self.assertEqual(required_cutover_space(root,aux,100,phases=2),1100+100+16*1024*1024)
+            self.assertEqual(required_cutover_space(root,aux,100,phases=2),60+100+16*1024*1024)
 
     def test_closed_wal_is_backed_up_and_checkpointed_without_changing_rows(self):
         from scripts.paper_cloud_install import recover_journals

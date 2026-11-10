@@ -1,81 +1,86 @@
 # Cloud beta: current resumption checkpoint
 
-Updated November 10, 2026. Do not treat the new cloud bootstrap as deployed.
+Updated November 10, 2026. The user cannot upgrade capacity. Stay on the
+existing 500 MB volume; use verified compression and bounded migration backups.
 
-## Production
+## Production, verified
 
-Railway project f78f42d9-20ec-44f6-ae3f-f8bb79ee7000; production environment
-fdcc71a3-00a9-410c-8d6f-59af9bc98d36; service 8b94cbc9-293e-4222-a8a7-698b656985f7.
+Project f78f42d9-20ec-44f6-ae3f-f8bb79ee7000, production environment
+fdcc71a3-00a9-410c-8d6f-59af9bc98d36, service8b94cbc9-293e-4222-a8a7-698b656985f7.
+Volume0ae9532a-b9cf-4df6-a911-f51d4b9daa6d remains at /app/state,500MB.
+Live deployment a85513c6-53cb-4dc9-9ed3-9a401e763526 is SUCCESS, one replica.
+Runtime fingerprint19fdcb676120b21b44d54076de08e148259e34bdfe61bbdbdffbf20b694e12ed
+is the original installed37e1be8 package.
 
-Live deployment dded251b-887e-4c1b-a031-f25a1f3aa6ec settled SUCCESS with one
-running replica and no pending environment changes. It runs the original
-37e1be8 paper runtime, fingerprint
-19fdcb676120b21b44d54076de08e148259e34bdfe61bbdbdffbf20b694e12ed.
-Its only new behavior is allowlisted storage telemetry alongside the normal worker.
+User approved retiring fixed obsolete root logs only after exact compressed
+copies were verified. Deployment01a2c0fb reclaimed40,111,226bytes from seven
+logs. Their original bytes remain restorable in .legacy-history-compact.
+All eight active wallets, economic histories, limits, counters and clocks remain.
+The archive-only path remains the compactor default; original retirement requires
+an explicit literal opt-in. Initial automatic review rejection was followed by
+the user's explicit accept and a successful reviewed deployment.
 
-The eight simulated accounts are observed, but entry readiness is blocked.
-Latest actual measurements: state_bytes 307926797, free_bytes 134189056,
-reserve_bytes 134217728, max_state_bytes 500000000. The original durable
-storage_stop is true; supervisor health is also stale. No halt, history,
-counter, clock, risk limit or model selection has been cleared or reset.
+Fresh closed preflight: state_bytes267819995, free_bytes174321664,
+reserve_bytes134217728, max_state_bytes500000000, storage_ready=true,
+all_positions_closed=true, pending_batch=false, last_batch_storage_stop=false,
+worker_running=true. The old storage_stop remains latched. Stale supervisor
+health also blocks new exposure. Do not claim the beta functional yet.
 
-The existing volume 0ae9532a-b9cf-4df6-a911-f51d4b9daa6d remains mounted
-at /app/state with size 500 MB. It cannot fit two full native rollback copies.
-The user was asked to resize that same volume to 2 GB in Railway; remote
-connector tooling does not expose resize. Do not detach, replace or delete it.
-Do not raise the logical state budget/reserve to hide the admission failure.
+## Reviewed implementation
 
-## Reviewed source candidate
-
-PR 18: https://github.com/synkop360/hermes-trading/pull/18
-Code commit: f3daae5350d92f3e33d8a99aacdd2d0e1389b8e2.
-Supervisor release:
+PR18 https://github.com/synkop360/hermes-trading/pull/18
+The prior complete candidate35dad760b304c1fc78e593258e8878272cd2be80 passed270
+Linux tests (run42862964474). Runtime/supervisor release remains
 e55a303b2fa9e50aef8b4ac0287a62da84be649e0134b030487441f31f3cd606.
-Canonical source verification proves 126 of 129 modules unchanged from Git37e1be8.
-The changed modules are model_access_refresh, proposal_transport and supervisor_launch.
+Its source map points to actual runtime/launcher code commit
+f3daae5350d92f3e33d8a99aacdd2d0e1389b8e2.
+The following storage phase changes scripts and tests, not that runtime map:
+- paper_compact_history.py: fixed legacy logs only, actual worker lease,
+  bounded streaming gzip, exact decoded SHA256, durable receipts and safe replay.
+- paper_release_transition.py: within explicit owned-volume context retain full
+  preimages of only six fixed mutable release-binding components. Every untouched
+  financial/history file stays in place under the full frozen protected map.
+  Ordinary callers retain full copies. Completed reconciliation now verifies
+  both rollback evidence and full history, including corruption regression.
+- paper_cloud_install.py: reserve only outstanding component preimages and the
+  relocated supervisor journal, avoiding two full-state temporary duplicates.
+- paper_storage_recovery.py: one original-source-pinned native recovery for this
+  closed-position, nonterminal, still-running storage pause. Requires fresh
+  headroom, unchanged boundary and no pending publication under real worker and
+  publication leases. Retains byte-exact original halt plus full lifecycle
+  preimage, compare-and-sets only storage fields, moves the marker into its
+  audit directory and seals a durable receipt. Other safety reasons stay intact.
+  Actual native interruption/reconciliation and negative admission tests exist.
 
-The new bootstrap retains native source-transition evidence in an owned volume
-namespace, checkpoints closed SQLite journals only after backing up raw evidence,
-relocates the original supervisor journal, and launches the normal protective
-worker beside finite supervision and one fresh dedicated Nous device session.
-Private checkpoint values are not passed to children. Only typed operational
-events and the real portal verification URL/code may be logged.
+Independent reviews report no blocking findings in these storage changes.
+Require the exact storage candidate's Linux CI before its production recovery.
+No storage recovery, checkpoint upload, image-source switch or Nous login has
+yet been performed at this checkpoint.
 
-Independent installation review found and verified fixes for two restart defects:
-space reservation now counts only outstanding rollback copies; an installed
-worker can restart after supervisor expiry while no further supervisor/auth
-children are started. Native supervisor launch admission remains strict by default.
-
-Fresh Windows validation: 46 targeted tests passed in 42.426 seconds.
-Independent reviewer validation: 29 tests passed; no remaining blocking findings.
-The earlier published foundation at 8581b776 passed 240 Linux tests.
-The new complete candidate still requires its own Linux CI result.
-
-## Private checkpoint and workspace
+## Workspace/private checkpoint
 
 Workspace E:/workspace/hermes-cloud-supervision-20261109.
+Python E:/workspace/hermes-python311/python.exe, TMP/TEMP
+C:/Users/thoma/AppData/Local/Temp.
 Private archive state/railway-supervisor-transfer-20261109/checkpoint.zip:
-19 files, 252335 bytes, SHA256
+19files,252335bytes,SHA256
 8ab807671ece52022eb954886cc9b4266820671b991e8bca0701cd33bfe80be6.
-Captured with original PC supervisor disabled and source hashes unchanged.
-Never publish its contents or include them in app logs or model prompts.
-Python E:/workspace/hermes-python311/python.exe;
-TMP/TEMP C:/Users/thoma/AppData/Local/Temp.
+Captured with original PC supervisor disabled and hashes unchanged.
+Never publish its contents, financial state, access tokens or refresh tokens.
 
-## Remaining activation work
+## Continue activation
 
-1. Confirm actual expanded volume capacity/free space. Inspect the existing
-   durable storage halt and perform only reviewed, evidence-preserving native
-   recovery; no blind flag removal or experiment reset.
-2. Require successful Linux CI for the exact published candidate.
-3. Quiesce the existing image only after an actual settled native batch using
-   the pinned predecessor handoff helper; observe quiescent status before switching.
-4. Transfer the checkpoint privately using bounded service variable chunks.
-   Stage exact GitHub commitSha, Dockerfile, normal cloud start command and
-   existing volume. Inspect staged changes before committing the deployment.
-5. Observe installation receipt and clean private transport variables without
-   redeployment. Relay the actual fresh Nous portal verification URL immediately.
-   Never copy the PC rotating refresh token.
-6. Verify actual free personal access, pinned zero-price model catalog, current
-   model-access/cost evidence, supervisor health and entry admission before
-   calling the beta functional. No real orders or profitability qualification.
+1. Verify storage candidate CI. Execute reviewed one-shot recovery on the OLD
+   image, then observe fresh native storage_ready and storage_stop=false.
+2. Quiesce old image after an actual settled batch with pinned handoff helper,
+   then privately transfer the checkpoint with bounded variables.
+3. Stage exact CI-passed GitHub commitSha, Dockerfile, cloud start command and
+   unchanged volume. Inspect all staged changes and deploy. Never use the older
+   default branch or enable arbitrary push-driven image changes.
+4. Observe durable installation receipt and clean transport payload variables.
+   Relay the real fresh Nous device verification link immediately. Never reuse
+   the PC rotating refresh token.
+5. Verify actual free personal access/catalog, original pinned model, current
+   cost/model evidence, worker/supervisor health and paper entry admission.
+   Never reset the retained experiment, raise risk, clear unrelated halts,
+   place real orders or claim profitability.

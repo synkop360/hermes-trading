@@ -200,11 +200,12 @@ def _phase(root, auxiliary, release_plan, name, approval):
 def required_cutover_space(root, auxiliary, supervisor_bytes, *, phases):
     # Existing preparation stages already reduce filesystem free space. Never
     # delete them or treat an unpublished stage as a completed rollback copy.
-    worker_bytes=sum(p.stat().st_size for p in root.rglob('*')
-        if p.is_file() and not p.is_relative_to(auxiliary))
+    roots={'worker':root,'supervisor':auxiliary/'supervisor','launch':auxiliary/'launch.json'}
+    component_bytes=sum(transition._safe_root(roots[role]/name if role!='launch' else roots[role]).stat().st_size
+        for _,role,name,_ in transition.COMPONENTS)
     names=('entry-history','cloud-source') if phases==2 else ('cloud-source',)
     pending=sum(not (auxiliary/name/'intent.json').is_file() for name in names)
-    return pending*(worker_bytes+supervisor_bytes)+supervisor_bytes+16*1024*1024
+    return pending*component_bytes+supervisor_bytes+16*1024*1024
 
 
 def install(project, cloud_plan, *, entry_plan=None, env=None, experiment_id=EXPERIMENT, observer=None):
@@ -276,8 +277,8 @@ def install(project, cloud_plan, *, entry_plan=None, env=None, experiment_id=EXP
         if not transitioned.exists():
             recover_journals(root,auxiliary)
             observe('closed_journals_verified')
-            # Reserve room for both native rollback copies and the relocated
-            # journal. No old journal is deleted to make an installation fit.
+            # The owned-volume native transition copies only its six changed
+            # binding components. Untouched history stays protected in place.
             supervisor_bytes=sum(len(data) for data in files.values())
             if shutil.disk_usage(root).free<required_cutover_space(root,auxiliary,supervisor_bytes,phases=2 if entry_plan is not None else 1):
                 raise ValueError('insufficient space for durable cutover evidence')

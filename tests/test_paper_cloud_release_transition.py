@@ -60,6 +60,20 @@ class CloudClosedCopyTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(result['status'],'completed')
         self.assertEqual((f.primary/'wallet_account.json').read_bytes(),account_before)
         self.assertTrue((aux/'cloud-source/receipt.json').is_file())
+        intent=transition._read(aux/'cloud-source/intent.json')
+        self.assertEqual(intent['rollback_mode'],'changed_components_v1')
+        rollback=aux/'cloud-source/rollback'
+        self.assertFalse((rollback/'worker/adaptive_200/wallet_account.json').exists())
+        self.assertTrue((rollback/'worker/adaptive_200/model_access_refresh.sqlite').is_file())
+        copied_limits=rollback/'worker/adaptive_200/supervisor_limits.json'
+        retained=copied_limits.read_bytes();copied_limits.write_bytes(b'corrupt')
+        with transition.volume_cutover_layout(f.worker_root),self.assertRaises(ValueError):
+            transition.apply_transition(plan,**options,apply=True,reconcile=True,approval_ref='synthetic-volume-owner')
+        copied_limits.write_bytes(retained)
+        with transition.volume_cutover_layout(f.worker_root):
+            restored=transition.rollback_transition(plan,**options,apply=True,approval_ref='synthetic-volume-owner')
+        self.assertEqual(restored['status'],'rolled_back')
+        self.assertEqual((f.primary/'wallet_account.json').read_bytes(),account_before)
         with self.assertRaises(ValueError):transition.inspect_transition(plan,**options)
 
     async def test_reconciled_transition_preserves_actual_native_history_and_counters(self):

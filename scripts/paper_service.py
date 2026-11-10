@@ -8,12 +8,40 @@ import hashlib
 import json
 from pathlib import Path
 import sys
+import os
+import stat
 
 ACCOUNTS = {f'{arm}_{wallet}' for arm in ('adaptive', 'control') for wallet in (50, 100, 150, 200)}
 REASONS = {'volume_threshold', 'volume_measurement_unknown', 'worker_error_halt',
            'supervisor_error_halt', 'supervisor_health_missing', 'supervisor_health_stale',
            'supervisor_recovery_pending', 'safety_state_unknown'}
 MAX_HEARTBEAT_BYTES = 1024 * 1024
+
+
+def storage_inventory(root):
+    """Return fixed technical buckets, never file paths or financial values."""
+    names=ACCOUNTS|{'history','paired-supervisor','local-archive','backups'}
+    buckets={};count=0;stack=[Path(root)]
+    while stack:
+        directory=stack.pop()
+        with os.scandir(directory) as entries:
+            for entry in entries:
+                info=entry.stat(follow_symlinks=False)
+                if stat.S_ISLNK(info.st_mode) or getattr(info,'st_file_attributes',0)&0x400:
+                    raise ValueError('linked storage inventory member')
+                path=Path(entry.path)
+                if stat.S_ISDIR(info.st_mode):stack.append(path);continue
+                if not stat.S_ISREG(info.st_mode):raise ValueError('nonregular storage inventory member')
+                count+=1
+                if count>100000:raise ValueError('storage inventory exceeds bound')
+                parts=path.relative_to(root).parts
+                if len(parts)>1:bucket=parts[0] if parts[0] in names else 'other_directories'
+                elif path.suffix in {'.jsonl','.log'}:bucket='root_logs'
+                elif path.suffix in {'.db','.sqlite'}:bucket='root_databases'
+                else:bucket='root_other'
+                row=buckets.setdefault(bucket,{'bytes':0,'files':0})
+                row['bytes']+=info.st_size;row['files']+=1
+    return {'kind':'paper_storage_inventory','buckets':buckets}
 
 
 def runtime_fingerprint(package):
@@ -118,6 +146,8 @@ async def serve(root, *, runner=None, stream=None, health_interval=60):
 
     task = asyncio.create_task(observe(), name='paper-service-health')
     try:
+        try:_emit(stream,storage_inventory(Path(root)))
+        except (OSError,ValueError):_emit(stream,{'kind':'paper_storage_inventory','status':'unavailable'})
         result = await runner(Path(root))
         _emit(stream, {'kind':'paper_worker_stopped'})
         return result
