@@ -1,67 +1,81 @@
-# Cloud beta: resumption checkpoint
+# Cloud beta: current resumption checkpoint
 
-The Windows execution environment disconnected before the final private state transfer.
-Do not treat the local installation changes as deployed.
+Updated November 10, 2026. Do not treat the new cloud bootstrap as deployed.
 
-## Remote state verified
+## Production
 
-- PR 18: https://github.com/synkop360/hermes-trading/pull/18
-- Published code commit: 8581b776f3e3adb641aeed49b2b4803225fdbd55.
-- Linux CI run 42711384997: 240 tests passed in 10.890 seconds.
-- Published supervisor release: 5a302bb9df4f3289cc3b0b16c233ff281cf8c33964abb70603e0fee2e50240c1.
-- Production Railway deployment: 3047dfe7-cedd-479e-b00b-8d6d2e89062b, SUCCESS, one running replica.
-- Its installed runtime hash: 19fdcb676120b21b44d54076de08e148259e34bdfe61bbdbdffbf20b694e12ed.
-- The existing worker is collecting with eight simulated accounts. Latest verified entry blocker: supervisor_health_stale; model_ready=false.
-- No Railway source switch, checkpoint variable upload or volume cutover was performed in the disconnected phase.
+Railway project f78f42d9-20ec-44f6-ae3f-f8bb79ee7000; production environment
+fdcc71a3-00a9-410c-8d6f-59af9bc98d36; service 8b94cbc9-293e-4222-a8a7-698b656985f7.
 
-Railway project f78f42d9-20ec-44f6-ae3f-f8bb79ee7000; service 8b94cbc9-293e-4222-a8a7-698b656985f7;
-production environment fdcc71a3-00a9-410c-8d6f-59af9bc98d36.
-The existing volume is mounted at /app/state (500 MB); container memory limit is 2 GB.
+Live deployment dded251b-887e-4c1b-a031-f25a1f3aa6ec settled SUCCESS with one
+running replica and no pending environment changes. It runs the original
+37e1be8 paper runtime, fingerprint
+19fdcb676120b21b44d54076de08e148259e34bdfe61bbdbdffbf20b694e12ed.
+Its only new behavior is allowlisted storage telemetry alongside the normal worker.
 
-## Local work to recover from the Windows workspace
+The eight simulated accounts are observed, but entry readiness is blocked.
+Latest actual measurements: state_bytes 307926797, free_bytes 134189056,
+reserve_bytes 134217728, max_state_bytes 500000000. The original durable
+storage_stop is true; supervisor health is also stale. No halt, history,
+counter, clock, risk limit or model selection has been cleared or reset.
 
-Workspace: E:/workspace/hermes-cloud-supervision-20261109.
-The local changes below are not included in the published commit above:
-- scripts/paper_cloud_install.py: validated private ZIP input, durable owned cutover namespace, native source-transition replay, journal relocation, backed-up SQLite checkpointing and verified audit compaction.
-- scripts/paper_cloud_auth.py: a new dedicated Nous device session using the pinned official client; never copy the PC rotating refresh token.
-- scripts/paper_cloud_service.py: normal worker plus finite supervisor/auth children, bounded process-tree ownership and allowlisted event relay.
-- scripts/paper_handoff.py: use ONLY on the installed predecessor runtime to leave through native finally blocks after a settled batch. It emits code-only status and does not latch an operator stop.
-- scripts/paper_release_transition.py: explicit volume_cutover_layout context. Ordinary callers retain disjoint-root rules; only the new owned auxiliary namespace is excluded from the worker role, while all original account/history data and the supervisor role remain protected.
-- scripts/paper_local_transport.py: bounded streaming observer support.
-- scripts/paper_supervisor_service.py: wait for dedicated authentication without consuming cycles or emitting artificial failed health observations.
-- New tests for installation, authentication, service coordination and handoff; extra native restart/volume-layout tests.
-- Updated Docker command, CI, local source maps and copied allowlisted paper_service health observer.
+The existing volume 0ae9532a-b9cf-4df6-a911-f51d4b9daa6d remains mounted
+at /app/state with size 500 MB. It cannot fit two full native rollback copies.
+The user was asked to resize that same volume to 2 GB in Railway; remote
+connector tooling does not expose resize. Do not detach, replace or delete it.
+Do not raise the logical state budget/reserve to hide the admission failure.
 
-The private supervisor checkpoint is at:
-E:/workspace/hermes-cloud-supervision-20261109/state/railway-supervisor-transfer-20261109/checkpoint.zip
-with its receipt.json beside it. It contains 19 retained files and was verified against the unchanged, disabled PC supervisor.
-Never publish the archive or its contents to GitHub or application logs.
+## Reviewed source candidate
 
-Local pending supervisor release after the last pin regeneration:
-c0e4a6e681cc5a0955411166030cdd0906aef7900c748a924ecf33d54eb371b6.
-Recompute all hashes from recovered files; this is an unshipped candidate, not a production receipt.
+PR 18: https://github.com/synkop360/hermes-trading/pull/18
+Code commit: c7780dc95649a0c070a5c4e491779113acde8d2d.
+Supervisor release:
+e55a303b2fa9e50aef8b4ac0287a62da84be649e0134b030487441f31f3cd606.
+Canonical source verification proves 126 of 129 modules unchanged from Git37e1be8.
+The changed modules are model_access_refresh, proposal_transport and supervisor_launch.
 
-## Validation actually observed locally
+The new bootstrap retains native source-transition evidence in an owned volume
+namespace, checkpoints closed SQLite journals only after backing up raw evidence,
+relocates the original supervisor journal, and launches the normal protective
+worker beside finite supervision and one fresh dedicated Nous device session.
+Private checkpoint values are not passed to children. Only typed operational
+events and the real portal verification URL/code may be logged.
 
-- 99 targeted tests passed under Python 3.11.9 in 42.239 seconds after the first installation integration.
-- A later 16-test installation/auth/service/native-transition run passed in 34.575 seconds.
-- The latest 14 handoff/auth/service/supervisor tests passed with a canonical writable temporary directory.
-- SQLite crash/WAL test first exposed a Windows orphan SHM; the fix backs up raw journals, proves unchanged logical rows, switches to DELETE under an exclusive lock and only then removes orphan SHM metadata. Its focused tests passed.
-- None of these local results establishes a pass for the new Linux candidate or a deployed beta.
+Independent installation review found and verified fixes for two restart defects:
+space reservation now counts only outstanding rollback copies; an installed
+worker can restart after supervisor expiry while no further supervisor/auth
+children are started. Native supervisor launch admission remains strict by default.
 
-Native test runtime: E:/workspace/hermes-python311/python.exe.
-Set TMP and TEMP to C:/Users/thoma/AppData/Local/Temp; the default application temp path can be a rejected reparse path, and E: fsync is much slower.
+Fresh Windows validation: 46 targeted tests passed in 42.426 seconds.
+Independent reviewer validation: 29 tests passed; no remaining blocking findings.
+The earlier published foundation at 8581b776 passed 240 Linux tests.
+The new complete candidate still requires its own Linux CI result.
 
-## Remaining work before activation
+## Private checkpoint and workspace
 
-1. Reconnect the Windows environment and recover the local changes/checkpoint.
-2. Review the complete installation phase, including failure/restart cases and the bounded auxiliary namespace. Keep economic state, clocks, review rows and counters unchanged.
-3. Check actual state footprint and filesystem free space from native storage telemetry. Railway reported DISK_USAGE_GB=0.392, but this alone was not established to be the size of /app/state. The current installer reserves room for two full native rollback copies before compacting them; verify this fits the 500 MB volume before quiescing production. Do not silently raise storage budgets or discard historical evidence.
-4. Freeze the complete candidate to a real source commit, update both release-map copies and native script pins, and run Linux CI. Current local source maps still require the new real commit reference.
-5. For the source switch, quiesce using the OLD installed image/runtime first, after a native settled batch, so no pending old-release batch crosses the image change. Do not introduce a diagnostic sleep service. Observe actual quiescent status before switching.
-6. Transfer the checkpoint privately into the existing Railway service, with bounded variable chunks or another supported private path; clean the transport payload after successful installation. It must never enter public logs, GitHub or model prompts.
-7. Stage the exact new GitHub commit using Railway commitSha pinning, the cloud service start command and the existing volume. Do not deploy the older default branch or follow arbitrary future pushes.
-8. Relay the actual Nous verification URL immediately when the dedicated cloud login emits it. No access/refresh token should appear in logs. Wait for real personal/free-catalog verification.
-9. Verify fresh worker and supervisor health, model readiness, native cost receipts and paper entry admission. Only then call the beta functional.
+Workspace E:/workspace/hermes-cloud-supervision-20261109.
+Private archive state/railway-supervisor-transfer-20261109/checkpoint.zip:
+19 files, 252335 bytes, SHA256
+8ab807671ece52022eb954886cc9b4266820671b991e8bca0701cd33bfe80be6.
+Captured with original PC supervisor disabled and source hashes unchanged.
+Never publish its contents or include them in app logs or model prompts.
+Python E:/workspace/hermes-python311/python.exe;
+TMP/TEMP C:/Users/thoma/AppData/Local/Temp.
 
-The user authorized development and launching paper trading on Railway, and explicitly selected supervision entirely on Railway. No real orders, reset of the retained experiment, fabricated free-access/cost evidence, or arbitrary risk increase is authorized.
+## Remaining activation work
+
+1. Confirm actual expanded volume capacity/free space. Inspect the existing
+   durable storage halt and perform only reviewed, evidence-preserving native
+   recovery; no blind flag removal or experiment reset.
+2. Require successful Linux CI for the exact published candidate.
+3. Quiesce the existing image only after an actual settled native batch using
+   the pinned predecessor handoff helper; observe quiescent status before switching.
+4. Transfer the checkpoint privately using bounded service variable chunks.
+   Stage exact GitHub commitSha, Dockerfile, normal cloud start command and
+   existing volume. Inspect staged changes before committing the deployment.
+5. Observe installation receipt and clean private transport variables without
+   redeployment. Relay the actual fresh Nous portal verification URL immediately.
+   Never copy the PC rotating refresh token.
+6. Verify actual free personal access, pinned zero-price model catalog, current
+   model-access/cost evidence, supervisor health and entry admission before
+   calling the beta functional. No real orders or profitability qualification.
