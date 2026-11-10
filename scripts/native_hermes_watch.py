@@ -4,10 +4,10 @@ from pathlib import Path
 import hashlib,json,os,subprocess,time
 
 
-LOCAL_TRANSPORT_SHA256 = '96e05ec04f5c36866ce885673d00bc78ead2a1d2849dde489c38e700790a8b12'
+LOCAL_TRANSPORT_SHA256 = '8f88688a1abe8ad82ea0046be18ab0ff968a8206639f42a79da890be76074e6a'
 
 
-LOCAL_SERVICE_SHA256 = 'cf5581afc57aaeaa5d375f9fa452a1854684fef1e2fb167a680e0e0ba8ae01ee'
+LOCAL_SERVICE_SHA256 = '7f6c6b3239a8c105d3f088ece7444d3c19f593ba3539805fad6fce191e7746b2'
 
 
 def validate_local_transport(project):

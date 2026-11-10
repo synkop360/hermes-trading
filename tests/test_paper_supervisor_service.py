@@ -68,5 +68,13 @@ class SupervisorServiceTests(unittest.TestCase):
             with self.subTest(mode=mode,interval=interval),self.assertRaises(ValueError):self.run_service(run,Mock())
             run.assert_not_called()
 
+    def test_waiting_for_auth_does_not_consume_cycles_or_send_false_health(self):
+        self.config['project_dir']=str(self.root);self.launch.write_text(json.dumps(self.config))
+        run=Mock()
+        result=supervise(self.launch,stop=self.stop,launch_run=run,
+            wait=lambda _:self.stop.set(),clock=lambda:self.now,stream=self.stream,wait_for_auth=True)
+        self.assertEqual(result,'stopped');run.assert_not_called()
+        self.assertIn('auth_pending',self.stream.getvalue())
+
 
 if __name__ == '__main__':unittest.main()
