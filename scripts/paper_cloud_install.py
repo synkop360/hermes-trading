@@ -113,8 +113,27 @@ def _archive_evidence(base, paths, destination):
         if _verify_evidence(temporary)!=hashes:raise ValueError('evidence archive verification failed')
         with temporary.open('r+b') as handle:os.fsync(handle.fileno())
         os.replace(temporary,destination);transition._sync_dir(destination.parent)
+        return hashes
     finally:
         if temporary.exists():transition._safe_root(temporary).unlink()
+
+
+def _retire_cold_journal(database, db, expected_sha256):
+    """Retire only an unchanged, archived PERSIST journal with a zero header.
+
+    SQLite lockingv3 identifies a nonzero valid header as necessary for a hot
+    rollback journal. Never infer journal safety from its filename or size.
+    """
+    journal=transition._safe_root(database.with_name(database.name+'-journal'))
+    if not journal.exists():return False
+    if (db.in_transaction or db.execute('PRAGMA locking_mode').fetchone()!=('exclusive',) or
+            db.execute('PRAGMA journal_mode').fetchone()!=('delete',) or
+            not isinstance(expected_sha256,str) or _digest_file(journal)!=expected_sha256):
+        raise ValueError('rollback journal lacks closed ownership or exact archived evidence')
+    with journal.open('rb') as source:header=source.read(8)
+    if any(header):raise ValueError('nonzero rollback journal requires SQLite recovery')
+    journal.unlink();transition._sync_dir(database.parent)
+    return True
 
 
 def recover_journals(root, auxiliary):
@@ -128,7 +147,7 @@ def recover_journals(root, auxiliary):
         databases.add(database)
     paths=sorted(set(sidecars)|databases)
     destination=auxiliary/('closed-journals-'+uuid.uuid4().hex+'.zip')
-    _archive_evidence(root,paths,destination)
+    archived=_archive_evidence(root,paths,destination)
     records=[]
     for path in sorted(databases):
         with closing(sqlite3.connect(path,timeout=0,isolation_level=None)) as db:
@@ -140,6 +159,21 @@ def recover_journals(root, auxiliary):
                 raise ValueError('SQLite recovery cannot close the journal')
             after=transition._database_hash(db)
             if before!=after:raise ValueError('SQLite recovery changed logical history')
+            journal=transition._safe_root(path.with_name(path.name+'-journal'))
+            journal_name=journal.relative_to(root).as_posix()
+            journal_digest=archived.get(journal_name);generated_archive=None;retired=False
+            if journal.exists() and _digest_file(journal)!=journal_digest:
+                # WAL->DELETE itself may create an inert rollback artifact.
+                # Preserve that exact post-checkpoint artifact too, under the
+                # same retained exclusive lease. Never waive archive evidence.
+                if journal.stat().st_size>8*1024*1024:raise ValueError('generated rollback journal exceeds bound')
+                generated_archive=auxiliary/('post-checkpoint-journal-'+uuid.uuid4().hex+'.zip')
+                generated=_archive_evidence(root,[journal],generated_archive)
+                # This artifact belongs to SQLite's still-open pager (notably
+                # Windows). Let SQLite release/delete it on connection close.
+                # The post-close sidecar assertion below remains mandatory.
+            else:
+                retired=_retire_cold_journal(path,db,journal_digest)
             # SQLite on Windows can retain an orphan SHM from an abruptly
             # exited process after switching back to DELETE. It contains lock
             # metadata, not rows. Remove it only with our main DB still locked
@@ -149,7 +183,9 @@ def recover_journals(root, auxiliary):
                 if path.with_name(path.name+'-wal').exists() or db.execute('PRAGMA locking_mode').fetchone()!=('exclusive',):
                     raise ValueError('SQLite shared-memory ownership differs')
                 transition._safe_root(shm).unlink()
-            records.append(dict(path=path.relative_to(root).as_posix(),logical_hash=before))
+            if transition._database_hash(db)!=before:raise ValueError('journal retirement changed logical history')
+            records.append(dict(path=path.relative_to(root).as_posix(),logical_hash=before,cold_journal_retired=retired,
+                generated_journal_archive=None if generated_archive is None else generated_archive.name))
         if any(path.with_name(path.name+suffix).exists() for suffix in ('-wal','-shm','-journal')):
             raise ValueError('SQLite recovery left an open sidecar')
     receipt=dict(databases=len(records),archive=destination.name,records=records)

@@ -19,6 +19,40 @@ from scripts.paper_cloud_install import decode_checkpoint
 
 
 class CheckpointTests(unittest.TestCase):
+    def test_nonzero_unarchived_and_active_rollback_journals_are_preserved(self):
+        from scripts.paper_cloud_install import _retire_cold_journal
+        with tempfile.TemporaryDirectory() as tmp:
+            database=Path(tmp).resolve()/'retained.sqlite'
+            with closing(sqlite3.connect(database,isolation_level=None)) as db:
+                db.execute('CREATE TABLE retained(value TEXT)')
+                db.execute('PRAGMA locking_mode=EXCLUSIVE');db.execute('BEGIN EXCLUSIVE');db.commit()
+                journal=database.with_name(database.name+'-journal')
+                for raw,digest in [(b'nonzero!'+bytes(4096),None),(bytes(4096),'0'*64)]:
+                    journal.write_bytes(raw)
+                    with self.assertRaises(ValueError):_retire_cold_journal(database,db,digest or hashlib.sha256(raw).hexdigest())
+                    self.assertEqual(journal.read_bytes(),raw)
+                journal.write_bytes(bytes(4096));db.execute('BEGIN EXCLUSIVE')
+                with self.assertRaises(ValueError):_retire_cold_journal(database,db,hashlib.sha256(journal.read_bytes()).hexdigest())
+                self.assertTrue(journal.exists());db.rollback()
+
+    def test_cold_persistent_rollback_journal_is_archived_before_retirement(self):
+        from scripts.paper_cloud_install import recover_journals
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp).resolve();aux=root/'.paper-cloud-cutover';aux.mkdir();database=root/'retained.sqlite'
+            with closing(sqlite3.connect(database)) as db:
+                db.execute('PRAGMA journal_mode=PERSIST')
+                db.execute('CREATE TABLE retained(value TEXT)')
+                db.execute("INSERT INTO retained VALUES ('original')");db.commit()
+            journal=database.with_name(database.name+'-journal')
+            self.assertTrue(journal.exists())
+            original=journal.read_bytes();self.assertFalse(any(original[:8]))
+            result=recover_journals(root,aux)
+            self.assertFalse(journal.exists())
+            with closing(sqlite3.connect(database)) as db:
+                self.assertEqual(db.execute('SELECT value FROM retained').fetchall(),[('original',)])
+            with zipfile.ZipFile(aux/result['archive']) as archive:
+                self.assertEqual(archive.read('retained.sqlite-journal'),original)
+
     def test_remaining_space_excludes_verified_retained_rollback_and_counts_stages(self):
         from scripts.paper_cloud_install import required_cutover_space
         with tempfile.TemporaryDirectory() as tmp:
