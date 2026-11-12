@@ -957,12 +957,11 @@ class PaperDiscordReporter:
             ready = ready.get("success")
         access = "available" if ready is True else "unavailable" if ready is False else "unknown"
         return [f"- **New entries:** {entry}",
-                f"- **Worker:** {_paper_text(value.get('status'))}",
+                f"- **Worker:** {_paper_text(value.get('status'))} | **Strategy version:** {_paper_text(value.get('strategy_version'))}",
                 f"- **Model access:** {access}{reported}; review audit unavailable"]
 
     def _context_lines(self, value):
         return [f"- **Last settled:** {_paper_text((self._snapshot or {}).get('observed_at', 'unavailable'))}",
-                f"- **Strategy version:** {_paper_text(value.get('strategy_version'))}",
                 f"- **Observed interval:** {_paper_text(self._state.get('last_observed_at') or 'unknown')} -> {_paper_text(value.get('at'))}; coverage unknown",
                 "- **Delivery:** gaps=" + str(self.counters["gaps"]) +
                 f" coalesced={self.counters['coalesced']} dropped={self.counters['dropped']}"
@@ -976,7 +975,7 @@ class PaperDiscordReporter:
     def _summary(self, labels):
         lines = self._header(self._current, ", ".join(labels), details=False)
         lines.append("**Wallets · primary EUR200 · native EUR**")
-        lines.append("- Wallet = net value after recorded costs; no extra fee subtraction.")
+        lines.append("- Wallet = net after recorded costs.")
         financial = self._snapshot or {}
         equities = {}
         details = []

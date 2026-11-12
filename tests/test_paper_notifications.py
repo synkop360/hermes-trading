@@ -707,6 +707,17 @@ class PaperNotificationTests(unittest.IsolatedAsyncioTestCase):
             self.assertIn(LABELS[name] + ':', self.text())
             self.assertIn('native-risk-close-' + name, self.text())
 
+    async def test_strategy_version_remains_in_first_part_of_full_summary(self):
+        reporter = self.reporter(); value = envelope()
+        value['strategy_version'] = '83'
+        for name,row in value['accounts'].items():
+            event = close('native-risk-close-' + name); event['account'] = name
+            row['closes'] = [event]
+        reporter.offer(value); await self.start(reporter)
+        await eventually(lambda: reporter._state.get('startup') is True)
+        self.assertIn('**Strategy version:** 83', self.sent[0][1]['content'])
+        self.assertLessEqual(len(self.sent), 4)
+
     async def test_new_envelopes_arriving_during_delivery_keep_their_own_combined_part_bound(self):
         entered = asyncio.Event(); release = asyncio.Event()
         async def blocked(url,payload):
