@@ -44,6 +44,16 @@ class CompactHistoryTests(unittest.TestCase):
         with self.assertRaises(ValueError):self.compact(legacy_database_only=True)
         self.assertEqual(database.read_bytes(),original)
 
+    def test_clean_wal_mode_legacy_database_has_exact_archive_roundtrip(self):
+        database=self.legacy_database()
+        with closing(sqlite3.connect(database)) as db:
+            self.assertEqual(db.execute('PRAGMA journal_mode=WAL').fetchone(),('wal',))
+        self.assertFalse(database.with_name(database.name+'-wal').exists())
+        original=database.read_bytes()
+        result=self.compact(legacy_database_only=True)
+        self.assertGreater(result['bytes_reclaimed'],0)
+        self.assertEqual(gzip.decompress((self.root/'.legacy-database-compact/trading.db.gz').read_bytes()),original)
+
     def test_legacy_database_aliasing_active_wallet_is_never_retired(self):
         database=self.legacy_database();active=self.root/'adaptive_200/trading.db'
         active.unlink();os.link(database,active)

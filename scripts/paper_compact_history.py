@@ -97,7 +97,11 @@ def compact_history(root,*,enabled=False,retire_originals=False,legacy_database_
                     raise ValueError('legacy database must have closed sidecars before compaction')
                 with closing(sqlite3.connect(database.as_uri()+'?mode=rw',uri=True,timeout=0,isolation_level=None)) as db:
                     db.execute('PRAGMA locking_mode=EXCLUSIVE');db.execute('BEGIN EXCLUSIVE');db.commit()
-                    if db.execute('PRAGMA journal_mode').fetchone()!=('delete',):raise ValueError('closed DELETE-mode legacy database required')
+                    # A cleanly closed WAL database can retain WAL mode in its
+                    # main-file header without any outstanding sidecar. Keep
+                    # the original mode/bytes; never force a conversion here.
+                    if db.execute('PRAGMA journal_mode').fetchone() not in (('delete',),('wal',)):
+                        raise ValueError('closed supported legacy database mode required')
                 if any(database.with_name(database.name+suffix).exists() for suffix in ('-wal','-shm','-journal')):
                     raise ValueError('legacy database sidecars appeared during closure')
                 # The container has one source-pinned paired writer; it never

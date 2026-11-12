@@ -45,7 +45,10 @@ async def run(project):
         # Native supervisor maintenance does not consume failed cycles while
         # the protective worker continues to report its actual admission.
         marker(project/'state',enabled=True)
-        result={'kind':'paper_cloud_storage_maintenance','status':'blocked','error_type':type(error).__name__}
+        frames=[{'file':Path(f.f_code.co_filename).name,'function':f.f_code.co_name,'line':line}
+            for f,line in traceback.walk_tb(error.__traceback__)]
+        result={'kind':'paper_cloud_storage_maintenance','status':'blocked','error_type':type(error).__name__,
+            'reason_sha256':hashlib.sha256(str(error).encode()).hexdigest(),'frames':frames[-8:]}
     print(json.dumps(result),flush=True)
     await serve_cloud(project)
 
