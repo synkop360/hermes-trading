@@ -193,6 +193,54 @@ def recover_journals(root, auxiliary):
     return receipt
 
 
+def deduplicate_journal_archives(auxiliary):
+    """Coalesce only unreferenced duplicate payloads in the owned audit area."""
+    auxiliary=transition._safe_root(auxiliary)
+    if (transition._read(auxiliary/'owner.json').get('purpose')!='paper_cloud_auxiliary_v1' or
+            transition._read(auxiliary/'installed.json').get('status')!='installed'):
+        raise ValueError('completed owned installation required before archive deduplication')
+    record_path=auxiliary/'journal-archive-dedup.json'
+    body=transition._read(record_path) if record_path.exists() else {'schema_version':1,'aliases':[]}
+    if body.get('schema_version')!=1 or not isinstance(body.get('aliases'),list) or len(body['aliases'])>128:
+        raise ValueError('archive deduplication receipt differs')
+    pattern=r'(?:closed-journals|post-checkpoint-journal)-[0-9a-f]{32}\.zip'
+    metadata=[json.dumps(transition._read(p),sort_keys=True) for p in auxiliary.glob('*.json') if p!=record_path]
+    def referenced(name):
+        return any(name in text for text in metadata) or any(item.get('retained')==name for item in body['aliases'])
+    reclaimed=0
+    def retire(record):
+        nonlocal reclaimed
+        if any(not isinstance(record.get(k),str) or re.fullmatch(pattern,record[k]) is None for k in ('removed','retained')):
+            raise ValueError('archive alias escaped owned scope')
+        original=transition._safe_root(auxiliary/record['removed']);keeper=transition._safe_root(auxiliary/record['retained'])
+        if original==keeper or not keeper.is_file() or _digest_file(keeper)!=record.get('retained_sha256'):
+            raise ValueError('retained duplicate archive changed')
+        if _hash(_verify_evidence(keeper))!=record.get('payload_hash'):raise ValueError('retained archive payload differs')
+        if original.exists():
+            if referenced(original.name):return
+            if _digest_file(original)!=record.get('removed_sha256') or _verify_evidence(original)!=_verify_evidence(keeper):
+                raise ValueError('duplicate archive is not byte-exact at member level')
+            reclaimed+=original.stat().st_size;original.unlink();transition._sync_dir(auxiliary)
+    for record in body['aliases']:retire(record)
+    paths=list(auxiliary.glob('closed-journals-*.zip'))+list(auxiliary.glob('post-checkpoint-journal-*.zip'))
+    if len(paths)>64:raise ValueError('journal archive count exceeds maintenance bound')
+    keepers={}
+    for path in sorted(paths,key=lambda p:(not referenced(p.name),p.name)):
+        transition._safe_root(path)
+        if re.fullmatch(pattern,path.name) is None:raise ValueError('journal archive name differs')
+        manifest=_verify_evidence(path);key=_hash(manifest)
+        if key not in keepers:keepers[key]=(path,manifest);continue
+        keeper,expected=keepers[key]
+        if manifest!=expected:raise ValueError('archive payload identity conflicts')
+        if referenced(path.name):continue
+        if len(body['aliases'])>=128:raise ValueError('archive alias count exceeds maintenance bound')
+        record=dict(removed=path.name,retained=keeper.name,removed_sha256=_digest_file(path),
+                    retained_sha256=_digest_file(keeper),payload_hash=key)
+        body['aliases'].append(record);transition._save(record_path,body)
+        retire(record)
+    return {'kind':'paper_journal_archive_compaction','bytes_reclaimed':reclaimed}
+
+
 def compact_audits(auxiliary):
     """Retain verified byte-exact archives before removing owned rollback copies."""
     transition._safe_root(auxiliary)
@@ -268,6 +316,7 @@ def install(project, cloud_plan, *, entry_plan=None, env=None, experiment_id=EXP
         validate_launch(launch_path,project,release,allow_expired=True)
         native_hermes_watch.validate_local_transport(project)
         compact_audits(auxiliary)
+        deduplicate_journal_archives(auxiliary)
         observe('already_installed')
         return dict(status='already_installed',launch_file=str(launch_path))
     approval=env.get('HERMES_CLOUD_CUTOVER_APPROVAL')
@@ -354,5 +403,6 @@ def install(project, cloud_plan, *, entry_plan=None, env=None, experiment_id=EXP
         qualification='retained_state_source_transition_no_profitability_claim')
     transition._save(completed,receipt)
     compact_audits(auxiliary)
+    deduplicate_journal_archives(auxiliary)
     observe('installed')
     return dict(status='installed',launch_file=str(launch_path))

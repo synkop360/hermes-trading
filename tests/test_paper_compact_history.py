@@ -5,6 +5,50 @@ from contextlib import closing
 
 
 class CompactHistoryTests(unittest.TestCase):
+    def legacy_database(self):
+        from hermes_trading.paper_publication import _release_hashes
+        from hermes_trading.reflection_supervision import _hash
+        self.assertEqual(_hash(_release_hashes()),'082042439d5dadd8247b788fe6b29de5c7449f165f339a2e155761bf55c525de')
+        names=[f'{arm}_{wallet}' for arm in ('adaptive','control') for wallet in (50,100,150,200)]
+        (self.root/'manifest.json').write_text(json.dumps({'experiment_id':'retained-test','status':'paper_ready',
+            'execution_enabled':True,'profiles':[{'directory':name} for name in names]}))
+        (self.root/'.paper-cloud-cutover').mkdir();(self.root/'.paper-cloud-cutover/installed.json').write_text('{"status":"installed"}')
+        with closing(sqlite3.connect(self.root/'worker_runtime.sqlite')) as db:
+            db.execute('CREATE TABLE lifecycle(id INTEGER PRIMARY KEY,state TEXT)')
+            db.execute('INSERT INTO lifecycle VALUES(1,?)',(json.dumps({'storage_stop':True}),));db.commit()
+        for name in names:
+            (self.root/name).mkdir(exist_ok=True)
+            with closing(sqlite3.connect(self.root/name/'trading.db')) as db:
+                db.execute('CREATE TABLE positions(status TEXT)');db.commit()
+        database=self.root/'trading.db'
+        with closing(sqlite3.connect(database)) as db:
+            db.execute('CREATE TABLE historical(value TEXT)')
+            db.executemany('INSERT INTO historical VALUES(?)',[('retained original history',)]*10000);db.commit()
+        return database
+
+    def test_legacy_database_roundtrip_preserves_every_original_byte(self):
+        database=self.legacy_database();original=database.read_bytes()
+        result=self.compact(legacy_database_only=True)
+        self.assertGreater(result['bytes_reclaimed'],0)
+        self.assertFalse(database.exists())
+        archive=self.root/'.legacy-database-compact/trading.db.gz'
+        self.assertEqual(gzip.decompress(archive.read_bytes()),original)
+        self.assertEqual((self.root/'adaptive_200/decisions.jsonl').read_bytes(),b'current account journal')
+        with closing(sqlite3.connect(self.root/'worker_runtime.sqlite')) as db:
+            db.execute('UPDATE lifecycle SET state=? WHERE id=1',(json.dumps({'storage_stop':False}),));db.commit()
+        self.assertEqual(self.compact(legacy_database_only=True)['bytes_reclaimed'],0)
+
+    def test_legacy_database_with_sidecar_is_never_retired(self):
+        database=self.legacy_database();original=database.read_bytes()
+        database.with_name('trading.db-wal').write_bytes(b'not resolved')
+        with self.assertRaises(ValueError):self.compact(legacy_database_only=True)
+        self.assertEqual(database.read_bytes(),original)
+
+    def test_legacy_database_aliasing_active_wallet_is_never_retired(self):
+        database=self.legacy_database();active=self.root/'adaptive_200/trading.db'
+        active.unlink();os.link(database,active)
+        with self.assertRaises(ValueError):self.compact(legacy_database_only=True)
+        self.assertTrue(database.exists());self.assertTrue(active.exists())
     def setUp(self):
         self.tmp=tempfile.TemporaryDirectory();self.addCleanup(self.tmp.cleanup)
         self.root=Path(self.tmp.name).resolve()

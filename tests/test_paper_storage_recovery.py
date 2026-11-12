@@ -65,3 +65,16 @@ class StorageRecoveryTests(unittest.IsolatedAsyncioTestCase):
         with self.assertRaises(RuntimeError):self.recover(f,fault=interrupt)
         self.assertTrue((f.primary/'experiment_halt.json').exists())
         self.assertEqual(self.recover(f)['status'],'recovered')
+
+    async def test_new_pause_requires_new_audited_recovery_and_retains_previous_evidence(self):
+        f,before=await self.fixture();self.recover(f)
+        old=(f.worker_root/'.paper-storage-recovery/retired-halt.json').read_bytes()
+        with closing(sqlite3.connect(f.worker_root/'worker_runtime.sqlite')) as db:
+            state=json.loads(db.execute('SELECT state FROM lifecycle WHERE id=1').fetchone()[0]);state['storage_stop']=True
+            db.execute('UPDATE lifecycle SET state=? WHERE id=1',(json.dumps(state),));db.commit()
+        (f.primary/'experiment_halt.json').write_bytes(old)
+        self.assertEqual(self.recover(f)['status'],'already_recovered')
+        self.assertTrue((f.primary/'experiment_halt.json').exists())
+        self.assertEqual(self.recover(f,recovery_tag='second-pause')['status'],'recovered')
+        self.assertEqual((f.worker_root/'.paper-storage-recovery/retired-halt.json').read_bytes(),old)
+        self.assertEqual((f.worker_root/'.paper-storage-recovery-second-pause/retired-halt.json').read_bytes(),old)

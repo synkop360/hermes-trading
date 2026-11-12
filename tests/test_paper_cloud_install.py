@@ -19,6 +19,28 @@ from scripts.paper_cloud_install import decode_checkpoint
 
 
 class CheckpointTests(unittest.TestCase):
+    def test_duplicate_unreferenced_journal_archives_are_coalesced_and_receipts_kept(self):
+        from scripts.paper_cloud_install import _archive_evidence,deduplicate_journal_archives,_verify_evidence
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp).resolve();aux=root/'aux';aux.mkdir();source=root/'original';source.write_bytes(b'original financial bytes')
+            (aux/'owner.json').write_text('{"purpose":"paper_cloud_auxiliary_v1"}')
+            (aux/'installed.json').write_text('{"status":"installed"}')
+            keeper=aux/('closed-journals-'+'a'*32+'.zip');duplicate=aux/('closed-journals-'+'b'*32+'.zip')
+            other=aux/('closed-journals-'+'c'*32+'.zip')
+            _archive_evidence(root,[source],keeper);_archive_evidence(root,[source],duplicate)
+            (aux/'recovery.receipt.json').write_text(json.dumps({'archive':keeper.name}))
+            source.write_bytes(b'different original');_archive_evidence(root,[source],other)
+            result=deduplicate_journal_archives(aux)
+            self.assertGreater(result['bytes_reclaimed'],0)
+            self.assertTrue(keeper.exists());self.assertFalse(duplicate.exists());self.assertTrue(other.exists())
+            self.assertEqual(deduplicate_journal_archives(aux)['bytes_reclaimed'],0)
+            self.assertNotEqual(_verify_evidence(keeper),_verify_evidence(other))
+            source.write_bytes(b'original financial bytes')
+            newer=aux/('closed-journals-'+'0'*32+'.zip');_archive_evidence(root,[source],newer)
+            (aux/'recovery.receipt.json').write_text(json.dumps({'archive':newer.name}))
+            deduplicate_journal_archives(aux)
+            self.assertTrue(keeper.exists());self.assertTrue(newer.exists())
+
     def test_nonzero_unarchived_and_active_rollback_journals_are_preserved(self):
         from scripts.paper_cloud_install import _retire_cold_journal
         with tempfile.TemporaryDirectory() as tmp:

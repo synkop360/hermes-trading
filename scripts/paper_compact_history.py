@@ -60,25 +60,57 @@ def _decoded(archive,limit):
     return size,digest.hexdigest()
 
 
-def compact_history(root,*,enabled=False,retire_originals=False,fault=None):
+def compact_history(root,*,enabled=False,retire_originals=False,legacy_database_only=False,fault=None):
     if enabled is not True or os.environ.get('HERMES_TRADING_MODE')!='paper' or os.environ.get('HERMES_TRADING_ALLOW_REAL_ORDERS')!='false':
         raise ValueError('explicit paper-only history compaction required')
     root=_safe_root(Path(root).absolute())
+    if type(legacy_database_only) is not bool:raise ValueError('literal legacy database choice required')
     manifest=root/'manifest.json'
     if not manifest.is_file():raise ValueError('retained experiment manifest required')
-    owner={'schema_version':1,'purpose':'lossless_legacy_logs_v1','root':str(root),
+    owner={'schema_version':1,'purpose':'lossless_legacy_database_v1' if legacy_database_only else 'lossless_legacy_logs_v1','root':str(root),
            'manifest_sha256':_hash(_safe_root(manifest))}
     if type(retire_originals) is not bool:raise ValueError('literal archive retirement choice required')
     reclaimed=0;compacted=0;reclaimable=0
-    with ownership(root,role='worker',enabled=True):
-        base=_safe_root(root/'.legacy-history-compact')
+    with ownership(root,role='worker',enabled=True) as worker:
+        if legacy_database_only:
+            from hermes_trading.paper_publication import _release_hashes
+            from hermes_trading.reflection_supervision import _hash as object_hash
+            import sqlite3
+            from contextlib import closing
+            expected={f'{arm}_{wallet}' for arm in ('adaptive','control') for wallet in (50,100,150,200)}
+            configuration=json.loads(manifest.read_bytes())
+            receipt=_safe_root(root/'.paper-cloud-cutover/installed.json')
+            if (configuration.get('status')!='paper_ready' or configuration.get('execution_enabled') is not True or
+                    {p.get('directory') for p in configuration.get('profiles',[])}!=expected or
+                    not receipt.is_file() or json.loads(receipt.read_bytes()).get('status')!='installed' or
+                    object_hash(_release_hashes())!='082042439d5dadd8247b788fe6b29de5c7449f165f339a2e155761bf55c525de'):
+                raise ValueError('installed paired source and eight independent active wallets required')
+            state=json.loads(worker.execute('SELECT state FROM lifecycle WHERE id=1').fetchone()[0])
+            database=_safe_root(root/'trading.db')
+            if database.exists():
+                if state.get('storage_stop') is not True:raise ValueError('legacy database compaction requires a paused worker')
+                for name in expected:
+                    active=_safe_root(root/name/'trading.db')
+                    if not active.is_file():raise ValueError('all eight active wallet databases must exist independently')
+                    if os.path.samefile(database,active):raise ValueError('legacy database aliases an active wallet')
+                if any(database.with_name(database.name+suffix).exists() for suffix in ('-wal','-shm','-journal')):
+                    raise ValueError('legacy database must have closed sidecars before compaction')
+                with closing(sqlite3.connect(database.as_uri()+'?mode=rw',uri=True,timeout=0,isolation_level=None)) as db:
+                    db.execute('PRAGMA locking_mode=EXCLUSIVE');db.execute('BEGIN EXCLUSIVE');db.commit()
+                    if db.execute('PRAGMA journal_mode').fetchone()!=('delete',):raise ValueError('closed DELETE-mode legacy database required')
+                if any(database.with_name(database.name+suffix).exists() for suffix in ('-wal','-shm','-journal')):
+                    raise ValueError('legacy database sidecars appeared during closure')
+                # The container has one source-pinned paired writer; it never
+                # writes the root legacy database. Its worker lease stays held
+                # across exact archive validation and original retirement.
+        base=_safe_root(root/('.legacy-database-compact' if legacy_database_only else '.legacy-history-compact'))
         if base.exists() and not (base/'owner.json').is_file():raise ValueError('unowned legacy archive namespace')
         base.mkdir(exist_ok=True)
         marker=_safe_root(base/'owner.json')
         if marker.exists():
             if marker.stat().st_size>4096 or json.loads(marker.read_bytes())!=owner:raise ValueError('legacy archive owner differs')
         else:_save(marker,owner)
-        for name in LEGACY_LOGS:
+        for name in (('trading.db',) if legacy_database_only else LEGACY_LOGS):
             original=_safe_root(root/name);archive=_safe_root(base/(name+'.gz'));receipt=_safe_root(base/(name+'.receipt.json'))
             if receipt.exists():
                 if receipt.stat().st_size>4096:raise ValueError('legacy receipt exceeds bound')

@@ -1,7 +1,7 @@
 """One audited recovery of the original paper storage latch after compaction."""
 from contextlib import closing
 from copy import deepcopy
-import hashlib,json,os,sqlite3
+import hashlib,json,os,sqlite3,re
 from pathlib import Path
 
 from hermes_trading.archive_snapshot import _safe_root,ownership
@@ -28,14 +28,17 @@ def _save(path,body):
     finally:temporary.unlink(missing_ok=True)
 
 
-def recover_storage(root,*,approval_ref,expected_runtime=PREDECESSOR,now=None,fault=None):
+def recover_storage(root,*,approval_ref,expected_runtime=PREDECESSOR,recovery_tag=None,now=None,fault=None):
     if os.environ.get('HERMES_TRADING_MODE')!='paper' or os.environ.get('HERMES_TRADING_ALLOW_REAL_ORDERS')!='false':
         raise ValueError('explicit paper-only storage recovery required')
     if not isinstance(approval_ref,str) or not 1<=len(approval_ref)<=256:raise ValueError('explicit recovery approval required')
     if _hash(_release_hashes())!=expected_runtime:raise ValueError('recovery predecessor source differs')
     root=_safe_root(Path(root).absolute());at=now or _now()
     if at.tzinfo is None:raise ValueError('aware recovery clock required')
-    audit=_safe_root(root/'.paper-storage-recovery');intent_path=_safe_root(audit/'intent.json')
+    if recovery_tag is not None and (not isinstance(recovery_tag,str) or re.fullmatch(r'[a-z0-9][a-z0-9_-]{0,47}',recovery_tag) is None):
+        raise ValueError('bounded named recovery identity required')
+    audit=_safe_root(root/('.paper-storage-recovery'+('' if recovery_tag is None else '-'+recovery_tag)))
+    intent_path=_safe_root(audit/'intent.json')
     completed=_safe_root(audit/'receipt.json');retired=_safe_root(audit/'retired-halt.json')
     with ownership(root,role='worker',enabled=True) as db:
         payload=db.execute('SELECT state FROM lifecycle WHERE id=1').fetchone()[0];state=json.loads(payload)

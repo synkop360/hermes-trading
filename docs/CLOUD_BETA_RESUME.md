@@ -1,91 +1,92 @@
-# Cloud beta: November 12 installation recovery
+# Cloud beta: installed, storage maintenance pending
 
-The user explicitly approved the private252335-byte/19-file supervisor checkpoint
-transfer into the existing Railway hermes-trading/production service. All29bounded
-payload variables plus count/checksum/approval metadata were uploaded with
-skipDeploys. Never print or publish their contents. Clear their contents only
-after confirmed durable installation.
+Updated November12. Existing Railway projectf78f42d9-20ec-44f6-ae3f-f8bb79ee7000,
+environmentfdcc71a3-00a9-410c-8d6f-59af9bc98d36,
+service8b94cbc9-293e-4222-a8a7-698b656985f7,
+volume0ae9532a-b9cf-4df6-a911-f51d4b9daa6d /app/state500MB.
+The user cannot buy capacity and authorized lossless historical condensation
+and fewer wallets if needed. Preserve the original experiment, risks, clocks,
+counters and real financial bytes. Never fabricate free/model/cost evidence.
 
-Project f78f42d9-20ec-44f6-ae3f-f8bb79ee7000, production environment
-fdcc71a3-00a9-410c-8d6f-59af9bc98d36, service8b94cbc9-293e-4222-a8a7-698b656985f7.
-Retain volume0ae9532a-b9cf-4df6-a911-f51d4b9daa6d at /app/state,500MB.
-The user cannot buy capacity and authorizes verified history compression and
-fewer wallets if necessary. No risk increase, fabricated costs/model access,
-experiment reset, or real orders.
+## Verified production
 
-## Actual operations
+Deployment7d8019e8-c2d4-4d5c-b6e5-bd1e1a888a32 on
+26478f42a103213cef4899485ef56bd15eeb20bd installed successfully:
+checkpoint_verified, closed_journals_verified, entry_history_transition,
+cloud_source_transition, supervisor_relocated, installed.
+The real cold-journal bug was reproduced/fixed and this source passed284Linux
+tests in17.125s (run43202160233/job131128053217).
 
-Seven obsolete root logs were losslessly compressed and originals retired only
-after explicit user approval and exact restorable-copy verification. This reclaimed
-40,111,226bytes November10, retaining eight active wallets. The reviewed native
-one-shot storage recovery then preserved the full lifecycle/marker preimage and
-resumed only the storage latch, without changing clocks/counters/financial rows.
+Supervisor releasee55a303b2fa9e50aef8b4ac0287a62da84be649e0134b030487441f31f3cd606,
+runtime082042439d5dadd8247b788fe6b29de5c7449f165f339a2e155761bf55c525de.
+Original worker runtime19fd... is now superseded by the actual native transitions.
+The private252335-byte/19-file checkpoint transfer was explicitly approved.
+All29 numbered payload variable values and PARTS were CLEARED with skipDeploys
+after installed receipt; no raw checkpoint remains in the transport environment.
+Keep checksum metadata for durable replay. Private source archive SHA256:
+8ab807671ece52022eb954886cc9b4266820671b991e8bca0701cd33bfe80be6.
+Do not print/publish the private data or copy the PC rotating refresh token.
 
-By November12, state growth again exhausted the134217728-byte reserve. Storage
-latched with~134.2MBfree. Read-only SQLite counters found essentially no reclaimable
-free pages, so VACUUM alone will not fix growth. Do not blindly clear this new halt.
-Root legacy database~57MB and retained account JSONL mirrors remain potential
-archival work; readers, mirror deduplication and financial/replay invariants must
-be preserved. Do not silently suspend wallets or label stale wallets observed.
+Nous device session S4WX-CKKD expired without approval: actualconnection_failed
+at10:56:09UTC. Do not repeat that expired link. Restart after the pending storage
+maintenance deployment will issue a fresh real code if no auth store exists.
+Native supervisor remains auth_pending without consuming failures.
+All eight paper wallets are observed; entry admission is NOT ready:
+volume_threshold, supervisor_health_stale and durable storage_stop still apply.
+Do not call the beta functional merely because hosting/install succeeded.
 
-Source-pinned handoff65dffdf8-5141-4035-b8fc-dc5d665c61b1 verified true quiescence
-under the original real worker lease, valid latest committed batch, no pending
-batch and all positions closed. It did not start a diagnostic sleep worker.
-The original package fingerprint was
-19fdcb676120b21b44d54076de08e148259e34bdfe61bbdbdffbf20b694e12ed.
+## Current storage phase
 
-The service now pins GitHub source commit620e78fe413e1c29c574b5e7ba3804d110f24e47,
-which passed282Linux tests in16.218s (run43171774561). Its Docker image built
-successfully. Supervisor release map remains
-e55a303b2fa9e50aef8b4ac0287a62da84be649e0134b030487441f31f3cd606.
+Original obsolete root-log compression reclaimed40,111,226bytes November10.
+Native audited storage recovery resumed the first pause without changing other
+state. Growth re-latched storage November12. Whole active state before migration
+was~307.8MB with free space just below134217728reserve. Read-only SQLite page
+counters show essentially no free pages, so VACUUM cannot meaningfully help.
+After repeated recovery attempts, the auxiliary area grew~53MB and entry70%
+volume alert is also active. The root legacy database is57MB, while each of the
+eight active wallet databases is~0.8MB. Their paths/identities differ.
 
-Deploymentca843737 crashed after checkpoint_verified, before the closed-journal
-and source-transition phases. The private-safe diagnostic patch was cancelled
-twice by Railway accept-deploy despite chat approval. The user applied it directly
-in the web interface. Diagnostic deployment73b4831f-1077-45e3-955b-21056fcdf30c
-confirmed recover_journals line154: SQLite recovery left an open sidecar.
-The exception digest matched f6fa1f1f9371daa66cc8ad021d36fec2d16620a5017b0322d953633b769fa05b.
-No exception values, financial data or locals were printed.
+Reviewed additions in this phase:
+- Completed owned-installation deduplication removes only UNREFERENCED duplicate
+  raw journal archives whose entire original member hash maps equal a retained
+  keeper. Referenced archives and prior alias keepers stay. Durable alias metadata
+  is published before retirement; original financial member bytes remain exact.
+- legacy_database_only compaction defaults OFF. Explicit activation requires the
+  installed paired source082, all eight declared independent current databases,
+  no aliases, a paused real worker lease, an exclusive closed legacy SQL check
+  and no sidecars. Only root/trading.db is losslessly gzipped and exact-roundtrip
+  verified before explicit original retirement. Current wallets are untouched.
+- A bounded separate recovery_tag keeps the new pause's intent/marker/lifecycle
+  preimages separate from the earlier recovery. Old completed recovery never
+  auto-clears a later halt. Same source/deadline/position/pending/headroom guards.
+- scripts.paper_cloud_maintenance installs/deduplicates, archives that unused
+  legacy database, performs the new audited recovery, checks actual storage,
+  then serves the normal worker/supervisor/auth. On failure it leaves an owned
+  watcher maintenance marker so failed supervisor cycles are not consumed.
+  Other operators' maintenance markers are preserved.
 
-## Exact reproduced fix
+Independent review reports no blockers. Fresh local28-test run passed35.310s
+with actual SQLite/native installation and repeated-pause recovery; focused
+post-review13tests pass. Require full Linux CI for this exact new phase.
 
-A real SQLite PERSIST-mode regression reproduces that error with a closed
-zero-header rollback journal. The fix retires only an unchanged, exactly archived
-zero-header original journal under the actual exclusive DB lease, with no active
-transaction and DELETE journal mode. A WAL->DELETE generated journal belongs to
-SQLite's pager; archive that generated artifact too, then let connection close
-remove it. Never unlink a journal still owned by SQLite. Keep the mandatory
-post-close absence check and full schema/row hashes before/after recovery.
+## Deploy/verify
 
-Nonzero, unarchived and active journals remain untouched and fail closed.
-Raw original and generated evidence remains in verified private ZIP archives.
-Official protocol reference: https://www.sqlite.org/lockingv3.html.
-Fresh local validation: all10 installation/recovery tests passed12.307s, including
-the real native retained install/restart. Independent review passed9 targeted
-tests and reported no remaining blocker. Run full Linux CI for this new fix.
+Stage the exact CI-passed source and the startup command:
+export HERMES_TRADING_MODE=paper HERMES_TRADING_ALLOW_REAL_ORDERS=false;
+exec /app/.venv/bin/python -u -m scripts.paper_cloud_maintenance
+Keep the same volume and original limits. Restore bounded ON_FAILURE restart3.
+Railway accept-deploy has repeatedly returned cancelled despite chat approval.
+If cancelled again, leave the precise patch staged and ask the user to apply it
+in the web interface instead of repeatedly asking for another chat yes.
 
-## Continue
+Then verify actual bytes reclaimed, fresh storage_stop=false/statusready,
+a completed maintenance event and normal worker collection. Relay a fresh real
+Nous verification URL immediately and let the user approve it before expiry.
+Verify fresh personal free/catalog proof, cost evidence, supervisor health and
+entry admission. If new limits are hit later, this recovery must NOT auto-reset
+them; preserve new evidence and design longer-term retention/cohort support.
+No wallet reduction or runtime policy relaxation has been applied in this phase.
 
-1. Publish and require full CI for the journal fix. Stage exact new commitSha
-   on the same service/volume, retaining the approved private-safe bootstrap
-   diagnostic command until actual installation succeeds. If accept-deploy is
-   cancelled, tell the user to apply the prepared patch in Railway, not to repeat
-   chat consent indefinitely. Never bypass a cancellation.
-2. Observe closed_journals_verified and original native c7->37->cloud transitions,
-   relocation, installed receipt and actual worker startup. Do not infer success
-   from image build or platform SUCCESS alone. No source-binding transition has
-   yet been observed at this checkpoint.
-3. Once installed, blank all numbered checkpoint payload variables and PARTS
-   with skipDeploys. Keep checksum metadata for durable replay if required.
-4. Relay the actual fresh Nous device verification link immediately. Never copy
-   the PC rotating refresh token. Native daemon waits for auth without consuming
-   failed cycles.
-5. Resolve storage pressure with evidence-preserving archival and an audited
-   recovery for the new halt. Verify fresh free personal/catalog/cost/model
-   evidence and entry admission before calling the beta operational.
-
-Workspace E:/workspace/hermes-cloud-supervision-20261109, Python
-E:/workspace/hermes-python311/python.exe, TMP/TEMP C:/Users/thoma/AppData/Local/Temp.
-Private checkpoint state/railway-supervisor-transfer-20261109/checkpoint.zip
-SHA2568ab807671ece52022eb954886cc9b4266820671b991e8bca0701cd33bfe80be6.
-The PC supervisor was disabled when captured; preserve its clocks/reviews/counters.
+Workspace E:/workspace/hermes-cloud-supervision-20261109.
+Python E:/workspace/hermes-python311/python.exe, TMP/TEMP
+C:/Users/thoma/AppData/Local/Temp. Private archive is under ignored state/.
