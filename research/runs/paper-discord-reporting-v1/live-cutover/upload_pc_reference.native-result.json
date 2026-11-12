@@ -1,0 +1,7 @@
+{
+  "observed_at": "2026-10-25T11:58:32.390698+00:00",
+  "instance": "b45705e2-e89a-49fe-89c5-f2f81bbac862",
+  "native_exit_code": 0,
+  "stdout": "{\"status\": \"closed_pc_reference_uploaded_verified\", \"files\": 20, \"wire_sha256\": \"01fa686bfcf947d5ad653ef2d73799b140ca7ce3fbc5d0f47fce1c4767838cb5\", \"root\": \"/tmp/hermes-discord-ed439e8/peer-originals/pc-reference-bundle\"}\n",
+  "stderr": "Using SSH key from file C:\\Users\\thoma\\.ssh\\id_ed25519_hermes_trading.pub: hermes-trading-railway\n"
+}

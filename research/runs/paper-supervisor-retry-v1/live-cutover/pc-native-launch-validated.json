@@ -1,0 +1,50 @@
+{
+  "all_129_runtime_bytes_match": true,
+  "all_pc_guards_match_frozen_after": true,
+  "cycles_started": 1544,
+  "deadline": "2027-04-21T20:13:29.470165+00:00",
+  "intent_hash": "3eca0ed789126a46ef4c41fa3022c282c669e76821f60724b0ce67eaeb25f9d0",
+  "model_attempts_reserved": 0,
+  "native_validation": "hermes_trading.supervisor_launch.validate_launch",
+  "native_wrapper_hash_matches": true,
+  "observed_at": "2026-10-26T17:10:57.941001+00:00",
+  "original_account_cost_t0": "2026-10-23T20:13:29.470165+00:00",
+  "original_account_hash": "8537e0f7f17abc8a092f2ca8e39ad8b1d290f8ee222296fbdc834fe00bb488f3",
+  "original_lifecycle_nonbinding_fields_unchanged": true,
+  "original_owner_hash": "db684ab9780a550de2cbaa22d586dfe706154cea47dfd6bef8ed247ff56d1577",
+  "primary_wallet_eur": 200,
+  "qualification": "actual_pc_only_peer_worker_is_retained_reference_no_watcher_or_readiness_action",
+  "release_hash": "b3f89fa5028578f3c29734ccca1dca855fa652d20f75345e7765ca3635ac64c7",
+  "root_binding": "48131a10d4e456a823ad5ed9cce7d08e5de5680ce5baa48d44b1ac7d11f5ba48",
+  "runtime_files": 129,
+  "six_component_states": [
+    {
+      "name": "worker_renewal",
+      "state": "after"
+    },
+    {
+      "name": "worker_usage",
+      "state": "after"
+    },
+    {
+      "name": "worker_limits",
+      "state": "after"
+    },
+    {
+      "name": "pc_limits",
+      "state": "after"
+    },
+    {
+      "name": "pc_lifecycle",
+      "state": "after"
+    },
+    {
+      "name": "pc_launch",
+      "state": "after"
+    }
+  ],
+  "source_candidate": "20eb6af2a441c934618e124af30d72f411a3938a",
+  "status": "native_launch_validated_on_actual_pc",
+  "transition_id": "73d12cfc0c991ec320b6e4676a869a8f8be23d81572fd2ab3f170f715c1a568b",
+  "watcher_and_native_launcher_unchanged": true
+}

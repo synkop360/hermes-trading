@@ -183,7 +183,7 @@ Expected: repository imports are missing.
 
 - [ ] **Step 3: Implement migration version 1**
 
-The SQL in `migrations.py` must create the 15 tables named in the design. The
+The SQL in `migrations.py` must create the 16 tables named in the design. The
 first plan actively uses `schema_migrations`, `candles_processed`, `decisions`,
 `order_intents`, `orders`, `order_fills`, `positions`, `risk_state` and
 `incidents`; the remaining tables are created empty for later plans.
@@ -229,6 +229,7 @@ git commit -m "feat: add durable sqlite trading state"
 **Files:**
 - Create: `hermes_trading/persistence/artifacts.py`
 - Create: `scripts/inspect_state.py`
+- Modify: `hermes_trading/persistence/repository.py`
 - Modify: `hermes_trading/run.py`
 - Test: `tests/test_artifacts.py`
 
@@ -236,7 +237,11 @@ git commit -m "feat: add durable sqlite trading state"
 - Consumes: `StateRepository`, `json_value()`.
 - Produces: `ArtifactProjector.append_event(name, payload)`,
   `write_snapshot(name, payload)`, `rebuild_all(repo)`, CLI commands
-  `integrity`, `export`, `compare`, `rebuild`.
+  `integrity`, `export`, `compare`, `rebuild`, plus read-only repository
+  exports needed by those commands.
+
+The `export` command includes all 16 canonical tables, not only open positions
+and orders.
 
 - [ ] **Step 1: Write failing atomic-write and rebuild tests**
 
@@ -296,7 +301,7 @@ Expected: all tests pass and legacy JSONL files still exist.
 - [ ] **Step 6: Commit human-readable artifacts**
 
 ```bash
-git add hermes_trading/persistence/artifacts.py hermes_trading/run.py scripts/inspect_state.py tests/test_artifacts.py
+git add hermes_trading/persistence/artifacts.py hermes_trading/persistence/repository.py hermes_trading/run.py scripts/inspect_state.py tests/test_artifacts.py
 git commit -m "feat: project durable state to readable artifacts"
 ```
 
@@ -305,6 +310,7 @@ git commit -m "feat: project durable state to readable artifacts"
 **Files:**
 - Create: `hermes_trading/market_data.py`
 - Modify: `hermes_trading/adapters/price.py`
+- Modify: `hermes_trading/persistence/repository.py`
 - Test: `tests/test_market_data.py`
 
 **Interfaces:**
@@ -324,6 +330,7 @@ class MarketDataTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_shared_adapters_run_once_for_four_assets(self):
         coordinator = MarketDataCoordinator(
+            repository=self.repo,
             price_fetch=AsyncMock(side_effect=prices_for_four_assets()),
             news_fetch=AsyncMock(return_value={"schema_version": 1}),
             macro_fetch=AsyncMock(return_value={"schema_version": 1}),
@@ -369,7 +376,7 @@ Expected: all tests pass.
 - [ ] **Step 6: Commit the market coordinator**
 
 ```bash
-git add hermes_trading/market_data.py hermes_trading/adapters/price.py tests/test_market_data.py
+git add hermes_trading/market_data.py hermes_trading/adapters/price.py hermes_trading/persistence/repository.py tests/test_market_data.py
 git commit -m "feat: evaluate each closed candle once"
 ```
 
@@ -378,6 +385,8 @@ git commit -m "feat: evaluate each closed candle once"
 **Files:**
 - Create: `hermes_trading/strategy.py`
 - Create: `hermes_trading/positions.py`
+- Modify: `hermes_trading/persistence/repository.py`
+- Modify: `hermes_trading/persistence/artifacts.py`
 - Modify: `hermes_trading/loop.py`
 - Test: `tests/test_positions.py`
 - Test: `tests/test_training_loop.py`
@@ -481,6 +490,6 @@ Expected: all legacy and new tests pass.
 Run: `graphify update .`
 
 ```bash
-git add hermes_trading/strategy.py hermes_trading/positions.py hermes_trading/loop.py tests/test_positions.py tests/test_training_loop.py graphify-out
+git add hermes_trading/strategy.py hermes_trading/positions.py hermes_trading/persistence/repository.py hermes_trading/persistence/artifacts.py hermes_trading/loop.py tests/test_positions.py tests/test_training_loop.py
 git commit -m "feat: model complete simulated positions"
 ```

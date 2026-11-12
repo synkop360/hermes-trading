@@ -1,0 +1,7 @@
+{
+  "observed_at": "2026-10-25T11:52:47.064178+00:00",
+  "instance": "b45705e2-e89a-49fe-89c5-f2f81bbac862",
+  "native_exit_code": 1,
+  "stdout": "\nAn error occurred connecting to your service. Please try again.\n\n",
+  "stderr": "Using SSH key from file C:\\Users\\thoma\\.ssh\\id_ed25519_hermes_trading.pub: hermes-trading-railway\n"
+}

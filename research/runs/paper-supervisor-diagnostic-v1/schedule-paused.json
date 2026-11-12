@@ -1,0 +1,8 @@
+{
+  "observed_at": "2026-10-25T13:06:09.628885+00:00",
+  "job_id": "2f6c5088c6ff",
+  "previous_enabled": true,
+  "paused": true,
+  "native_exit_code": 0,
+  "reason": "single_guarded_observed_cycle_no_runtime_source_change"
+}

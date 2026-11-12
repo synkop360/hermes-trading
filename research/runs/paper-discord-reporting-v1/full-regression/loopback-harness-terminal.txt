@@ -1,0 +1,31 @@
+Hermes colocated control API listening on http://127.0.0.1:60077
+Hermes colocated control API listening on http://127.0.0.1:60079
+{
+  "observed_at": "2026-10-24T22:02:02.764104+00:00",
+  "runs": [
+    {
+      "runner": "run_full_verification_external_deny_v1.py",
+      "tests": 1,
+      "failures": [
+        [
+          "test_colocated_control_api_serves_status_from_background_thread (test_colocated.ColocatedEntrypointTests.test_colocated_control_api_serves_status_from_background_thread)",
+          "Traceback (most recent call last):\n  File \"E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\tests\\test_colocated.py\", line 87, in test_colocated_control_api_serves_status_from_background_thread\n    payload = ControlClient(f\"http://{host}:{port}\", \"secret\").status()\n              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\hermes_trading\\control_client.py\", line 43, in status\n    return self._signed_request(\"GET\", \"/status\", \"\")\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\hermes_trading\\control_client.py\", line 61, in _signed_request\n    return self._request_json(method, self._base_url + path, headers, body)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\hermes_trading\\control_client.py\", line 96, in _httpx_request_json\n    response = httpx.request(method, url, headers=dict(headers), content=body.encode(\"utf-8\"), timeout=10.0)\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-trading\\.venv\\Lib\\site-packages\\httpx\\_api.py\", line 109, in request\n    return client.request(\n           ^^^^^^^^^^^^^^^\n  File \"E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-trading\\.venv\\Lib\\site-packages\\httpx\\_client.py\", line 825, in request\n    return self.send(request, auth=auth, follow_redirects=follow_redirects)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-trading\\.venv\\Lib\\site-packages\\httpx\\_client.py\", line 914, in send\n    response = self._send_handling_auth(\n               ^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-trading\\.venv\\Lib\\site-packages\\httpx\\_client.py\", line 942, in _send_handling_auth\n    response = self._send_handling_redirects(\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-trading\\.venv\\Lib\\site-packages\\httpx\\_client.py\", line 979, in _send_handling_redirects\n    response = self._send_single_request(request)\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-trading\\.venv\\Lib\\site-packages\\httpx\\_client.py\", line 1014, in _send_single_request\n    response = transport.handle_request(request)\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"run_full_verification_external_deny_v1.py\", line 47, in deny_sync\n    def deny_sync(*a,**k):raise AssertionError('real HTTP forbidden during synthetic correctness verification')\n                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: real HTTP forbidden during synthetic correctness verification\n"
+        ]
+      ],
+      "errors": [],
+      "passed": false,
+      "log": "run_full_verification_external_deny_v1.loopback-check.txt"
+    },
+    {
+      "runner": "run_full_verification.py",
+      "tests": 1,
+      "failures": [],
+      "errors": [],
+      "passed": true,
+      "log": "run_full_verification.loopback-check.txt"
+    }
+  ],
+  "conclusion": "Only the harness changed: explicit HTTP loopback test servers permitted; external HTTP remains denied",
+  "discord_requests": 0,
+  "product_changes": false
+}

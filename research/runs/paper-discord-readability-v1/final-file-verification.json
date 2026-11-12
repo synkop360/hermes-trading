@@ -1,0 +1,13 @@
+{
+  "frozen_inventory_files": 667,
+  "frozen_actual_files": 667,
+  "frozen_matching": 667,
+  "frozen_missing": [],
+  "frozen_extras": [],
+  "frozen_mismatches": [],
+  "owned_file_sha256": {
+    "hermes_trading/notifications.py": "c53e12466883de811bc9d604e6be5afa12415540bf582b152dac3b1f7cc47a7d",
+    "tests/test_paper_notifications.py": "94c457c7231d3fb8271d78c3238b6eac98822d9c8e7abbc97ebc99ba7db93dfa",
+    "docs/PAPER_DISCORD_MESSAGE_PREVIEW.md": "382b1eb8045357aa86c70a8b4b4fb2c004e591c1d1b7caf836b90c5f1cb84b49"
+  }
+}

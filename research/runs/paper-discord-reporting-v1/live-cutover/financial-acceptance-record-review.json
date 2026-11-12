@@ -1,0 +1,45 @@
+{
+  "reviewed_at": "2026-10-25T12:27:52.928646+00:00",
+  "scope": "local_retained_receipts_only_no_network_or_runtime_actions",
+  "receipt": "inspect_reporting_acceptance3.native-result.json",
+  "receipt_raw_sha256": "57c33848708ee358658135a198f22fa74b407362ee1351c38487222dad9a1c8f",
+  "observed_at": "2026-10-25T12:24:07.372709+00:00",
+  "current_common_observation_at": "2026-10-25T12:23:45.102722+00:00",
+  "completed_count": 1748,
+  "new_batches": 7,
+  "pending_count": 0,
+  "startup_confirmed": true,
+  "cycle_summary_confirmation_observed": true,
+  "confirmed_cycle_windows": 1,
+  "confirmed_three_part_tag": "7dac8b8d62ae1e7af86a045b",
+  "confirmed_zero_based_part_indices": [
+    0,
+    1,
+    2
+  ],
+  "total_confirmed_local_markers": 10,
+  "all_counters_zero": true,
+  "all_eight_identity_time_settlement_checks": true,
+  "all_eight_missing_field_count_zero": true,
+  "cost_quality_all_eight": {
+    "hosting": "estimated",
+    "ai": "estimated",
+    "tools": "estimated",
+    "funding": "actual"
+  },
+  "four_native_comparisons_zero": true,
+  "primary_native_eur": "199.6150278299987268518518519",
+  "supervisor_safety": {
+    "consecutive_errors": 3,
+    "entry_halt": true,
+    "error_kind": null,
+    "last_seen": "2026-10-25T12:23:38.979154+00:00",
+    "success": true
+  },
+  "later_two_scheduled_executions_completed": true,
+  "remote_message_ids_or_bodies_observed": false,
+  "natural_close_alert_observed": false,
+  "postcutover_trade_counts_not_yet_claimed": true,
+  "doc": "LIVE_CUTOVER_RESULT.md",
+  "doc_raw_sha256": "3d05dc4191264cd51eadc82b997c38d166b04482e01cb49f905b1c3bd93f8887"
+}

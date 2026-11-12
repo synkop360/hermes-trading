@@ -1,0 +1,11 @@
+{
+  "observed_at": "2026-10-26T07:04:45.480028+00:00",
+  "exit_code": 0,
+  "result": {
+    "data": {
+      "deploymentStop": true
+    }
+  },
+  "stderr_bytes": 0,
+  "target_deployment": "3cf55164-902f-4493-9a8a-6c97d394c0b8"
+}

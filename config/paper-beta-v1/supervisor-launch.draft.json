@@ -1,0 +1,19 @@
+{
+  "account_hash": null,
+  "enabled": false,
+  "experiment_id": "unassigned_until_activation",
+  "expires_at": null,
+  "local_state_dir": "E:/_OB_VAULTS/Main Vault/Projects/Automatic Trading/hermes-trading/state/paired-supervisor/unassigned_until_activation/adaptive_200",
+  "max_script_seconds": 240,
+  "mirror_dir": "E:/_OB_VAULTS/Main Vault/Projects/Automatic Trading/hermes-trading/state/paired-supervisor/unassigned_until_activation/mirror",
+  "paper_safety_enabled": true,
+  "policy_hash": null,
+  "primary_selection_sha256": "34cb2c43f0e5805e1fbb07f731da8028e258b4b74250e8e54d3b2ceb557f4c90",
+  "primary_wallet_eur": 200,
+  "project_dir": "E:/_OB_VAULTS/Main Vault/Projects/Automatic Trading/hermes-trading",
+  "release_hash": null,
+  "remote_state_dir": "/app/state/adaptive_200",
+  "schema_version": 2,
+  "status": "prepared_draft_not_activated",
+  "wrapper_sha256": null
+}

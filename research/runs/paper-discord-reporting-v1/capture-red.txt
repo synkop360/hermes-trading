@@ -1,0 +1,151 @@
+test_background_reporter_runs_but_does_not_start_a_legacy_writer (test_paper_notification_capture.NotificationBootTests.test_background_reporter_runs_but_does_not_start_a_legacy_writer) ... Executing <Task finished name='Task-2' coro=<NotificationBootTests.test_background_reporter_runs_but_does_not_start_a_legacy_writer() done, defined at E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\tests\test_paper_notification_capture.py:101> exception=AssertionError('unexpectedly None') created at C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\runners.py:100> took 0.344 seconds
+FAIL
+test_bad_notification_configuration_leaves_original_worker_dispatch_unchanged (test_paper_notification_capture.NotificationBootTests.test_bad_notification_configuration_leaves_original_worker_dispatch_unchanged) ... Executing <Task finished name='Task-7' coro=<NotificationBootTests.test_bad_notification_configuration_leaves_original_worker_dispatch_unchanged() done, defined at E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\tests\test_paper_notification_capture.py:125> result=None created at C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\runners.py:100> took 0.344 seconds
+ok
+test_final_observations_and_orders_are_ephemeral_and_bound_to_all_eight_accounts (test_paper_notification_capture.NotificationCaptureTests.test_final_observations_and_orders_are_ephemeral_and_bound_to_all_eight_accounts) ... FAIL
+test_missing_cost_remains_unknown_in_final_capture (test_paper_notification_capture.NotificationCaptureTests.test_missing_cost_remains_unknown_in_final_capture) ... FAIL
+test_native_final_risk_sweep_closes_are_captured_with_eur_pnl (test_paper_notification_capture.NotificationCaptureTests.test_native_final_risk_sweep_closes_are_captured_with_eur_pnl) ... FAIL
+test_notification_source_failure_cannot_undo_settlement (test_paper_notification_capture.NotificationCaptureTests.test_notification_source_failure_cannot_undo_settlement) ... FAIL
+test_observer_exception_does_not_become_worker_failure (test_paper_notification_capture.NotificationWorkerIsolationTests.test_observer_exception_does_not_become_worker_failure) ... FAIL
+
+======================================================================
+FAIL: test_background_reporter_runs_but_does_not_start_a_legacy_writer (test_paper_notification_capture.NotificationBootTests.test_background_reporter_runs_but_does_not_start_a_legacy_writer)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\unittest\async_case.py", line 90, in _callTestMethod
+    if self._callMaybeAsync(method) is not None:
+       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\unittest\async_case.py", line 112, in _callMaybeAsync
+    return self._asyncioRunner.run(
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\base_events.py", line 654, in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+  File "E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\tests\test_paper_notification_capture.py", line 121, in test_background_reporter_runs_but_does_not_start_a_legacy_writer
+    result = await module.run_paper(fixture.root, env=env)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\hermes_trading\paper_boot.py", line 45, in run_paper
+    return await run_worker(root)
+           ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\unittest\mock.py", line 2251, in _execute_mock_call
+    result = await effect(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\tests\test_paper_notification_capture.py", line 113, in worker
+    self.assertIsNotNone(observer)
+AssertionError: unexpectedly None
+
+======================================================================
+FAIL: test_final_observations_and_orders_are_ephemeral_and_bound_to_all_eight_accounts (test_paper_notification_capture.NotificationCaptureTests.test_final_observations_and_orders_are_ephemeral_and_bound_to_all_eight_accounts)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\unittest\async_case.py", line 90, in _callTestMethod
+    if self._callMaybeAsync(method) is not None:
+       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\unittest\async_case.py", line 112, in _callMaybeAsync
+    return self._asyncioRunner.run(
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\base_events.py", line 654, in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+  File "E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\tests\test_paper_notification_capture.py", line 30, in test_final_observations_and_orders_are_ephemeral_and_bound_to_all_eight_accounts
+    result = await self.cycle()
+             ^^^^^^^^^^^^^^^^^^
+  File "E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\tests\test_paper_notification_capture.py", line 25, in cycle
+    self.assertIn('notification_capture', inspect.signature(paired_paper.run_paired_cycle).parameters)
+AssertionError: 'notification_capture' not found in mappingproxy(OrderedDict([('root', <Parameter "root">), ('market_data', <Parameter "market_data">), ('now', <Parameter "now=None">), ('process_account', <Parameter "process_account=None">), ('entries_blocked', <Parameter "entries_blocked=False">), ('not_after', <Parameter "not_after=None">), ('packet_preflight', <Parameter "packet_preflight=None">), ('operational_stop', <Parameter "operational_stop=None">), ('reservation_id', <Parameter "reservation_id=None">)]))
+
+======================================================================
+FAIL: test_missing_cost_remains_unknown_in_final_capture (test_paper_notification_capture.NotificationCaptureTests.test_missing_cost_remains_unknown_in_final_capture)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\unittest\async_case.py", line 90, in _callTestMethod
+    if self._callMaybeAsync(method) is not None:
+       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\unittest\async_case.py", line 112, in _callMaybeAsync
+    return self._asyncioRunner.run(
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\base_events.py", line 654, in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+  File "E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\tests\test_paper_notification_capture.py", line 58, in test_missing_cost_remains_unknown_in_final_capture
+    capture = (await self.cycle())['notification']['accounts']['adaptive_50']
+               ^^^^^^^^^^^^^^^^^^
+  File "E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\tests\test_paper_notification_capture.py", line 25, in cycle
+    self.assertIn('notification_capture', inspect.signature(paired_paper.run_paired_cycle).parameters)
+AssertionError: 'notification_capture' not found in mappingproxy(OrderedDict([('root', <Parameter "root">), ('market_data', <Parameter "market_data">), ('now', <Parameter "now=None">), ('process_account', <Parameter "process_account=None">), ('entries_blocked', <Parameter "entries_blocked=False">), ('not_after', <Parameter "not_after=None">), ('packet_preflight', <Parameter "packet_preflight=None">), ('operational_stop', <Parameter "operational_stop=None">), ('reservation_id', <Parameter "reservation_id=None">)]))
+
+======================================================================
+FAIL: test_native_final_risk_sweep_closes_are_captured_with_eur_pnl (test_paper_notification_capture.NotificationCaptureTests.test_native_final_risk_sweep_closes_are_captured_with_eur_pnl)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\unittest\async_case.py", line 90, in _callTestMethod
+    if self._callMaybeAsync(method) is not None:
+       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\unittest\async_case.py", line 112, in _callMaybeAsync
+    return self._asyncioRunner.run(
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\base_events.py", line 654, in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+  File "E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\tests\test_paper_notification_capture.py", line 74, in test_native_final_risk_sweep_closes_are_captured_with_eur_pnl
+    await self.cycle()
+  File "E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\tests\test_paper_notification_capture.py", line 25, in cycle
+    self.assertIn('notification_capture', inspect.signature(paired_paper.run_paired_cycle).parameters)
+AssertionError: 'notification_capture' not found in mappingproxy(OrderedDict([('root', <Parameter "root">), ('market_data', <Parameter "market_data">), ('now', <Parameter "now=None">), ('process_account', <Parameter "process_account=None">), ('entries_blocked', <Parameter "entries_blocked=False">), ('not_after', <Parameter "not_after=None">), ('packet_preflight', <Parameter "packet_preflight=None">), ('operational_stop', <Parameter "operational_stop=None">), ('reservation_id', <Parameter "reservation_id=None">)]))
+
+======================================================================
+FAIL: test_notification_source_failure_cannot_undo_settlement (test_paper_notification_capture.NotificationCaptureTests.test_notification_source_failure_cannot_undo_settlement)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\unittest\async_case.py", line 90, in _callTestMethod
+    if self._callMaybeAsync(method) is not None:
+       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\unittest\async_case.py", line 112, in _callMaybeAsync
+    return self._asyncioRunner.run(
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\base_events.py", line 654, in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+  File "E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\tests\test_paper_notification_capture.py", line 63, in test_notification_source_failure_cannot_undo_settlement
+    self.assertTrue(hasattr(paired_paper, '_notification_events'))
+AssertionError: False is not true
+
+======================================================================
+FAIL: test_observer_exception_does_not_become_worker_failure (test_paper_notification_capture.NotificationWorkerIsolationTests.test_observer_exception_does_not_become_worker_failure)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\unittest\async_case.py", line 90, in _callTestMethod
+    if self._callMaybeAsync(method) is not None:
+       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\unittest\async_case.py", line 112, in _callMaybeAsync
+    return self._asyncioRunner.run(
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\base_events.py", line 654, in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+  File "E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\tests\test_paper_notification_capture.py", line 138, in test_observer_exception_does_not_become_worker_failure
+    self.assertIn('observer', inspect.signature(paired_worker.run_worker).parameters)
+AssertionError: 'observer' not found in mappingproxy(OrderedDict([('root', <Parameter "root">), ('collector_factory', <Parameter "collector_factory=None">), ('clock', <Parameter "clock=None">), ('sleep', <Parameter "sleep=<function sleep at 0x00000220B3F8DD00>">), ('storage_probe', <Parameter "storage_probe=None">), ('witness', <Parameter "witness=None">), ('archive_boundary', <Parameter "archive_boundary=None">)]))
+
+----------------------------------------------------------------------
+Ran 7 tests in 1.023s
+
+FAILED (failures=6)

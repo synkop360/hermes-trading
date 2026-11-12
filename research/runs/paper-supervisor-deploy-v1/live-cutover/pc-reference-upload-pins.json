@@ -1,0 +1,25 @@
+{
+  "files": {
+    "launch-original.json": "2c4d7566c9292bcdf93fc7019a23539a89b2bcb8f6800307ad4ce48e516f285b",
+    "pc-original/goal.yaml": "1ae46687ad02b2e80fa2134325cf841e38503dfad0c77a384969ed82c866b520",
+    "pc-original/heartbeat.json": "f97b10e2c7615f90343d19934f1dca80d2e973e380d0d9911a238430e1db9fc6",
+    "pc-original/llm_review_state.sqlite": "614c92b1bd3fec8017a2ad0cc268ac36a8d34606042d7eda8aae61ecc0d47f24",
+    "pc-original/model_access.json": "51d64d2255cbb5edd9b5c1629d747e496381383933f1bee7b1312a9cb640ec95",
+    "pc-original/model_access_import_receipt.json": "35134601d0bc0656a7d6dfba9aac565ad768b03caf1ce19afefcc94ed982a4af",
+    "pc-original/model_access_refresh.sqlite": "2dc6d42d9c27dba669f7051106535944980b3c753e6f266fb48da7000e9d4160",
+    "pc-original/paper_supervisor_health_pending.json.lock": "6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d",
+    "pc-original/reflection_owner.json": "f74490133763b2e82ec4a8b84a328bc4e034bfe6845bad6684bc236d0163c84c",
+    "pc-original/strategy.yaml": "4122e49676b1918738cd9e8a6ff45d221b8be6067c7235d36089515210a5ae99",
+    "pc-original/supervisor_lifecycle.json": "5291f7b20808991303bc86dcc695cb55b308060c031a8bde24ff4a79152b29aa",
+    "pc-original/supervisor_limits.json": "f564dfa59b06bf477f59cd8d6947d43cd4b88bc50a0326e3b8cda707907933bd",
+    "pc-original/supervisor_status.json": "c7c9b5224d5b228f22a68af21a35265860aeb6d2e2775b5085c77a4db3d37e77",
+    "pc-original/supervisor_usage_import_receipt.json": "2ef02335941ab076ea4040d6bcdb9c6a73fa85cec1db62937bddaea2894a87a9",
+    "pc-original/supervisor_usage_snapshot.json": "28960d214279e39ff66afe625c8db220660600768a695ab69954eeb764d0ab94",
+    "pc-original/trades.jsonl": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "pc-original/wallet_account.json": "6d4f37a11acbeeb44acc458886fa60b374fcb41132860b4e792821520ee1ca12",
+    "pc-original/wallet_cost_sources.json": "c282db98036c33b00362d50320cc6b1aa36f2c68604d093d3917a7b15c039b2a",
+    "pc-original/wallet_metrics.json": "4780eb1720b55803c623d57d6b462b45e3486a2aa5c51f7164da055eb255da6e",
+    "pc-original/watcher_cycle.sqlite": "ac7fbf4732ec6b1a11c3af81cea48005c158e39d9043800a4d7895506a32b5b5"
+  },
+  "wire_sha256": "876fc0719761574c51183000f9d3c94f09f667a68f23eda036a7630a4fef6cdc"
+}

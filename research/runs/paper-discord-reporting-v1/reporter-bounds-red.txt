@@ -1,0 +1,64 @@
+test_native_observation_identity_and_timestamp_must_match_row (tests.test_paper_notifications.PaperNotificationTests.test_native_observation_identity_and_timestamp_must_match_row) ... ERROR
+test_long_untrusted_cost_details_cannot_remove_any_of_the_eight_rows (tests.test_paper_notifications.PaperNotificationTests.test_long_untrusted_cost_details_cannot_remove_any_of_the_eight_rows) ... FAIL
+
+======================================================================
+ERROR: test_native_observation_identity_and_timestamp_must_match_row (tests.test_paper_notifications.PaperNotificationTests.test_native_observation_identity_and_timestamp_must_match_row)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\tasks.py", line 500, in wait_for
+    return fut.result()
+           ^^^^^^^^^^^^
+  File "E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\tests\test_paper_notifications.py", line 64, in spin
+    await asyncio.sleep(0.001)
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\tasks.py", line 649, in sleep
+    return await future
+           ^^^^^^^^^^^^
+asyncio.exceptions.CancelledError
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\unittest\async_case.py", line 90, in _callTestMethod
+    if self._callMaybeAsync(method) is not None:
+       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\unittest\async_case.py", line 112, in _callMaybeAsync
+    return self._asyncioRunner.run(
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\base_events.py", line 654, in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+  File "E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\tests\test_paper_notifications.py", line 483, in test_native_observation_identity_and_timestamp_must_match_row
+    await eventually(lambda: "control_200: unavailable" in self.text())
+  File "E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\tests\test_paper_notifications.py", line 65, in eventually
+    await asyncio.wait_for(spin(), timeout)
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\tasks.py", line 502, in wait_for
+    raise exceptions.TimeoutError() from exc
+TimeoutError
+
+======================================================================
+FAIL: test_long_untrusted_cost_details_cannot_remove_any_of_the_eight_rows (tests.test_paper_notifications.PaperNotificationTests.test_long_untrusted_cost_details_cannot_remove_any_of_the_eight_rows)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\unittest\async_case.py", line 90, in _callTestMethod
+    if self._callMaybeAsync(method) is not None:
+       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\unittest\async_case.py", line 112, in _callMaybeAsync
+    return self._asyncioRunner.run(
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\base_events.py", line 654, in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+  File "E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\tests\test_paper_notifications.py", line 499, in test_long_untrusted_cost_details_cannot_remove_any_of_the_eight_rows
+    self.assertIn(name + ":", self.text())
+AssertionError: 'adaptive_150:' not found in 'Hermes paper/simulated | Observed at: 2026-10-24T10:00:00+00:00\nHermes paper/simulated | startup current snapshot\nObserved at: 2026-10-24T10:00:00+00:00\nLast settled: 2026-10-24T10:00:00+00:00\nObserved interval: unknown -> 2026-10-24T10:00:00+00:00; coverage unknown\nstatus=healthy entry_admission=enabled\nsupervision={"success": true, "status": "not_due"}; review audit unavailable\nstrategy_version=v1\nCoverage unknown; gaps=0 coalesced=0 dropped=0 delivery_unknown=0 repeats=0\nRetries may duplicate; stable tags identify parts/events.\ncurrent financial snapshot; period-end valuation unavailable; interval P&L/Sharpe unavailable.\nprimary EUR200; all amounts native EUR net of recorded costs (no extra fee subtraction).\nadaptive_50: net_equity=EUR 7777777777777777777777777777777777777777777777777777777777777777777777 closed_net_pnl=EUR 7777777777777777777777777777777777777777777777777777777777777777777777 open_basis=EUR 7777777777777777777777777777777777777777777777777777777777777777777777 open_liquidation_value=EUR 7777777777777777777777777777777777777777777777777777777777777777777777 open_entry_fees=EUR 7777777777777777777777777777777777777777777777777777777777777777777777 known_accrued_costs=EUR 7777777777777777777777777777777777777777777777777777777777777777777777\n[paper:2aa0c2e0b5b839bb5a70ca8f part:1/4]\nHermes paper/simulated | Observed at: 2026-10-24T10:00:00+00:00\n costs=untrusteduntrusteduntrusteduntrusteduntrusteduntrusteduntrusteduntrusteduntrusteduntrusteduntrusteduntrusteduntrusteduntrusteduntrusteduntrusteduntrusteduntrusteduntrusteduntrusted missing=["missingmissingmissingmissingmissingmissingmissingmissingmissingmissingmissingmissingmissingmissingmissingmissingmissingmissingmissingmissingmissingmissingmissingmissingmissingmis halted=False liquidation_pending=False events=observed decisions=1 reasons={"no_trade:untrusteduntrusteduntrusteduntrusteduntrusted": 1}\ncontrol_50: net_equity=EUR 7777777777777777777777777777777777777777777777777777777777777777777777 closed_net_pnl=EUR 7777777777777777777777777777777777777777777777777777777777777777777777 open_basis=EUR 7777777777777777777777777777777777777777777777777777777777777777777777 open_liquidation_value=EUR 7777777777777777777777777777777777777777777777777777777777777777777777 open_entry_fees=EUR 7777777777777777777777777777777777777777777777777777777777777777777777 known_accrued_costs=EUR 7777777777777777777777777777777777777777777777777777777777777777777777\n costs=untrusteduntrusteduntrusteduntrusteduntrusteduntrusteduntrusteduntrusteduntrusteduntrusteduntrusteduntrusteduntrusteduntrusteduntrusteduntrusteduntrusteduntrusteduntrusteduntrusted missing=["missingmissingmissingmissingmissingmissingmissingmissingmissingmissingmissingmissingmissingmissingmissingmissingmissingmissingmissingmissingmissingmissingmissingmissingmissingmis halted=False liquidation_pending=False events=observed decisions=1 reasons={"no_trade:untrusteduntrusteduntrusteduntrusteduntrusted": 1}\n[paper:2aa0c2e0b5b839bb5a70ca8f part:2/4]\nHermes paper/simulated | Observed at: 2026-10-24T10:00:00+00:00\nadaptive_100: net_equity=EUR 7777777777777777777777777777777777777777777777777777777777777777777777 closed_net_pnl=EUR 7777777777777777777777777777777777777777777777777777777777777777777777 open_basis=EUR 7777777777777777777777777777777777777777777777777777777777777777777777 open_liquidation_value=EUR 7777777777777777777777777777777777777777777777777777777777777777777777 open_entry_fees=EUR 7777777777777777777777777777777777777777777777777777777777777777777777 known_accrued_costs=EUR 7777777777777777777777777777777777777777777777777777777777777777777777\n costs=untrusteduntrusteduntrusteduntrusteduntrusteduntrusteduntrusteduntrusteduntrusteduntrusteduntrusteduntrusteduntrusteduntrusteduntrusteduntrusteduntrusteduntrusteduntrusteduntrusted missing=["missingmissingmissingmissingmissingmissingmissingmissingmissingmissingmissingmissingmissingmissingmissingmissingmissingmissingmissingmissingmissingmissingmissingmissingmissingmis halted=False liquidation_pending=False events=observed decisions=1 reasons={"no_trade:untrusteduntrusteduntrusteduntrusteduntrusted": 1}\n[paper:2aa0c2e0b5b839bb5a70ca8f part:3/4]\nHermes paper/simulated | Observed at: 2026-10-24T10:00:00+00:00\ncontrol_100: net_equity=EUR 7777777777777777777777777777777777777777777777777777777777777777777777 closed_net_pnl=EUR 7777777777777777777777777777777777777777777777777777777777777777777777 open_basis=EUR 7777777777777777777777777777777777777777777777777777777777777777777777 open_liquidation_value=EUR 7777777777777777777777777777777777777777777777777777777777777777777777 open_entry_fees=EUR 7777777777777777777777777777777777777777777777777777777777777777777777 known_accrued_costs=EUR 7777777777777777777777777777777777777777777777777777777777777777777777\n costs=untrusteduntrusteduntrusteduntrusteduntrusteduntrusteduntrusteduntrusteduntrusteduntrusteduntrusteduntrusteduntrusteduntrusteduntrusteduntrusteduntrusteduntrusteduntrusteduntrusted missing=["missingmissingmissingmissingmissingmissingmissingmissingmissingmissingmissingmissingmissingmissingmissingmissingmissingmissingmissingmissingmissingmissingmissingmissingmissingmis halted=False liquidation_pending=False events=observed decisions=1 reasons={"no_trade:untrusteduntrusteduntrusteduntrusteduntrusted": 1}\nOmitted 12 excess lines/events; coverage gap.\n[paper:2aa0c2e0b5b839bb5a70ca8f part:4/4]'
+
+----------------------------------------------------------------------
+Ran 2 tests in 1.238s
+
+FAILED (failures=1, errors=1)

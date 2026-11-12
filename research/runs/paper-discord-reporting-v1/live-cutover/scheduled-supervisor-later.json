@@ -1,0 +1,41 @@
+{
+  "observed_at": "2026-10-25T12:24:19.368552+00:00",
+  "job": {
+    "id": "2f6c5088c6ff",
+    "enabled": true,
+    "state": "scheduled",
+    "last_status": "ok",
+    "last_run_at": "2026-10-25T13:23:41.128854+01:00",
+    "next_run_at": "2026-10-25T13:24:41.128854+01:00"
+  },
+  "recent_executions": [
+    {
+      "id": "495ef3b5d6764fcfa183c2f8d9d07463",
+      "status": "completed",
+      "started_at": "2026-10-25T13:23:23.388911+01:00",
+      "finished_at": "2026-10-25T13:23:41.135380+01:00",
+      "error_present": false
+    },
+    {
+      "id": "eee665f3311f488d800cc3189dd639fa",
+      "status": "completed",
+      "started_at": "2026-10-25T13:21:23.301217+01:00",
+      "finished_at": "2026-10-25T13:21:37.721772+01:00",
+      "error_present": false
+    },
+    {
+      "id": "45a9df0b06e146c594f0aca1c40b6b9e",
+      "status": "failed",
+      "started_at": "2026-10-25T13:19:23.207739+01:00",
+      "finished_at": "2026-10-25T13:19:38.869731+01:00",
+      "error_present": true
+    },
+    {
+      "id": "d4bbc5afd7cd4133b4637f45d60b4067",
+      "status": "completed",
+      "started_at": "2026-10-25T12:19:21.086684+01:00",
+      "finished_at": "2026-10-25T12:19:35.928468+01:00",
+      "error_present": false
+    }
+  ]
+}

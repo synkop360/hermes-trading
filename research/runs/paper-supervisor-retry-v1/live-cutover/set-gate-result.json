@@ -1,0 +1,11 @@
+{
+  "observed_at": "2026-10-26T07:06:26.522113+00:00",
+  "exit_code": 0,
+  "result": {
+    "data": {
+      "serviceInstanceUpdate": true
+    }
+  },
+  "stderr_bytes": 0,
+  "old_instance_exited": true
+}

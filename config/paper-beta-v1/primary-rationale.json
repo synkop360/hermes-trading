@@ -1,0 +1,15 @@
+{
+  "basis": "2026-10-18 single-point native admission admitted only EUR200 ETH; EUR50/100/150 admitted no asset under unchanged guards",
+  "evidence_ref": "research/runs/beta-feasibility-2026-10-18/native-admission/verification.json",
+  "evidence_sha256": "33c1f465cf2b4c5a9cec0105b059d78ac3c171301859dd8276b09e6b25b9261d",
+  "limitations": [
+    "zero accrued operating costs in that observation",
+    "no entry signal evaluation",
+    "no profitable-wallet or sustained-opportunity claim"
+  ],
+  "preregistered_before_prospective_inception": true,
+  "preserves": "all eight scenarios, original fees, caps, costs, strategies and qualification method",
+  "purpose": "paired_primary_rationale_v1",
+  "schema_version": 1,
+  "wallet_eur": 200
+}

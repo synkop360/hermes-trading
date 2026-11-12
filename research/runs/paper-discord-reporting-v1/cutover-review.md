@@ -1,0 +1,23 @@
+# Cutover and evidence consistency review
+
+Reviewed the proposed `docs/PAPER_DISCORD_REPORTING_CUTOVER.md` and source-frozen candidate `8f315b35cf6a40267cc07be1bac2c9be126006c7`, offline on October 24, 2026. No actual state query, source/test edit, deployment, restart, message send, or credential access occurred. The running full Windows verification was left untouched.
+
+## One P2 finding: four-part bound changes meaning
+
+The approved design at `docs/superpowers/specs/2026-10-24-paper-discord-reporting-design.md:53` requires “at most4parts per envelope.” The plan repeats that fixed bound. The final cutover document at line 32 instead describes separate event and summary delivery intents, each allowed four parts. Those are materially different bounds for one offered v1 observation.
+
+This is reproducible with eight close events, one per expected account, on the fifth new batch. `notifications.py:865` sends the event delivery and then `notifications.py:868` independently sends the due summary. One offered envelope emits **five** confirmed fake-transport parts: two event parts plus three summary parts. The assertion that the offered envelope emits at most four fails; each individual tag remains within four. [Probe](cutover-parts-bound-repro.py), [fresh failing output](cutover-parts-bound-red.txt): one failure in 0.307 seconds, strict ResourceWarning mode, inherited real HTTP denial.
+
+The procedure accurately describes the current implementation, but that description does not establish compliance with the literal approved envelope bound. Align the implementation and its acceptance check with the approved bound, or explicitly resolve the changed contract before requesting exact installation approval. No runtime modification was made during this review.
+
+## Other reviewed claims match
+
+- Independently hashed the complete v2 export inventory: **586/586** raw pins match, no missing/extra file, pin-manifest SHA256 `ac2383d3a76f6dcfd1642f87a1640400a660a3f95ab4661873473d6f1a2a4dba`. All source files match the committed candidate after newline normalization. Verified all 522 predecessor pins, 516 unchanged raw files, no removals, 64 new files. Besides the four runtime modules and operator helper, the only changed predecessor file is the earlier operational-corrections plan Markdown.
+- Recomputed and validated the proposed release plan: raw hash `a71cb8210718b6c43eeb38c9f824f002cb30a3b1946274989da8c0fc2d35e132`, 129 unchanged runtime names, exactly four changed runtime digests, unchanged watcher/native launcher, and matching old/new release and runtime-map hashes. [Independent machine check](cutover-review-offline-check.json).
+- The 161-test packaged receipt matches its machine results, per-test count, module totals, guarded native children, import provenance, zero ResourceWarnings, and before/after raw pins. The 49-test Linux v2 receipt matches its terminal log and clearly limits its scope. The first Linux attempt remains preserved as exit 137 with no terminal test receipt; its 128MiB tmpfs cannot retain 128MiB free reserve after fixture creation. The successful rerun provides 512MiB tmpfs; source/guard bytes are unchanged.
+- Proposed original identity is byte-for-byte equivalent as parsed data to the previous approved identity: all eight account hashes, EUR200 primary, original opening/manifest/owner binding. Opening and cost T0 in the document match the retained cutover evidence. The procedure requires fresh quiescent copies and a new immutable transition, preserves clocks/history/risk/fees/strategies, checks all six release guards on both hosts, and retains post-protected-work rollback refusal.
+- Deployment/live activation remain explicitly unapproved. Startup values may be unavailable until a fresh settled observation; the five-new-batch acceptance and natural-close limitation are truthful. The six-hour qualification gap remains disclosed. Full Windows v2 is explicitly pending; its current progress is not a passing receipt. The interrupted v1 full run is not represented as a pass.
+
+Final document completion should link the packaged and Linux receipts and retain the first Linux fixture-failure explanation when the full Windows terminal result is attached. No additional material cutover inconsistency was established in this scoped review.
+
+The four-part finding was subsequently corrected, including its combined partial-failure/restart path. See the [final focused follow-up](combined-followup-review.md). The successor commit/export must replace `8f315b3` and receive its own final verification receipts before exact installation approval is requested.

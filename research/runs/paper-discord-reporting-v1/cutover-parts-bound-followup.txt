@@ -1,0 +1,7 @@
+{"one_offered_envelope_parts": 4, "delivery_groups": {"7e86c0a962551d3b7602625e": 4}, "offered_close_events": 8, "cycle_summary_due": true}
+test_one_captured_envelope_total_parts (__main__.BoundProbe.test_one_captured_envelope_total_parts) ... ok
+
+----------------------------------------------------------------------
+Ran 1 test in 0.234s
+
+OK

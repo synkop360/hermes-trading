@@ -1,0 +1,31 @@
+{
+  "status": "inspected",
+  "transition_id": "73d12cfc0c991ec320b6e4676a869a8f8be23d81572fd2ab3f170f715c1a568b",
+  "components": [
+    {
+      "name": "worker_renewal",
+      "state": "before"
+    },
+    {
+      "name": "worker_usage",
+      "state": "before"
+    },
+    {
+      "name": "worker_limits",
+      "state": "before"
+    },
+    {
+      "name": "pc_limits",
+      "state": "before"
+    },
+    {
+      "name": "pc_lifecycle",
+      "state": "before"
+    },
+    {
+      "name": "pc_launch",
+      "state": "before"
+    }
+  ],
+  "writer_quiescence": "not_established_until_apply"
+}

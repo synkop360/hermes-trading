@@ -1,0 +1,9 @@
+{
+  "process_exit_code": 1,
+  "tool_session_id": 14888,
+  "result_file": "baseline-single-v1.json",
+  "log_file": "baseline-single-v1.log",
+  "classification": "pre-existing approved-baseline q4 capacity deadline failure reproduced",
+  "test_timeout_changed": false,
+  "product_source_changed": false
+}

@@ -1,0 +1,44 @@
+{
+  "platform": "linux",
+  "started_at": "2026-10-27T21:16:50.330720+00:00",
+  "finished_at": "2026-10-27T21:22:34.943025+00:00",
+  "exit_code": 0,
+  "package": {
+    "commit": "ea752c5f3990acff2a6f7164be733fe2bf92df35",
+    "package": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-recovery-ea752c5",
+    "files": 671,
+    "runtime_files": 129,
+    "runtime_hash": "ffe95446f146d79441862a3eae14228865fd7bf460fc7c7311f5ead3510834eb",
+    "release_hash": "d8289ff44d543bebca1df87a566335f05366607ffc767d05eb00b75c6eddcf04",
+    "purpose": "paper_supervisor_recovery_release_transition_v1",
+    "overlays": [
+      "AGENTS.md",
+      "docs/PAPER_SUPERVISOR_RECOVERY.md",
+      "hermes_trading/notifications.py",
+      "hermes_trading/paper_safety.py",
+      "hermes_trading/paper_supervisor_health.py",
+      "hermes_trading/supervisor_sync.py",
+      "research/runs/paper-supervisor-retry-v1/candidate-release-plan-v4.json",
+      "scripts/paper_release_transition.py",
+      "tests/test_paper_notification_capture.py",
+      "tests/test_paper_notifications.py",
+      "tests/test_paper_recovery_release_transition.py",
+      "tests/test_paper_safety_worker.py",
+      "tests/test_paper_supervisor_recovery.py",
+      "tests/test_supervisor_snapshot_retry.py"
+    ],
+    "inventory_sha256": "ffd3923ce28528742590e3de933add77f3e5fc0b281fe7d33d5c57a5cc05300a"
+  },
+  "results": [
+    {
+      "tests": 215,
+      "failures": 0,
+      "errors": 0,
+      "skipped": [],
+      "runtime_hash": "ffe95446f146d79441862a3eae14228865fd7bf460fc7c7311f5ead3510834eb"
+    }
+  ],
+  "changed_sources": [],
+  "scope": "affected exact-package checks; not full suite",
+  "network": "none"
+}

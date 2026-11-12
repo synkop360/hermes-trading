@@ -1,0 +1,6 @@
+test_stalled_metadata_never_keeps_asyncio_run_alive_after_cancellation (test_paper_notifications.PaperNotificationProcessShutdownTests.test_stalled_metadata_never_keeps_asyncio_run_alive_after_cancellation) ... ok
+
+----------------------------------------------------------------------
+Ran 1 test in 3.038s
+
+OK

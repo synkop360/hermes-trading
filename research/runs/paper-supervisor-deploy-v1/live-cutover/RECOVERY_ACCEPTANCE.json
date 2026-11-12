@@ -1,0 +1,17 @@
+{
+  "status": "exact_two_field_acknowledgment_verified",
+  "request_id": "79fe0582841d4701b5f4d60356bb1246",
+  "only_fields_changed": [
+    "supervisor.entry_halt",
+    "supervisor.consecutive_errors"
+  ],
+  "native_audit_hashes": {
+    "79fe0582841d4701b5f4d60356bb1246.intent.json": "461a10e9606c06d013d600218d359b8afef3ee8dd75e705ec0326365409a861b",
+    "79fe0582841d4701b5f4d60356bb1246.receipt.json": "b800ac03b0736c171082c3291c3220a1c258bf16022d482a99e3d458c6e011f8"
+  },
+  "post_recovery_observed_at": "2026-10-28T13:29:12.641620+00:00",
+  "blocked": false,
+  "reasons": [],
+  "completed_batches": 4463,
+  "all_eight_match_settlement": true
+}

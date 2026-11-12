@@ -1,0 +1,43 @@
+{
+  "argv": [
+    "-c",
+    "_persist"
+  ],
+  "cwd": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-discord-reporting-v1\\release-upload-ed439e8",
+  "elapsed_seconds": 2.187000000034459,
+  "executable": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-trading\\.venv\\Scripts\\python.exe",
+  "export": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-discord-reporting-v1\\release-upload-ed439e8",
+  "import_provenance_violations": {},
+  "imported_modules": {
+    "hermes_trading": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-discord-reporting-v1\\release-upload-ed439e8\\hermes_trading\\__init__.py",
+    "hermes_trading.adapters": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-discord-reporting-v1\\release-upload-ed439e8\\hermes_trading\\adapters\\__init__.py",
+    "hermes_trading.adapters.execution": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-discord-reporting-v1\\release-upload-ed439e8\\hermes_trading\\adapters\\execution.py",
+    "hermes_trading.config": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-discord-reporting-v1\\release-upload-ed439e8\\hermes_trading\\config.py",
+    "hermes_trading.costs": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-discord-reporting-v1\\release-upload-ed439e8\\hermes_trading\\costs.py",
+    "hermes_trading.domain": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-discord-reporting-v1\\release-upload-ed439e8\\hermes_trading\\domain.py",
+    "hermes_trading.exchange": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-discord-reporting-v1\\release-upload-ed439e8\\hermes_trading\\exchange.py",
+    "hermes_trading.execution": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-discord-reporting-v1\\release-upload-ed439e8\\hermes_trading\\execution.py",
+    "hermes_trading.funds": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-discord-reporting-v1\\release-upload-ed439e8\\hermes_trading\\funds.py",
+    "hermes_trading.identifiers": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-discord-reporting-v1\\release-upload-ed439e8\\hermes_trading\\identifiers.py",
+    "hermes_trading.notifications": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-discord-reporting-v1\\release-upload-ed439e8\\hermes_trading\\notifications.py",
+    "hermes_trading.persistence": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-discord-reporting-v1\\release-upload-ed439e8\\hermes_trading\\persistence\\__init__.py",
+    "hermes_trading.persistence.artifacts": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-discord-reporting-v1\\release-upload-ed439e8\\hermes_trading\\persistence\\artifacts.py",
+    "hermes_trading.persistence.migrations": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-discord-reporting-v1\\release-upload-ed439e8\\hermes_trading\\persistence\\migrations.py",
+    "hermes_trading.persistence.repository": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-discord-reporting-v1\\release-upload-ed439e8\\hermes_trading\\persistence\\repository.py",
+    "hermes_trading.profitability": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-discord-reporting-v1\\release-upload-ed439e8\\hermes_trading\\profitability.py",
+    "hermes_trading.providers": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-discord-reporting-v1\\release-upload-ed439e8\\hermes_trading\\providers.py",
+    "hermes_trading.qualification": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-discord-reporting-v1\\release-upload-ed439e8\\hermes_trading\\qualification.py",
+    "hermes_trading.qualification_evidence": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-discord-reporting-v1\\release-upload-ed439e8\\hermes_trading\\qualification_evidence.py",
+    "hermes_trading.qualification_runner": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-discord-reporting-v1\\release-upload-ed439e8\\hermes_trading\\qualification_runner.py",
+    "hermes_trading.risk": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-discord-reporting-v1\\release-upload-ed439e8\\hermes_trading\\risk.py",
+    "test_paper_notifications": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-discord-reporting-v1\\release-upload-ed439e8\\tests\\test_paper_notifications.py"
+  },
+  "observed_at": "2026-10-25T09:57:51.501725+00:00",
+  "pid": 54672,
+  "raw_http_denials": [],
+  "raw_transport_guards_active": true,
+  "sys_path_first_two": [
+    "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-discord-reporting-v1\\release-upload-ed439e8\\tests",
+    ""
+  ]
+}

@@ -1,0 +1,101 @@
+test_stalled_metadata_never_keeps_asyncio_run_alive_after_cancellation (test_paper_notifications.PaperNotificationProcessShutdownTests.test_stalled_metadata_never_keeps_asyncio_run_alive_after_cancellation) ... 
+  test_stalled_metadata_never_keeps_asyncio_run_alive_after_cancellation (test_paper_notifications.PaperNotificationProcessShutdownTests.test_stalled_metadata_never_keeps_asyncio_run_alive_after_cancellation) (operation='_load') ... FAIL
+  test_stalled_metadata_never_keeps_asyncio_run_alive_after_cancellation (test_paper_notifications.PaperNotificationProcessShutdownTests.test_stalled_metadata_never_keeps_asyncio_run_alive_after_cancellation) (operation='_persist') ... FAIL
+test_all_cost_categories_keep_individual_actual_estimated_missing_quality (test_paper_notifications.PaperNotificationTests.test_all_cost_categories_keep_individual_actual_estimated_missing_quality) ... FAIL
+test_archive_outage_protection_emits_final_native_closes_without_replaying_on_ack (test_paper_notification_capture.NotificationWorkerIsolationTests.test_archive_outage_protection_emits_final_native_closes_without_replaying_on_ack) ... Executing <Task finished name='Task-19' coro=<NotificationWorkerIsolationTests.test_archive_outage_protection_emits_final_native_closes_without_replaying_on_ack() done, defined at E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\tests\test_paper_notification_capture.py:200> exception=AssertionError('0 != 1') created at C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\runners.py:100> took 3.875 seconds
+FAIL
+
+======================================================================
+FAIL: test_stalled_metadata_never_keeps_asyncio_run_alive_after_cancellation (test_paper_notifications.PaperNotificationProcessShutdownTests.test_stalled_metadata_never_keeps_asyncio_run_alive_after_cancellation) (operation='_load')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\tests\test_paper_notifications.py", line 573, in test_stalled_metadata_never_keeps_asyncio_run_alive_after_cancellation
+    self.assertLess(json.loads(result.stdout)['elapsed'], 2)
+AssertionError: 3.015999999945052 not less than 2
+
+======================================================================
+FAIL: test_stalled_metadata_never_keeps_asyncio_run_alive_after_cancellation (test_paper_notifications.PaperNotificationProcessShutdownTests.test_stalled_metadata_never_keeps_asyncio_run_alive_after_cancellation) (operation='_persist')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\tests\test_paper_notifications.py", line 573, in test_stalled_metadata_never_keeps_asyncio_run_alive_after_cancellation
+    self.assertLess(json.loads(result.stdout)['elapsed'], 2)
+AssertionError: 3.0 not less than 2
+
+======================================================================
+FAIL: test_all_cost_categories_keep_individual_actual_estimated_missing_quality (test_paper_notifications.PaperNotificationTests.test_all_cost_categories_keep_individual_actual_estimated_missing_quality)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\unittest\async_case.py", line 90, in _callTestMethod
+    if self._callMaybeAsync(method) is not None:
+       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\unittest\async_case.py", line 112, in _callMaybeAsync
+    return self._asyncioRunner.run(
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\base_events.py", line 654, in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+  File "E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\tests\test_paper_notifications.py", line 534, in test_all_cost_categories_keep_individual_actual_estimated_missing_quality
+    self.assertEqual(text.count('hosting:estimated'), 8)
+AssertionError: 0 != 8
+
+======================================================================
+FAIL: test_archive_outage_protection_emits_final_native_closes_without_replaying_on_ack (test_paper_notification_capture.NotificationWorkerIsolationTests.test_archive_outage_protection_emits_final_native_closes_without_replaying_on_ack)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\unittest\async_case.py", line 90, in _callTestMethod
+    if self._callMaybeAsync(method) is not None:
+       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\unittest\async_case.py", line 112, in _callMaybeAsync
+    return self._asyncioRunner.run(
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\base_events.py", line 654, in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+  File "E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\tests\test_paper_notification_capture.py", line 211, in test_archive_outage_protection_emits_final_native_closes_without_replaying_on_ack
+    self.assertEqual(len(settled),1)
+AssertionError: 0 != 1
+
+----------------------------------------------------------------------
+Ran 3 tests in 12.476s
+
+FAILED (failures=4)
+Traceback (most recent call last):
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\shutil.py", line 632, in _rmtree_unsafe
+    os.unlink(fullname)
+PermissionError: [WinError 32] Le processus ne peut pas accéder au fichier car ce fichier est utilisé par un autre processus: 'C:\\Users\\thoma\\AppData\\Local\\Temp\\tmpcr7ot3bo\\nonce.sqlite'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\weakref.py", line 666, in _exitfunc
+    f()
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\weakref.py", line 590, in __call__
+    return info.func(*info.args, **(info.kwargs or {}))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\tempfile.py", line 933, in _cleanup
+    cls._rmtree(name, ignore_errors=ignore_errors)
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\tempfile.py", line 929, in _rmtree
+    _shutil.rmtree(name, onerror=onerror)
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\shutil.py", line 787, in rmtree
+    return _rmtree_unsafe(path, onerror)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\shutil.py", line 634, in _rmtree_unsafe
+    onerror(os.unlink, fullname, sys.exc_info())
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\tempfile.py", line 893, in onerror
+    _os.unlink(path)
+PermissionError: [WinError 32] Le processus ne peut pas accéder au fichier car ce fichier est utilisé par un autre processus: 'C:\\Users\\thoma\\AppData\\Local\\Temp\\tmpcr7ot3bo\\nonce.sqlite'
+Traceback (most recent call last):
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\weakref.py", line 666, in _exitfunc
+    f()
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\weakref.py", line 590, in __call__
+    return info.func(*info.args, **(info.kwargs or {}))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\tempfile.py", line 934, in _cleanup
+    _warnings.warn(warn_message, ResourceWarning)
+ResourceWarning: Implicitly cleaning up <TemporaryDirectory 'C:\\Users\\thoma\\AppData\\Local\\Temp\\tmp6wyhy5hg'>

@@ -1,0 +1,22 @@
+{
+  "reviewed_at": "2026-10-25T12:37:22.998538+00:00",
+  "scope": "local_receipts_only_no_network_or_state_actions",
+  "native_observed_at": "2026-10-25T12:26:21.818070+00:00",
+  "runtime_raw_files_matched": 129,
+  "all8_actual_zero_orders_and_positions": true,
+  "all8_original_account_ids_strategy_hashes_and_cost_t0_match": true,
+  "original_opening_and_manifest_match": true,
+  "batch_complete": 1750,
+  "paper_mode_real_orders_disabled": true,
+  "one_recorded_paper_boot_pid": 1,
+  "worker_heartbeat_ok_model_ready": true,
+  "direct_worker_lifecycle_unavailable_not_claimed": true,
+  "primary_native_eur": "199.6146531729122685185185185",
+  "primary_observed_at": "2026-10-25T12:26:05.843471+00:00",
+  "compact_corrected_selector_agrees_raw_native": true,
+  "pc_reserved_model_attempts": 0,
+  "deployment_status": "SUCCESS",
+  "instance_status": "RUNNING",
+  "doc": "LIVE_CUTOVER_RESULT.md",
+  "doc_raw_sha256": "2b223c35608fed2153ae9324ac1e824f87bb6eb87897441defe46fc9f9da1d97"
+}

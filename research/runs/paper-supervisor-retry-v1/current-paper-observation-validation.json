@@ -1,0 +1,40 @@
+{
+  "checked_at": "2026-10-25T20:33:42.998330+00:00",
+  "observation_at": "2026-10-25T20:24:51.778134+00:00",
+  "source_receipt_sha256": "e269018430b285a592352ecc3e51eae8634aaaa1fd665beabe25f970c7c15eca",
+  "runtime_expected_deployed": true,
+  "all_eight_report_account_hashes_match_frozen_original": {
+    "adaptive_100": true,
+    "adaptive_150": true,
+    "adaptive_200": true,
+    "adaptive_50": true,
+    "control_100": true,
+    "control_150": true,
+    "control_200": true,
+    "control_50": true
+  },
+  "manifest_raw_hash_matches_original": true,
+  "all_eight_trading_reads_observed_flat_no_orders": true,
+  "confirmed_summary_windows": 84,
+  "reporter_failure_counters": {
+    "coalesced": 0,
+    "delivery_unknown": 0,
+    "dropped": 0,
+    "gaps": 0,
+    "invalid": 0,
+    "omitted_events": 0,
+    "oversized": 0,
+    "repeated_states": 0,
+    "restarts": 0
+  },
+  "volume_percent_of_declared_capacity": "35.687367200",
+  "journal_coverage": "unavailable_SQLITE_BUSY",
+  "qualified_common_financial_comparison": null,
+  "raw_wallet_arithmetic_is_not_a_qualified_comparison": true,
+  "original_opening_freshly_verified": false,
+  "reported_primary_equity": "199.5383653848383101851851852",
+  "reported_primary_costs": "0.4616346151616898148148148149",
+  "entry_halt_retained": true,
+  "live_state_changed": false,
+  "adhoc_discord_requests": 0
+}

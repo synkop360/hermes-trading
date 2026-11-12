@@ -1,0 +1,62 @@
+EEE
+======================================================================
+ERROR: test_paper_notifications (unittest.loader._FailedTest.test_paper_notifications)
+----------------------------------------------------------------------
+ImportError: Failed to import test module: test_paper_notifications
+Traceback (most recent call last):
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\unittest\loader.py", line 162, in loadTestsFromName
+    module = __import__(module_name)
+             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\tests\test_paper_notifications.py", line 19, in <module>
+    from hermes_trading import notifications
+  File "E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\hermes_trading\notifications.py", line 19, in <module>
+    from hermes_trading.funds import _ensure_utc
+  File "E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\hermes_trading\funds.py", line 11, in <module>
+    from hermes_trading.adapters.execution import _default_exchange
+  File "E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\hermes_trading\adapters\execution.py", line 8, in <module>
+    import ccxt.async_support as ccxt
+ModuleNotFoundError: No module named 'ccxt'
+
+
+======================================================================
+ERROR: test_paper_notifications (unittest.loader._FailedTest.test_paper_notifications)
+----------------------------------------------------------------------
+ImportError: Failed to import test module: test_paper_notifications
+Traceback (most recent call last):
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\unittest\loader.py", line 162, in loadTestsFromName
+    module = __import__(module_name)
+             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\tests\test_paper_notifications.py", line 19, in <module>
+    from hermes_trading import notifications
+  File "E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\hermes_trading\notifications.py", line 19, in <module>
+    from hermes_trading.funds import _ensure_utc
+  File "E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\hermes_trading\funds.py", line 11, in <module>
+    from hermes_trading.adapters.execution import _default_exchange
+  File "E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\hermes_trading\adapters\execution.py", line 8, in <module>
+    import ccxt.async_support as ccxt
+ModuleNotFoundError: No module named 'ccxt'
+
+
+======================================================================
+ERROR: test_paper_notifications (unittest.loader._FailedTest.test_paper_notifications)
+----------------------------------------------------------------------
+ImportError: Failed to import test module: test_paper_notifications
+Traceback (most recent call last):
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\unittest\loader.py", line 162, in loadTestsFromName
+    module = __import__(module_name)
+             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\tests\test_paper_notifications.py", line 19, in <module>
+    from hermes_trading import notifications
+  File "E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\hermes_trading\notifications.py", line 19, in <module>
+    from hermes_trading.funds import _ensure_utc
+  File "E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\hermes_trading\funds.py", line 11, in <module>
+    from hermes_trading.adapters.execution import _default_exchange
+  File "E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\hermes_trading\adapters\execution.py", line 8, in <module>
+    import ccxt.async_support as ccxt
+ModuleNotFoundError: No module named 'ccxt'
+
+
+----------------------------------------------------------------------
+Ran 3 tests in 0.000s
+
+FAILED (errors=3)

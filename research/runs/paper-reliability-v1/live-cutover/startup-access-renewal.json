@@ -1,0 +1,15 @@
+{
+  "observed_at": "2026-10-29T07:08:41.312395+00:00",
+  "status": "existing_free_access_renewal_completed",
+  "receipt": {
+    "access_hash": "4b3013dab562ed7c8069089da6ef6ac0500e6bfe0ebd4f18a0a3be3d0a275da8",
+    "account_hash": "8537e0f7f17abc8a092f2ca8e39ad8b1d290f8ee222296fbdc834fe00bb488f3",
+    "imported_at": "2026-10-29T07:08:40.968119+00:00",
+    "policy_hash": "db684ab9780a550de2cbaa22d586dfe706154cea47dfd6bef8ed247ff56d1577",
+    "status": "renewed",
+    "valid_until": "2026-10-29T07:13:39.306598+00:00",
+    "verified_at": "2026-10-29T07:08:39.306598+00:00"
+  },
+  "inference_test_performed": false,
+  "paid_calls_authorized": false
+}

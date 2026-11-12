@@ -1,0 +1,19 @@
+{
+  "checked_at": "2026-10-25T20:56:20.958250+00:00",
+  "old_program_candidate": "a79fb936fd970eb9b25a23edf6522a2e34f6e17f",
+  "new_packaged_candidate": "20eb6af2a441c934618e124af30d72f411a3938a",
+  "prior608_files_byte_identical": true,
+  "original_running_package608_files_unchanged": true,
+  "new_package_files_verified": 667,
+  "added_files": 59,
+  "exact_historical_inputs": 57,
+  "extra_paths": [
+    ".gitattributes",
+    "research/runs/paper-supervisor-retry-v1/historical-fixture-inventory.json"
+  ],
+  "new_and_old_runtime_release_and_map_identical": true,
+  "all129_runtime_files_unchanged_from_reviewed_retry_program": true,
+  "actual_state_changed": false,
+  "dependent11_case_rerun_status": "pending_original_full_run_terminal",
+  "single_full_suite_pass_claimed": false
+}

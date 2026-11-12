@@ -1,0 +1,17 @@
+test_real_busy_then_release_returns_a_fully_validated_snapshot (test_supervisor_snapshot_retry.SnapshotRetryTests.test_real_busy_then_release_returns_a_fully_validated_snapshot) ... FAIL
+
+======================================================================
+FAIL: test_real_busy_then_release_returns_a_fully_validated_snapshot (test_supervisor_snapshot_retry.SnapshotRetryTests.test_real_busy_then_release_returns_a_fully_validated_snapshot)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\tests\test_supervisor_snapshot_retry.py", line 68, in test_real_busy_then_release_returns_a_fully_validated_snapshot
+    result = self.retry()
+             ^^^^^^^^^^^^
+  File "E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\tests\test_supervisor_snapshot_retry.py", line 46, in retry
+    self.assertTrue(callable(wrapper), 'CLI snapshot collection has no bounded BUSY retry')
+AssertionError: False is not true : CLI snapshot collection has no bounded BUSY retry
+
+----------------------------------------------------------------------
+Ran 1 test in 0.053s
+
+FAILED (failures=1)

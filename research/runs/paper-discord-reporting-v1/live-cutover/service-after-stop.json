@@ -1,0 +1,215 @@
+{
+  "buckets": {
+    "edges": []
+  },
+  "deletedAt": null,
+  "environments": {
+    "edges": [
+      {
+        "node": {
+          "canAccess": true,
+          "deletedAt": null,
+          "id": "fdcc71a3-00a9-410c-8d6f-59af9bc98d36",
+          "name": "production",
+          "serviceInstances": {
+            "edges": [
+              {
+                "node": {
+                  "activeDeployments": [
+                    {
+                      "createdAt": "2026-10-24T16:03:45.472Z",
+                      "deploymentStopped": false,
+                      "id": "4d691167-362f-422a-8e72-5256ca46775d",
+                      "instances": [
+                        {
+                          "id": "ab1dd228-dc00-420b-bc85-f8e9e0c55068",
+                          "status": "RUNNING"
+                        }
+                      ],
+                      "meta": {
+                        "buildOnly": false,
+                        "cliAgentSessionId": "01a09727-8167-7631-9a25-5537e49a6028",
+                        "cliCaller": "codex",
+                        "cliMessage": "Owner-approved49c8513 retained-experiment paper backup correction",
+                        "fileServiceManifest": {},
+                        "imageDigest": "sha256:a511325e3fc32df127ff4b35322fb6146ef6adcd31aa5e79697f3644d5637261",
+                        "logsV2": true,
+                        "nixpacksProviders": [],
+                        "propertyFileMapping": {},
+                        "reason": "deploy",
+                        "rootDirectory": null,
+                        "runtime": "V2",
+                        "serviceManifest": {
+                          "build": {
+                            "buildCommand": null,
+                            "buildEnvironment": "V3",
+                            "builder": "DOCKERFILE",
+                            "dockerfilePath": "/Dockerfile",
+                            "nixpacksConfigPath": null,
+                            "nixpacksPlan": null,
+                            "watchPatterns": []
+                          },
+                          "deploy": {
+                            "cronSchedule": null,
+                            "drainingSeconds": null,
+                            "healthcheckPath": null,
+                            "healthcheckTimeout": null,
+                            "ipv6EgressEnabled": false,
+                            "limitOverride": null,
+                            "multiRegionConfig": {
+                              "europe-west4-drams3a": {
+                                "numReplicas": 1
+                              }
+                            },
+                            "numReplicas": 1,
+                            "overlapSeconds": null,
+                            "preDeployCommand": null,
+                            "preDeployTimeoutSeconds": null,
+                            "region": null,
+                            "registryCredentials": null,
+                            "requiredMountPath": null,
+                            "restartPolicyMaxRetries": 10,
+                            "restartPolicyType": "ON_FAILURE",
+                            "runtime": "V2",
+                            "sleepApplication": false,
+                            "startCommand": "/bin/sh -c 'set -eu\ndeadline=$(($(date +%s) + 1800))\nuntil [ -f /app/state/.paper-ready-operational-49c8513 ]; do\n    if [ \"$(date +%s)\" -ge \"$deadline\" ]; then\n        echo paper_preparation_expired >&2\n        exit 78\n    fi\n    sleep 2\ndone\nexec /app/.venv/bin/python -m hermes_trading.paper_boot --root /app/state\n'",
+                            "useLegacyStacker": false
+                          }
+                        },
+                        "volumeMounts": [
+                          "/app/state"
+                        ]
+                      },
+                      "status": "SUCCESS"
+                    }
+                  ],
+                  "cronSchedule": null,
+                  "domains": {
+                    "customDomains": [],
+                    "serviceDomains": []
+                  },
+                  "environmentId": "fdcc71a3-00a9-410c-8d6f-59af9bc98d36",
+                  "id": "1ec08d74-0e60-4cd0-96f2-e2784cfd4c7d",
+                  "latestDeployment": {
+                    "canRedeploy": true,
+                    "createdAt": "2026-10-24T16:03:45.472Z",
+                    "deploymentStopped": false,
+                    "id": "4d691167-362f-422a-8e72-5256ca46775d",
+                    "instances": [
+                      {
+                        "id": "ab1dd228-dc00-420b-bc85-f8e9e0c55068",
+                        "status": "RUNNING"
+                      }
+                    ],
+                    "meta": {
+                      "buildOnly": false,
+                      "cliAgentSessionId": "01a09727-8167-7631-9a25-5537e49a6028",
+                      "cliCaller": "codex",
+                      "cliMessage": "Owner-approved49c8513 retained-experiment paper backup correction",
+                      "fileServiceManifest": {},
+                      "imageDigest": "sha256:a511325e3fc32df127ff4b35322fb6146ef6adcd31aa5e79697f3644d5637261",
+                      "logsV2": true,
+                      "nixpacksProviders": [],
+                      "propertyFileMapping": {},
+                      "reason": "deploy",
+                      "rootDirectory": null,
+                      "runtime": "V2",
+                      "serviceManifest": {
+                        "build": {
+                          "buildCommand": null,
+                          "buildEnvironment": "V3",
+                          "builder": "DOCKERFILE",
+                          "dockerfilePath": "/Dockerfile",
+                          "nixpacksConfigPath": null,
+                          "nixpacksPlan": null,
+                          "watchPatterns": []
+                        },
+                        "deploy": {
+                          "cronSchedule": null,
+                          "drainingSeconds": null,
+                          "healthcheckPath": null,
+                          "healthcheckTimeout": null,
+                          "ipv6EgressEnabled": false,
+                          "limitOverride": null,
+                          "multiRegionConfig": {
+                            "europe-west4-drams3a": {
+                              "numReplicas": 1
+                            }
+                          },
+                          "numReplicas": 1,
+                          "overlapSeconds": null,
+                          "preDeployCommand": null,
+                          "preDeployTimeoutSeconds": null,
+                          "region": null,
+                          "registryCredentials": null,
+                          "requiredMountPath": null,
+                          "restartPolicyMaxRetries": 10,
+                          "restartPolicyType": "ON_FAILURE",
+                          "runtime": "V2",
+                          "sleepApplication": false,
+                          "startCommand": "/bin/sh -c 'set -eu\ndeadline=$(($(date +%s) + 1800))\nuntil [ -f /app/state/.paper-ready-operational-49c8513 ]; do\n    if [ \"$(date +%s)\" -ge \"$deadline\" ]; then\n        echo paper_preparation_expired >&2\n        exit 78\n    fi\n    sleep 2\ndone\nexec /app/.venv/bin/python -m hermes_trading.paper_boot --root /app/state\n'",
+                          "useLegacyStacker": false
+                        }
+                      },
+                      "volumeMounts": [
+                        "/app/state"
+                      ]
+                    },
+                    "status": "SUCCESS"
+                  },
+                  "nextCronRunAt": null,
+                  "numReplicas": null,
+                  "serviceId": "8b94cbc9-293e-4222-a8a7-698b656985f7",
+                  "serviceName": "hermes-trading",
+                  "source": {
+                    "image": null,
+                    "repo": null
+                  },
+                  "startCommand": "/bin/sh -c 'set -eu\ndeadline=$(($(date +%s) + 1800))\nuntil [ -f /app/state/.paper-ready-operational-49c8513 ]; do\n    if [ \"$(date +%s)\" -ge \"$deadline\" ]; then\n        echo paper_preparation_expired >&2\n        exit 78\n    fi\n    sleep 2\ndone\nexec /app/.venv/bin/python -m hermes_trading.paper_boot --root /app/state\n'"
+                }
+              }
+            ]
+          },
+          "unmergedChangesCount": null,
+          "volumeInstances": {
+            "edges": [
+              {
+                "node": {
+                  "currentSizeMB": 291.299328,
+                  "deletedAt": null,
+                  "environmentId": "fdcc71a3-00a9-410c-8d6f-59af9bc98d36",
+                  "id": "3b46f064-0a42-47a9-95dc-4892f03755d6",
+                  "isPendingDeletion": false,
+                  "mountPath": "/app/state",
+                  "serviceId": "8b94cbc9-293e-4222-a8a7-698b656985f7",
+                  "sizeMB": 500,
+                  "state": "READY",
+                  "volume": {
+                    "id": "0ae9532a-b9cf-4df6-a911-f51d4b9daa6d",
+                    "name": "hermes-trading-volume"
+                  }
+                }
+              }
+            ]
+          }
+        }
+      }
+    ]
+  },
+  "id": "f78f42d9-20ec-44f6-ae3f-f8bb79ee7000",
+  "name": "awake-abundance",
+  "services": {
+    "edges": [
+      {
+        "node": {
+          "id": "8b94cbc9-293e-4222-a8a7-698b656985f7",
+          "name": "hermes-trading"
+        }
+      }
+    ]
+  },
+  "workspace": {
+    "name": "synkop360's Projects"
+  },
+  "workspaceId": "8ee76ff3-f32b-46e2-8f07-17ee3ac90599"
+}

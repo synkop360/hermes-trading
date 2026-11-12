@@ -1,0 +1,12 @@
+{
+  "observed_at": "2026-10-26T07:11:37.136435+00:00",
+  "instance": "577064e4-f63d-4ff5-af18-a87ff4e97765",
+  "native_exit_code": 0,
+  "result": {
+    "status": "fresh_closed_pc_reference_uploaded",
+    "files": 20,
+    "wire_sha256": "3ccf345b79ba9b525f62aa46e82b88b72e52b20843272322839539c9114f0b4f",
+    "root": "/tmp/hermes-snapshot-20eb6af/peer-originals/pc-reference-bundle"
+  },
+  "stderr_bytes": 98
+}

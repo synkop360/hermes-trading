@@ -1,0 +1,45 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+
+# Local secrets and credentials
+.env
+.env.*
+!.env.example
+.home/
+.railway/
+.codex/
+
+# Runtime trading state
+state/
+state-*/
+scripts/native_hermes_watch.json
+trades.jsonl
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
+backups/
+
+# Agent coordination and local artifacts
+.superpowers/
+.test-tmp*/
+
+# Cached third-party historical market data (large CSVs, easily re-fetched
+# via scripts/fetch_historical_data.py -- never commit these)
+market_data_cache/
+
+# graphify's generated knowledge-graph snapshots -- regeneratable locally via
+# `graphify update .`, large (many dated full-analysis snapshots), never commit
+graphify-out/
+
+# Isolated reproducible research outputs
+research/runs/
+.test-results*.txt
+/*.log

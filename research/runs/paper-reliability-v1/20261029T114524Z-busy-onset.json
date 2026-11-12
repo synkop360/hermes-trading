@@ -1,0 +1,94 @@
+{
+  "started_at": "2026-10-29T11:45:24.746419+00:00",
+  "finished_at": "2026-10-29T11:48:26.377000+00:00",
+  "exit_code": 0,
+  "stderr_bytes": 98,
+  "result": {
+    "kind": "read_only_snapshot_at_busy_onset",
+    "runtime_hash": "22799e23c53716cae16ca6a40d5eed820d9520881ccbf6b19e966577e3cd0a4d",
+    "observations": [
+      {
+        "at": "2026-10-29T11:46:22.950402+00:00",
+        "before": {
+          "heartbeat.json": {
+            "timestamp": "2026-10-29T11:45:22.743473+00:00",
+            "observed_at": "2026-10-29T11:45:19.934793+00:00",
+            "status": "ok",
+            "model_ready": true,
+            "error": null,
+            "wallet_report_hash": "a2c851bfca119abc52947fa02a2a036f5bc9f6f77672c4430fd7caad3c2498e4"
+          },
+          "model_access.json": {
+            "verified_at": "2026-10-29T11:43:46.691888+00:00",
+            "valid_until": "2026-10-29T11:48:46.691888+00:00",
+            "payment": "verified_free",
+            "paid_calls_authorized": false
+          }
+        },
+        "trigger": "observed_numeric_sqlite_busy",
+        "status": "validated",
+        "schema": 2,
+        "elapsed_seconds": 11.054130828008056,
+        "after": {
+          "heartbeat.json": {
+            "timestamp": "2026-10-29T11:46:33.675581+00:00",
+            "observed_at": "2026-10-29T11:46:30.874309+00:00",
+            "status": "ok",
+            "model_ready": true,
+            "error": null,
+            "wallet_report_hash": "73c5f2f10a6b8d3cc301cda8434e74c147635a6e93872011fcc065d6301b8b19"
+          },
+          "model_access.json": {
+            "verified_at": "2026-10-29T11:43:46.691888+00:00",
+            "valid_until": "2026-10-29T11:48:46.691888+00:00",
+            "payment": "verified_free",
+            "paid_calls_authorized": false
+          }
+        }
+      },
+      {
+        "at": "2026-10-29T11:47:33.835611+00:00",
+        "before": {
+          "heartbeat.json": {
+            "timestamp": "2026-10-29T11:46:33.675581+00:00",
+            "observed_at": "2026-10-29T11:46:30.874309+00:00",
+            "status": "ok",
+            "model_ready": true,
+            "error": null,
+            "wallet_report_hash": "73c5f2f10a6b8d3cc301cda8434e74c147635a6e93872011fcc065d6301b8b19"
+          },
+          "model_access.json": {
+            "verified_at": "2026-10-29T11:43:46.691888+00:00",
+            "valid_until": "2026-10-29T11:48:46.691888+00:00",
+            "payment": "verified_free",
+            "paid_calls_authorized": false
+          }
+        },
+        "trigger": "observed_numeric_sqlite_busy",
+        "status": "validated",
+        "schema": 2,
+        "elapsed_seconds": 11.75593475997448,
+        "after": {
+          "heartbeat.json": {
+            "timestamp": "2026-10-29T11:47:44.355746+00:00",
+            "observed_at": "2026-10-29T11:47:41.718404+00:00",
+            "status": "ok",
+            "model_ready": true,
+            "error": null,
+            "wallet_report_hash": "b65b528a64d01316fac2a5d820181bd89b66eab0932e1f5545a414760d8bda07"
+          },
+          "model_access.json": {
+            "verified_at": "2026-10-29T11:43:46.691888+00:00",
+            "valid_until": "2026-10-29T11:48:46.691888+00:00",
+            "payment": "verified_free",
+            "paid_calls_authorized": false
+          }
+        }
+      }
+    ],
+    "elapsed_seconds": 180.03742323815823,
+    "polls": 1560,
+    "models_invoked": false,
+    "health_receipts_published": false
+  }
+}

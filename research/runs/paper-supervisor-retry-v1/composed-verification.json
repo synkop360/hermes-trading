@@ -1,0 +1,50 @@
+{
+  "checked_at": "2026-10-26T06:16:06.375089+00:00",
+  "candidate_commit": "20eb6af2a441c934618e124af30d72f411a3938a",
+  "scope": "composed local correctness evidence; not one fresh passing full-suite run",
+  "catalog_cases": 1712,
+  "distinct_windows_passes": 1707,
+  "windows_platform_skips": 5,
+  "windows_skips_passed_on_linux": 5,
+  "catalog_cases_with_pass_evidence": 1712,
+  "uncovered_cases": [],
+  "original_full_suite_pass": false,
+  "original_full_result_preserved": true,
+  "original_full_counts": {
+    "passed": 1698,
+    "errors": 9,
+    "skipped": 5,
+    "unrun": 0
+  },
+  "original_full_resource_warnings": [
+    "Implicitly cleaning up <TemporaryDirectory 'C:\\\\Users\\\\thoma\\\\AppData\\\\Local\\\\Temp\\\\tmpbq58ks3i'>"
+  ],
+  "missing_fixture_cleanup_warning_reproduced_in_isolation": true,
+  "historical_warning_object_identity_proven": false,
+  "restored_fixture_resource_warnings": [],
+  "recovered_windows_cases": 11,
+  "linux_selected_cases": 16,
+  "final_exact_package_windows_cases": 20,
+  "frozen_package_files": 667,
+  "prior608_original_raw_files_unchanged": true,
+  "historical_fixture_files": 57,
+  "historical_fixture_bytes": 67167,
+  "program_bytes_unchanged": true,
+  "runtime_files": 129,
+  "runtime_delta_from_deployed": [
+    "supervisor_sync.py"
+  ],
+  "new_release_hash": "b3f89fa5028578f3c29734ccca1dca855fa652d20f75345e7765ca3635ac64c7",
+  "new_runtime_map_hash": "38fe4175e5ea53c72a26923e173374e0d9355e90477dd21d53c0c62607a9c0e2",
+  "watcher_native_unchanged": true,
+  "deadline_or_risk_limits_relaxed": false,
+  "linux_v4_failed_result_preserved": true,
+  "linux_v5_child_import_path_corrected": true,
+  "deployed": false,
+  "actual_pc_runtime_installed": false,
+  "entry_halt_cleared": false,
+  "paid_calls": 0,
+  "market_backtest": false,
+  "training": false,
+  "profitability_qualified": false
+}

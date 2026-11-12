@@ -1,0 +1,158 @@
+{
+  "observed_at": "2026-10-26T07:07:22.227013+00:00",
+  "services": [
+    {
+      "activeDeployments": [
+        {
+          "createdAt": "2026-10-26T07:06:28.061Z",
+          "deploymentStopped": false,
+          "id": "1e949e5d-bd82-40eb-98ab-da524dcda358",
+          "instances": [
+            {
+              "id": "577064e4-f63d-4ff5-af18-a87ff4e97765",
+              "status": "RUNNING"
+            }
+          ],
+          "meta": {
+            "buildOnly": false,
+            "cliAgentSessionId": "01a09727-8167-7631-9a25-5537e49a6028",
+            "cliCaller": "codex",
+            "cliMessage": "Owner-approved20eb6af paper snapshot BUSY retry; original experiment and entry halt retained",
+            "fileServiceManifest": {},
+            "imageDigest": "sha256:c1c251479b5cdbb5c10c45ac39e5ed931039b0dbdc56aa623c911515cc5f8430",
+            "logsV2": true,
+            "nixpacksProviders": [],
+            "propertyFileMapping": {},
+            "reason": "deploy",
+            "rootDirectory": null,
+            "runtime": "V2",
+            "serviceManifest": {
+              "build": {
+                "buildCommand": null,
+                "buildEnvironment": "V3",
+                "builder": "DOCKERFILE",
+                "dockerfilePath": "/Dockerfile",
+                "nixpacksConfigPath": null,
+                "nixpacksPlan": null,
+                "watchPatterns": []
+              },
+              "deploy": {
+                "cronSchedule": null,
+                "drainingSeconds": null,
+                "healthcheckPath": null,
+                "healthcheckTimeout": null,
+                "ipv6EgressEnabled": false,
+                "limitOverride": null,
+                "multiRegionConfig": {
+                  "europe-west4-drams3a": {
+                    "numReplicas": 1
+                  }
+                },
+                "numReplicas": 1,
+                "overlapSeconds": null,
+                "preDeployCommand": null,
+                "preDeployTimeoutSeconds": null,
+                "region": null,
+                "registryCredentials": null,
+                "requiredMountPath": null,
+                "restartPolicyMaxRetries": 10,
+                "restartPolicyType": "ON_FAILURE",
+                "runtime": "V2",
+                "sleepApplication": false,
+                "startCommand": "/bin/sh -c 'set -eu\ndeadline=$(($(date +%s) + 1800))\nuntil [ -f /app/state/.paper-ready-snapshot-20eb6af ]; do\n    if [ \"$(date +%s)\" -ge \"$deadline\" ]; then\n        echo paper_preparation_expired >&2\n        exit 78\n    fi\n    sleep 2\ndone\nexec /app/.venv/bin/python -m hermes_trading.paper_boot --root /app/state\n'",
+                "useLegacyStacker": false
+              }
+            },
+            "volumeMounts": [
+              "/app/state"
+            ]
+          },
+          "status": "SUCCESS"
+        }
+      ],
+      "cronSchedule": null,
+      "domains": {
+        "customDomains": [],
+        "serviceDomains": []
+      },
+      "environmentId": "fdcc71a3-00a9-410c-8d6f-59af9bc98d36",
+      "id": "1ec08d74-0e60-4cd0-96f2-e2784cfd4c7d",
+      "latestDeployment": {
+        "canRedeploy": true,
+        "createdAt": "2026-10-26T07:06:28.061Z",
+        "deploymentStopped": false,
+        "id": "1e949e5d-bd82-40eb-98ab-da524dcda358",
+        "instances": [
+          {
+            "id": "577064e4-f63d-4ff5-af18-a87ff4e97765",
+            "status": "RUNNING"
+          }
+        ],
+        "meta": {
+          "buildOnly": false,
+          "cliAgentSessionId": "01a09727-8167-7631-9a25-5537e49a6028",
+          "cliCaller": "codex",
+          "cliMessage": "Owner-approved20eb6af paper snapshot BUSY retry; original experiment and entry halt retained",
+          "fileServiceManifest": {},
+          "imageDigest": "sha256:c1c251479b5cdbb5c10c45ac39e5ed931039b0dbdc56aa623c911515cc5f8430",
+          "logsV2": true,
+          "nixpacksProviders": [],
+          "propertyFileMapping": {},
+          "reason": "deploy",
+          "rootDirectory": null,
+          "runtime": "V2",
+          "serviceManifest": {
+            "build": {
+              "buildCommand": null,
+              "buildEnvironment": "V3",
+              "builder": "DOCKERFILE",
+              "dockerfilePath": "/Dockerfile",
+              "nixpacksConfigPath": null,
+              "nixpacksPlan": null,
+              "watchPatterns": []
+            },
+            "deploy": {
+              "cronSchedule": null,
+              "drainingSeconds": null,
+              "healthcheckPath": null,
+              "healthcheckTimeout": null,
+              "ipv6EgressEnabled": false,
+              "limitOverride": null,
+              "multiRegionConfig": {
+                "europe-west4-drams3a": {
+                  "numReplicas": 1
+                }
+              },
+              "numReplicas": 1,
+              "overlapSeconds": null,
+              "preDeployCommand": null,
+              "preDeployTimeoutSeconds": null,
+              "region": null,
+              "registryCredentials": null,
+              "requiredMountPath": null,
+              "restartPolicyMaxRetries": 10,
+              "restartPolicyType": "ON_FAILURE",
+              "runtime": "V2",
+              "sleepApplication": false,
+              "startCommand": "/bin/sh -c 'set -eu\ndeadline=$(($(date +%s) + 1800))\nuntil [ -f /app/state/.paper-ready-snapshot-20eb6af ]; do\n    if [ \"$(date +%s)\" -ge \"$deadline\" ]; then\n        echo paper_preparation_expired >&2\n        exit 78\n    fi\n    sleep 2\ndone\nexec /app/.venv/bin/python -m hermes_trading.paper_boot --root /app/state\n'",
+              "useLegacyStacker": false
+            }
+          },
+          "volumeMounts": [
+            "/app/state"
+          ]
+        },
+        "status": "SUCCESS"
+      },
+      "nextCronRunAt": null,
+      "numReplicas": null,
+      "serviceId": "8b94cbc9-293e-4222-a8a7-698b656985f7",
+      "serviceName": "hermes-trading",
+      "source": {
+        "image": null,
+        "repo": null
+      },
+      "startCommand": "/bin/sh -c 'set -eu\ndeadline=$(($(date +%s) + 1800))\nuntil [ -f /app/state/.paper-ready-snapshot-20eb6af ]; do\n    if [ \"$(date +%s)\" -ge \"$deadline\" ]; then\n        echo paper_preparation_expired >&2\n        exit 78\n    fi\n    sleep 2\ndone\nexec /app/.venv/bin/python -m hermes_trading.paper_boot --root /app/state\n'"
+    }
+  ]
+}

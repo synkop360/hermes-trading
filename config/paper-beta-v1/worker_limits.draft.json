@@ -1,0 +1,14 @@
+{
+  "daily_backup": {
+    "destination": "/tmp/hermes-paper-daily-backups",
+    "keep": 2,
+    "max_bytes": 500000000,
+    "schema_version": 1,
+    "timeout_seconds": 30
+  },
+  "experiment_id": "unassigned_until_activation",
+  "interval_seconds": 60,
+  "max_cycles": 259200,
+  "max_runtime_seconds": 15552000,
+  "schema_version": 1
+}

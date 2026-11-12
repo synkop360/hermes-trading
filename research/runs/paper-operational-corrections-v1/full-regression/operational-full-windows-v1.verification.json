@@ -1,0 +1,50 @@
+{
+  "activated": false,
+  "changed_sources": [],
+  "deployed": false,
+  "elapsed_seconds": 2887.9379999999655,
+  "errors": [
+    [
+      "test_terminal_floor_deletion_requires_raw_originals_before_initial_and_resumed_transition (test_quote_checkpoint.QuoteCheckpointTests.test_terminal_floor_deletion_requires_raw_originals_before_initial_and_resumed_transition)",
+      "Traceback (most recent call last):\n  File \"E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\tests\\test_quote_checkpoint.py\", line 620, in test_terminal_floor_deletion_requires_raw_originals_before_initial_and_resumed_transition\n    q4 = retain_quote_outcomes(worker, archive_root=self.archive,\n         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\hermes_trading\\archive_quote_retention.py\", line 276, in retain_quote_outcomes\n    with storage_owner.admit(peak,timeout_seconds=budget.deadline-storage_owner.domain.clock(),timeout_ceiling_seconds=120) as lease:\n  File \"C:\\Program Files\\WindowsApps\\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\\Lib\\contextlib.py\", line 144, in __exit__\n    next(self.gen)\n  File \"E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\hermes_trading\\archive_capacity.py\", line 358, in admit\n    lease.check()\n  File \"E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\hermes_trading\\archive_capacity.py\", line 400, in check\n    report = self._domain._measure(self._deadline)\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\hermes_trading\\archive_capacity.py\", line 190, in _measure\n    deadline.check()\n  File \"E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\hermes_trading\\archive_capacity.py\", line 76, in check\n    raise CapacityUnavailable('capacity admission deadline/clock unavailable')\nhermes_trading.archive_capacity.CapacityUnavailable: capacity admission deadline/clock unavailable\n"
+    ]
+  ],
+  "failures": [],
+  "log_sha256": "11cc40c529eeca033cb2ef07d229da46733ca8d3d10a00f2f3ce2fbb162ce333",
+  "market_backtest": false,
+  "observed_at": "2026-10-24T06:39:18.338916+00:00",
+  "paid_calls": 0,
+  "passed": 1639,
+  "profitability_qualified": false,
+  "resource_warnings": [],
+  "runner_sha256": "347cb2134de73dc984c1555f70b93f2061091d91133467892b4c9f37c151bcb4",
+  "scope": "full Windows correctness discovery: disabled paper operational corrections and native composition",
+  "skipped": [
+    [
+      "test_added_symlink_or_reparse_storage_blocks_before_stage (test_archive_capacity.CapacityTests.test_added_symlink_or_reparse_storage_blocks_before_stage)",
+      "symlink creation unavailable: [WinError 1314] Le client ne dispose pas d\u2019un privil\u00e8ge n\u00e9cessaire: 'C:\\\\Users\\\\thoma\\\\AppData\\\\Local\\\\Temp\\\\tmpdbxobrv6\\\\outside' -> 'C:\\\\Users\\\\thoma\\\\AppData\\\\Local\\\\Temp\\\\tmpdbxobrv6\\\\state\\\\linked'"
+    ],
+    [
+      "test_fifo_at_object_or_manifest_is_rejected_without_blocking (test_archive_store.ArchiveTests.test_fifo_at_object_or_manifest_is_rejected_without_blocking)",
+      "POSIX FIFO regression"
+    ],
+    [
+      "test_source_or_destination_symlink_not_followed (test_archive_store.ArchiveTests.test_source_or_destination_symlink_not_followed)",
+      "host does not allow unprivileged symlinks; Linux verification required"
+    ],
+    [
+      "test_volume_symlink_is_not_followed_and_reports_unknown (test_paper_safety.PaperSafetyTests.test_volume_symlink_is_not_followed_and_reports_unknown)",
+      "symbolic links unavailable for this Windows user"
+    ],
+    [
+      "test_trailing_dot_guard_remains_on_filesystems_that_preserve_it (test_snapshot_plus_names.SnapshotPlusNameTests.test_trailing_dot_guard_remains_on_filesystems_that_preserve_it)",
+      "Windows normalizes trailing dots in path names"
+    ]
+  ],
+  "source_files": 371,
+  "source_pins": "operational-full-windows-v1.source-sha256.json",
+  "source_pins_unchanged": true,
+  "started_at": "2026-10-24T05:51:10.397048+00:00",
+  "status": "failed",
+  "tests": 1645
+}

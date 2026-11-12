@@ -1,0 +1,15 @@
+{
+  "status": "incomplete_full_suite",
+  "reason": "outer_1200_second_process_deadline",
+  "container_confirmed_absent_at": "2026-10-29T06:48:58Z",
+  "last_started_test": "test_paired_report_horizon.FullHorizonReportTests.test_full_horizon_original_versions_partials_open_inventory_and_statistics",
+  "visible_rejections": [
+    "test_build_control_server_constructs_http_server_and_repository (test_control_server.ControlServerTests.test_build_control_server_constructs_http_server_and_repository) ... ERROR",
+    "test_generate_qualification_replay_writes_journal_scan_report (test_operational_scripts.OperationalScriptTests.test_generate_qualification_replay_writes_journal_scan_report) ... ERROR",
+    "test_mark_reflection_regime_resets_marker_to_now (test_operational_scripts.OperationalScriptTests.test_mark_reflection_regime_resets_marker_to_now) ... ERROR",
+    "test_qualification_evidence_status_script_imports_project (test_operational_scripts.OperationalScriptTests.test_qualification_evidence_status_script_imports_project) ... FAIL",
+    "test_reset_qualification_restarts_clock_and_clears_evidence (test_operational_scripts.OperationalScriptTests.test_reset_qualification_restarts_clock_and_clears_evidence) ... ERROR"
+  ],
+  "harness_limitations": "Read-only source mount prevents legacy fixtures writing project-relative synthetic state; Windows bind makes repeated source hashing slow. These are disclosed failures, not a full-suite pass.",
+  "candidate": "c7f816d1e6dcc162ebc4ee6c7100c9d092702f15"
+}

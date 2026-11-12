@@ -1,0 +1,76 @@
+{
+  "status": "finished",
+  "candidate": "c7f816d1e6dcc162ebc4ee6c7100c9d092702f15",
+  "package": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-reliability-c7f816d",
+  "files": 675,
+  "source_inventory_sha256": "d09fd888ea3334a6a853c27eff862f559695de1b7415debe0c01018148c2f4cb",
+  "image": "sha256:13054ce2ae8c23123504f8e7219187a8e3e436ceec15f2a004edf997374ad889",
+  "network": "none",
+  "uid": 65534,
+  "root_read_only": true,
+  "source_read_only": true,
+  "workspace": "/tmp/workspace",
+  "max_seconds": 1800,
+  "started_at": "2026-10-29T07:00:22.085702+00:00",
+  "log": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-reliability-v1\\linux-full-native-20261029T070022Z-89efa4cf\\suite.log",
+  "cidfile": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-reliability-v1\\linux-full-native-20261029T070022Z-89efa4cf\\container.cid",
+  "scope": "full exact-package unittest discovery",
+  "container_id": "065692fed61387fdb856dba328ec714a752d3aea4501e45025e845d39f3d79c2",
+  "attach_exit_code": 0,
+  "container_exit_code": 0,
+  "container_state": {
+    "Status": "exited",
+    "Running": false,
+    "Paused": false,
+    "Restarting": false,
+    "OOMKilled": false,
+    "Dead": false,
+    "Pid": 0,
+    "ExitCode": 0,
+    "Error": "",
+    "StartedAt": "2026-10-29T07:00:24.413962414Z",
+    "FinishedAt": "2026-10-29T07:11:44.141458318Z"
+  },
+  "container_confirmed_absent": true,
+  "source_files_verified_after": 675,
+  "source_inventory_sha256_after": "d09fd888ea3334a6a853c27eff862f559695de1b7415debe0c01018148c2f4cb",
+  "frozen_sources_unchanged": true,
+  "copy_results": [
+    {
+      "files": 675,
+      "inventory_sha256": "d09fd888ea3334a6a853c27eff862f559695de1b7415debe0c01018148c2f4cb",
+      "runtime_hash": "22799e23c53716cae16ca6a40d5eed820d9520881ccbf6b19e966577e3cd0a4d",
+      "workspace": "/tmp/workspace",
+      "uid": 65534
+    }
+  ],
+  "results": [
+    {
+      "error_tests": [],
+      "errors": 0,
+      "expected_failures": 0,
+      "failure_tests": [],
+      "failures": 0,
+      "runtime_hash": "22799e23c53716cae16ca6a40d5eed820d9520881ccbf6b19e966577e3cd0a4d",
+      "skipped": [
+        {
+          "reason": "Windows junction regression",
+          "test": "test_windows_junction_not_followed (test_archive_store.ArchiveTests.test_windows_junction_not_followed)"
+        },
+        {
+          "reason": "Windows file locking behavior",
+          "test": "test_append_event_retries_windows_deadlock_contention (test_artifacts.ArtifactTests.test_append_event_retries_windows_deadlock_contention)"
+        },
+        {
+          "reason": "Windows file locking behavior",
+          "test": "test_append_event_times_out_after_persistent_windows_lock_contention (test_artifacts.ArtifactTests.test_append_event_times_out_after_persistent_windows_lock_contention)"
+        }
+      ],
+      "successful": true,
+      "tests": 1749,
+      "unexpected_successes": 0
+    }
+  ],
+  "finished_at": "2026-10-29T07:11:46.376277+00:00",
+  "successful": true
+}

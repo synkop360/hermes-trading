@@ -1,0 +1,46 @@
+{
+  "observed_at": "2026-10-25T12:06:44.667465+00:00",
+  "mode": "static_review_and_AST_parse_only",
+  "inspector_sha256": "d36fc53d060955d21d10507076309e3f5f9c332fc7419dfd321ca46eb5c3be9e",
+  "bytes": 16072,
+  "ast_parse": "pass",
+  "runtime_or_test_execution": false,
+  "imports_only_stdlib": true,
+  "state_write_calls": [],
+  "sql_statements": [
+    "PRAGMA query_only=ON",
+    "BEGIN",
+    "SELECT status,COUNT(*) FROM paired_batches GROUP BY status",
+    "SELECT CASE WHEN length(payload)<=? THEN payload END,receipt_hash FROM paired_inception WHERE id=1",
+    "SELECT batch_id,input_hash,CASE WHEN length(completed)<=? THEN completed END FROM paired_batches WHERE status='complete' ORDER BY rowid DESC LIMIT 1",
+    "SELECT CASE WHEN length(payload)<=? THEN payload END FROM paired_settlements WHERE batch_id=?"
+  ],
+  "metadata_file": "paper_discord_reporter.json",
+  "metadata_schema_version": 1,
+  "baseline_complete": 1741,
+  "expected_summary_every_new_batches": 5,
+  "one_native_journal_connection": true,
+  "sqlite_mode": "ro",
+  "query_only": true,
+  "sqlite_timeout_seconds": 0.2,
+  "immutable_live_database": false,
+  "credentials_or_environment_reads": false,
+  "network_or_provider_or_sender_calls": false,
+  "native_frozen_plan_static": {
+    "transition_id": "84fa276f399f1e0070e6eaca57cdab923262479d92437cb5ce0c63dfaea93981",
+    "canonical_transition_id_matches": true,
+    "same_approved_release_plan": true,
+    "same_original_identity": true,
+    "six_component_names": [
+      "worker_renewal",
+      "worker_usage",
+      "worker_limits",
+      "pc_limits",
+      "pc_lifecycle",
+      "pc_launch"
+    ],
+    "exact_six_component_order": true,
+    "component_raw_before_after_hashes_match": true,
+    "protected_items": 563
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "observed_at": "2026-10-26T17:07:57.862145+00:00",
+  "status": "exact_two_file_pc_source_install_verified",
+  "changed": [
+    "hermes_trading/supervisor_sync.py",
+    "scripts/paper_release_transition.py"
+  ],
+  "runtime_files": 129,
+  "new_release_hash": "b3f89fa5028578f3c29734ccca1dca855fa652d20f75345e7765ca3635ac64c7",
+  "native_launcher_unchanged": true,
+  "watcher_unchanged": true,
+  "all_other_128_runtime_bytes_unchanged": true,
+  "raw_installed_sha256": {
+    "hermes_trading/supervisor_sync.py": "110c14c88d27b71b6b1b16add7a80e5b511d5e8822b0b1ad0c7b45b4366b2f74",
+    "scripts/paper_release_transition.py": "306da355b372cf0048b0192e7ec475d1c70740a5f60eb7ebe97b177d1c3b8ccf"
+  }
+}

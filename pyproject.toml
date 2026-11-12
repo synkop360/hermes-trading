@@ -1,0 +1,17 @@
+[project]
+name = "hermes-trading"
+version = "0.1.0"
+description = "Paper trading worker for a Hermes-guided self-improving strategy loop"
+requires-python = ">=3.11"
+dependencies = [
+    "aiofiles>=25.1.0",
+    "ccxt>=4.5.68",
+    "discord-py>=2.5.2",
+    "httpx>=0.28.1",
+    "matplotlib>=3.11.1",
+    "numpy>=2.4.6",
+    "pandas>=3.0.5",
+    "pyyaml>=6.0.3",
+    "rich>=15.0.0",
+    "yfinance>=1.5.2",
+]

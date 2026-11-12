@@ -1,0 +1,29 @@
+{
+  "approved_at": "2026-10-25T11:18:05.053153+00:00",
+  "owner_instruction": "deploy a discord enabled version as soon as possible",
+  "source_commit": "ed439e897a4dd388fdcf6425e7e8b6171d5a88a9",
+  "scope": "paper-only reporting deployment and real webhook activation through reviewed cutover",
+  "preserved": [
+    "eight_accounts",
+    "primary_200",
+    "opening",
+    "clocks",
+    "history",
+    "strategy",
+    "fees",
+    "risk_limits",
+    "supervisor_entry_halt"
+  ],
+  "excluded": [
+    "paid_calls",
+    "real_orders",
+    "halt_reset",
+    "legacy_writer",
+    "mutating_discord_bot"
+  ],
+  "reviewed_full_limitations": {
+    "class_fixture_errors": 2,
+    "unrun_cases": 30,
+    "full_suite_pass": false
+  }
+}

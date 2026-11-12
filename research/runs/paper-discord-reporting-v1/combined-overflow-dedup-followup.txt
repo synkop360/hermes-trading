@@ -1,0 +1,10 @@
+test_modes_use_canonical_close_money_and_suppress_duplicate_events (test_paper_notifications.PaperNotificationTests.test_modes_use_canonical_close_money_and_suppress_duplicate_events) ... ok
+test_delivery_markers_require_confirmation_and_restart_suppresses_replay (test_paper_notifications.PaperNotificationTests.test_delivery_markers_require_confirmation_and_restart_suppresses_replay) ... ok
+test_rate_limit_honors_delay_and_partial_success_is_not_resent (test_paper_notifications.PaperNotificationTests.test_rate_limit_honors_delay_and_partial_success_is_not_resent) ... ok
+test_queue_overflow_and_coalescing_are_disclosed_while_offer_keeps_progressing (test_paper_notifications.PaperNotificationTests.test_queue_overflow_and_coalescing_are_disclosed_while_offer_keeps_progressing) ... ok
+test_cancellation_after_dispatch_retains_uncertainty_without_success (test_paper_notifications.PaperNotificationTests.test_cancellation_after_dispatch_retains_uncertainty_without_success) ... ok
+
+----------------------------------------------------------------------
+Ran 5 tests in 0.884s
+
+OK

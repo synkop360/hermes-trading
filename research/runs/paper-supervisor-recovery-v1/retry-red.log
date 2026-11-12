@@ -1,0 +1,150 @@
+FFFFFF..F.......E.F..
+======================================================================
+ERROR: test_real_busy_outlasting_old_window_can_recover_on_a_later_attempt (test_supervisor_snapshot_retry.SnapshotRetryTests.test_real_busy_outlasting_old_window_can_recover_on_a_later_attempt)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\hermes_trading\paper_publication.py", line 169, in assert_no_pending_paired_batch
+    assert_quote_retention_complete(db)
+  File "E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\hermes_trading\archive_quote_state.py", line 140, in assert_quote_retention_complete
+    rows=operations(db)
+         ^^^^^^^^^^^^^^
+  File "E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\hermes_trading\archive_quote_state.py", line 84, in operations
+    if not db.execute("SELECT 1 FROM sqlite_master WHERE name='paired_quote_retention'").fetchone():return []
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+sqlite3.OperationalError: database is locked
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\tests\test_supervisor_snapshot_retry.py", line 81, in test_real_busy_outlasting_old_window_can_recover_on_a_later_attempt
+    result = self.retry()
+             ^^^^^^^^^^^^
+  File "E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\tests\test_supervisor_snapshot_retry.py", line 48, in retry
+    return wrapper(self.state, now=NOW)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\hermes_trading\supervisor_sync.py", line 193, in make_snapshot_with_retry
+    return make_snapshot(state_dir, now=now)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\hermes_trading\supervisor_sync.py", line 145, in make_snapshot
+    assert_no_pending_paired_batch(state_dir)
+  File "E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\hermes_trading\paper_publication.py", line 191, in assert_no_pending_paired_batch
+    raise ValueError('paired batch/publication lease is busy') from error
+ValueError: paired batch/publication lease is busy
+
+======================================================================
+FAIL: test_only_numeric_busy_direct_or_explicit_cause_retries (test_supervisor_snapshot_retry.RetryBoundariesTests.test_only_numeric_busy_direct_or_explicit_cause_retries) (code=5, wrapped=False)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\tests\test_supervisor_snapshot_retry.py", line 279, in test_only_numeric_busy_direct_or_explicit_cause_retries
+    self.assertEqual(self.run_failure(error), (8,[0.2,0.5,1,2,2,2,2]))
+AssertionError: Tuples differ: (3, [0.2, 0.5]) != (8, [0.2, 0.5, 1, 2, 2, 2, 2])
+
+First differing element 0:
+3
+8
+
+- (3, [0.2, 0.5])
++ (8, [0.2, 0.5, 1, 2, 2, 2, 2])
+
+======================================================================
+FAIL: test_only_numeric_busy_direct_or_explicit_cause_retries (test_supervisor_snapshot_retry.RetryBoundariesTests.test_only_numeric_busy_direct_or_explicit_cause_retries) (code=5, wrapped=True)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\tests\test_supervisor_snapshot_retry.py", line 279, in test_only_numeric_busy_direct_or_explicit_cause_retries
+    self.assertEqual(self.run_failure(error), (8,[0.2,0.5,1,2,2,2,2]))
+AssertionError: Tuples differ: (3, [0.2, 0.5]) != (8, [0.2, 0.5, 1, 2, 2, 2, 2])
+
+First differing element 0:
+3
+8
+
+- (3, [0.2, 0.5])
++ (8, [0.2, 0.5, 1, 2, 2, 2, 2])
+
+======================================================================
+FAIL: test_only_numeric_busy_direct_or_explicit_cause_retries (test_supervisor_snapshot_retry.RetryBoundariesTests.test_only_numeric_busy_direct_or_explicit_cause_retries) (code=261, wrapped=False)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\tests\test_supervisor_snapshot_retry.py", line 279, in test_only_numeric_busy_direct_or_explicit_cause_retries
+    self.assertEqual(self.run_failure(error), (8,[0.2,0.5,1,2,2,2,2]))
+AssertionError: Tuples differ: (3, [0.2, 0.5]) != (8, [0.2, 0.5, 1, 2, 2, 2, 2])
+
+First differing element 0:
+3
+8
+
+- (3, [0.2, 0.5])
++ (8, [0.2, 0.5, 1, 2, 2, 2, 2])
+
+======================================================================
+FAIL: test_only_numeric_busy_direct_or_explicit_cause_retries (test_supervisor_snapshot_retry.RetryBoundariesTests.test_only_numeric_busy_direct_or_explicit_cause_retries) (code=261, wrapped=True)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\tests\test_supervisor_snapshot_retry.py", line 279, in test_only_numeric_busy_direct_or_explicit_cause_retries
+    self.assertEqual(self.run_failure(error), (8,[0.2,0.5,1,2,2,2,2]))
+AssertionError: Tuples differ: (3, [0.2, 0.5]) != (8, [0.2, 0.5, 1, 2, 2, 2, 2])
+
+First differing element 0:
+3
+8
+
+- (3, [0.2, 0.5])
++ (8, [0.2, 0.5, 1, 2, 2, 2, 2])
+
+======================================================================
+FAIL: test_only_numeric_busy_direct_or_explicit_cause_retries (test_supervisor_snapshot_retry.RetryBoundariesTests.test_only_numeric_busy_direct_or_explicit_cause_retries) (code=517, wrapped=False)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\tests\test_supervisor_snapshot_retry.py", line 279, in test_only_numeric_busy_direct_or_explicit_cause_retries
+    self.assertEqual(self.run_failure(error), (8,[0.2,0.5,1,2,2,2,2]))
+AssertionError: Tuples differ: (3, [0.2, 0.5]) != (8, [0.2, 0.5, 1, 2, 2, 2, 2])
+
+First differing element 0:
+3
+8
+
+- (3, [0.2, 0.5])
++ (8, [0.2, 0.5, 1, 2, 2, 2, 2])
+
+======================================================================
+FAIL: test_only_numeric_busy_direct_or_explicit_cause_retries (test_supervisor_snapshot_retry.RetryBoundariesTests.test_only_numeric_busy_direct_or_explicit_cause_retries) (code=517, wrapped=True)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\tests\test_supervisor_snapshot_retry.py", line 279, in test_only_numeric_busy_direct_or_explicit_cause_retries
+    self.assertEqual(self.run_failure(error), (8,[0.2,0.5,1,2,2,2,2]))
+AssertionError: Tuples differ: (3, [0.2, 0.5]) != (8, [0.2, 0.5, 1, 2, 2, 2, 2])
+
+First differing element 0:
+3
+8
+
+- (3, [0.2, 0.5])
++ (8, [0.2, 0.5, 1, 2, 2, 2, 2])
+
+======================================================================
+FAIL: test_wait_is_capped_at_remaining_admission_budget (test_supervisor_snapshot_retry.RetryBoundariesTests.test_wait_is_capped_at_remaining_admission_budget)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\tests\test_supervisor_snapshot_retry.py", line 326, in test_wait_is_capped_at_remaining_admission_budget
+    self.assertEqual(len(clock.waits), 1)
+AssertionError: 0 != 1
+
+======================================================================
+FAIL: test_real_permanent_busy_preserves_final_sqlite_cause_and_eight_attempt_bound (test_supervisor_snapshot_retry.SnapshotRetryTests.test_real_permanent_busy_preserves_final_sqlite_cause_and_eight_attempt_bound)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\tests\test_supervisor_snapshot_retry.py", line 93, in test_real_permanent_busy_preserves_final_sqlite_cause_and_eight_attempt_bound
+    self.assertEqual(clock.waits, [0.2, 0.5, 1, 2, 2, 2, 2])
+AssertionError: Lists differ: [0.2, 0.5] != [0.2, 0.5, 1, 2, 2, 2, 2]
+
+Second list contains 5 additional elements.
+First extra element 2:
+1
+
+- [0.2, 0.5]
++ [0.2, 0.5, 1, 2, 2, 2, 2]
+
+----------------------------------------------------------------------
+Ran 16 tests in 4.565s
+
+FAILED (failures=8, errors=1)

@@ -1,0 +1,104 @@
+{
+  "observed_at": "2026-10-26T17:09:55.920565+00:00",
+  "receipt": {
+    "status": "completed",
+    "transition_id": "73d12cfc0c991ec320b6e4676a869a8f8be23d81572fd2ab3f170f715c1a568b",
+    "root_binding": "48131a10d4e456a823ad5ed9cce7d08e5de5680ce5baa48d44b1ac7d11f5ba48",
+    "original_opening_hash": "50fd92318969675f72e7450148e77e5bb1d4f60d9d1963ec90cab3061e27c349",
+    "components": [
+      {
+        "transition_id": "73d12cfc0c991ec320b6e4676a869a8f8be23d81572fd2ab3f170f715c1a568b",
+        "name": "worker_renewal",
+        "reverse": false,
+        "root_binding": "48131a10d4e456a823ad5ed9cce7d08e5de5680ce5baa48d44b1ac7d11f5ba48",
+        "before_hash": "d93cb829d2b8d4520dd3b133a121cf9dd338a8e48051dd151c48048c462498fe",
+        "after_hash": "45a2561b98337db488c110e5cde891b801d288d3b1b8a6368a0c21510d60acd6",
+        "observed_at": "2026-10-26T17:09:45.474284+00:00",
+        "recovered_after_unknown_reply": false
+      },
+      {
+        "transition_id": "73d12cfc0c991ec320b6e4676a869a8f8be23d81572fd2ab3f170f715c1a568b",
+        "name": "worker_usage",
+        "reverse": false,
+        "root_binding": "48131a10d4e456a823ad5ed9cce7d08e5de5680ce5baa48d44b1ac7d11f5ba48",
+        "before_hash": "f88c4d7e34d01f052f0af6a0f7f40b9b3766f72b421c059c653670d19e89a4f4",
+        "after_hash": "73451fa4656a189b29a5b064dc659b4d9967f903cc05d4433244dee242fd4b01",
+        "observed_at": "2026-10-26T17:09:45.557577+00:00",
+        "recovered_after_unknown_reply": false
+      },
+      {
+        "transition_id": "73d12cfc0c991ec320b6e4676a869a8f8be23d81572fd2ab3f170f715c1a568b",
+        "name": "worker_limits",
+        "reverse": false,
+        "root_binding": "48131a10d4e456a823ad5ed9cce7d08e5de5680ce5baa48d44b1ac7d11f5ba48",
+        "before_hash": "e461c661317f2300d645c9f3087dd22b8bc97028eef684c35154c36d4ba20318",
+        "after_hash": "f564dfa59b06bf477f59cd8d6947d43cd4b88bc50a0326e3b8cda707907933bd",
+        "observed_at": "2026-10-26T17:09:45.635996+00:00",
+        "recovered_after_unknown_reply": false
+      },
+      {
+        "transition_id": "73d12cfc0c991ec320b6e4676a869a8f8be23d81572fd2ab3f170f715c1a568b",
+        "name": "pc_limits",
+        "reverse": false,
+        "root_binding": "48131a10d4e456a823ad5ed9cce7d08e5de5680ce5baa48d44b1ac7d11f5ba48",
+        "before_hash": "e461c661317f2300d645c9f3087dd22b8bc97028eef684c35154c36d4ba20318",
+        "after_hash": "f564dfa59b06bf477f59cd8d6947d43cd4b88bc50a0326e3b8cda707907933bd",
+        "observed_at": "2026-10-26T17:09:45.701369+00:00",
+        "recovered_after_unknown_reply": false
+      },
+      {
+        "transition_id": "73d12cfc0c991ec320b6e4676a869a8f8be23d81572fd2ab3f170f715c1a568b",
+        "name": "pc_lifecycle",
+        "reverse": false,
+        "root_binding": "48131a10d4e456a823ad5ed9cce7d08e5de5680ce5baa48d44b1ac7d11f5ba48",
+        "before_hash": "100536782f91e1eb7d5342e66404783622212388c8ecba69397e5c76d2029532",
+        "after_hash": "bafc1f7ce01e3c23891c48e5f364c7ff45abc00f2538bfe7a0a3aece93779d86",
+        "observed_at": "2026-10-26T17:09:45.776461+00:00",
+        "recovered_after_unknown_reply": false
+      },
+      {
+        "transition_id": "73d12cfc0c991ec320b6e4676a869a8f8be23d81572fd2ab3f170f715c1a568b",
+        "name": "pc_launch",
+        "reverse": false,
+        "root_binding": "48131a10d4e456a823ad5ed9cce7d08e5de5680ce5baa48d44b1ac7d11f5ba48",
+        "before_hash": "3e091091a52712fc4a4171c1b0050fd88f903d7b24f4fb296cc9d4773c82dbb5",
+        "after_hash": "2c4d7566c9292bcdf93fc7019a23539a89b2bcb8f6800307ad4ce48e516f285b",
+        "observed_at": "2026-10-26T17:09:45.797314+00:00",
+        "recovered_after_unknown_reply": false
+      }
+    ],
+    "completed_at": "2026-10-26T17:09:49.524742+00:00",
+    "qualification": "binding_correction_only_no_profitability_or_activation"
+  },
+  "inspection": {
+    "status": "inspected",
+    "transition_id": "73d12cfc0c991ec320b6e4676a869a8f8be23d81572fd2ab3f170f715c1a568b",
+    "components": [
+      {
+        "name": "worker_renewal",
+        "state": "after"
+      },
+      {
+        "name": "worker_usage",
+        "state": "after"
+      },
+      {
+        "name": "worker_limits",
+        "state": "after"
+      },
+      {
+        "name": "pc_limits",
+        "state": "after"
+      },
+      {
+        "name": "pc_lifecycle",
+        "state": "after"
+      },
+      {
+        "name": "pc_launch",
+        "state": "after"
+      }
+    ],
+    "writer_quiescence": "not_established_until_apply"
+  }
+}

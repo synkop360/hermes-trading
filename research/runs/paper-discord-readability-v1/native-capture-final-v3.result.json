@@ -1,0 +1,28 @@
+{
+  "started_at_utc": "2026-10-26T22:16:07.357151+00:00",
+  "exit_code": 0,
+  "elapsed_seconds": 26.079,
+  "arguments": [
+    "-B",
+    "-X",
+    "utf8",
+    "-m",
+    "unittest",
+    "discover",
+    "-s",
+    "tests",
+    "-p",
+    "test_paper_notification_capture.py"
+  ],
+  "source_sha256": {
+    "hermes_trading/notifications.py": "354e18f054a532dd91c0291be6742ea2aa587e317726a3706b23ec707c6b5c14",
+    "tests/test_paper_notifications.py": "2d2d63b25ec502a18ff9fe99ffbef288028d2b0790ee4d8bf88b217ebcc71e84",
+    "tests/test_paper_notification_capture.py": "07cf4a30fe58f4730afbb6c1801a4d4f8b8be66b5e9711ccb5a2273764634fb2"
+  },
+  "source_unchanged": true,
+  "log": "native-capture-final-v3.log",
+  "result_lines": [
+    "Ran 12 tests in 23.041s",
+    "OK"
+  ]
+}

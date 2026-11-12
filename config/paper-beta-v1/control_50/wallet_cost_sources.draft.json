@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "experiment_id": "unassigned_until_activation",
+  "currency": "EUR",
+  "scope_start": null,
+  "categories": {
+    "hosting": {
+      "mode": "recurring",
+      "daily_rate": "0.23",
+      "quality": "estimated",
+      "source": "staged_railway_full_standalone_buffered_estimate_v1"
+    },
+    "ai": {
+      "mode": "recurring",
+      "daily_rate": "0",
+      "quality": "estimated",
+      "source": "frozen_control_no_model_calls_protocol"
+    },
+    "tools": {
+      "mode": "recurring",
+      "daily_rate": "0",
+      "quality": "estimated",
+      "source": "strict_proposal_transport_no_paid_tools_protocol"
+    },
+    "funding": {
+      "mode": "spot_zero",
+      "quality": "actual",
+      "source": "unleveraged_spot_no_borrowing"
+    }
+  }
+}

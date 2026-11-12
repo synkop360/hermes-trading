@@ -1,0 +1,6 @@
+test_colocated_control_api_serves_status_from_background_thread (test_colocated.ColocatedEntrypointTests.test_colocated_control_api_serves_status_from_background_thread) ... ok
+
+----------------------------------------------------------------------
+Ran 1 test in 0.796s
+
+OK

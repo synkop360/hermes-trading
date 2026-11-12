@@ -1,0 +1,12 @@
+{
+  "observed_at": "2026-10-25T11:59:11.756626+00:00",
+  "worker_reference": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\d439\\w",
+  "native_files_verified": 525,
+  "native_inventory_sha256": "34d636f7a8713f9a5f294156c3c045e70e8269110dd61aadf8c5f4e768c36dee",
+  "wire_bytes": 166799360,
+  "wire_sha256": "a96991c65ccab09e08f09d9bd17b7eb45d6d0ff4da594d023758024b6bd71b86",
+  "directories_preserved": 18,
+  "source_sidecar_free": true,
+  "original_opening_hash": "50fd92318969675f72e7450148e77e5bb1d4f60d9d1963ec90cab3061e27c349",
+  "elapsed_seconds": 11.234000000054948
+}

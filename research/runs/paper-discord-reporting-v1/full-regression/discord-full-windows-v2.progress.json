@@ -1,0 +1,8 @@
+{
+  "current": "test_canonical_reader_uses_original_entry_costs_and_does_not_change_database (test_paired_performance_report.PairedReportTests.test_canonical_reader_uses_original_entry_costs_and_does_not_change_database)",
+  "errors": 0,
+  "failures": 1,
+  "observed_at": "2026-10-24T21:51:41.133595+00:00",
+  "status": "running",
+  "tests": 850
+}

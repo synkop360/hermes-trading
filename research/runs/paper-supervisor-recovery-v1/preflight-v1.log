@@ -1,0 +1,29 @@
+Executing <Task finished name='Task-2' coro=<RecoveryPreflightTests.test_native_eight_wallet_preflight_rejections_then_checked_apply() done, defined at E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\tests\test_paper_supervisor_recovery.py:167> exception=ValueError('verified model access is required before initial worker collection') created at C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\runners.py:100> took 2.390 seconds
+E.........
+======================================================================
+ERROR: test_native_eight_wallet_preflight_rejections_then_checked_apply (test_paper_supervisor_recovery.RecoveryPreflightTests.test_native_eight_wallet_preflight_rejections_then_checked_apply)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\unittest\async_case.py", line 90, in _callTestMethod
+    if self._callMaybeAsync(method) is not None:
+       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\unittest\async_case.py", line 112, in _callMaybeAsync
+    return self._asyncioRunner.run(
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\base_events.py", line 654, in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+  File "E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\tests\test_paper_supervisor_recovery.py", line 227, in test_native_eight_wallet_preflight_rejections_then_checked_apply
+    await run_worker(root, collector_factory=lambda:f.market, clock=lambda:f.at, sleep=inspect)
+  File "E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\hermes_trading\paired_worker.py", line 259, in run_worker
+    if not _model_ready(primary,policy,current()):raise ValueError('verified model access is required before initial worker collection')
+                                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: verified model access is required before initial worker collection
+
+----------------------------------------------------------------------
+Ran 10 tests in 4.180s
+
+FAILED (errors=1)

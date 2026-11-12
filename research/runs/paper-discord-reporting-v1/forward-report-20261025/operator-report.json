@@ -1,0 +1,860 @@
+{
+  "accounts": {
+    "adaptive_100": {
+      "activity": {
+        "counts": [
+          {
+            "action": "no_trade",
+            "count": 72,
+            "reason": "entry_condition_not_met"
+          }
+        ],
+        "coverage": "recorded_decisions_do_not_prove_uptime_or_opportunities",
+        "decision_count": 72,
+        "no_trade_decision_count": 72,
+        "status": "available",
+        "window_end_exclusive": "2026-10-25T00:00:26.323709+00:00",
+        "window_start": "2026-10-23T20:13:56.622959+00:00"
+      },
+      "arm": "adaptive",
+      "calendar_metrics": {
+        "annualized_daily_return_ratio_zero_reference": null,
+        "currency": "EUR",
+        "daily_return_count": 0,
+        "max_drawdown_30d": null,
+        "reasons": [
+          "missing_calendar_boundary"
+        ],
+        "return_30d": null,
+        "status": "incomplete",
+        "window_end": "2026-10-25T00:00:24.566136+00:00",
+        "window_start": "2026-09-25T00:00:24.566136+00:00"
+      },
+      "calendar_projection_agrees": true,
+      "calendar_source": "pure_native_journal_accounting",
+      "directory": "adaptive_100",
+      "financial": {
+        "closed_net_pnl": "0",
+        "cost_coverage": {
+          "as_of": "2026-10-24T23:58:58.104756+00:00",
+          "status": "current"
+        },
+        "cost_provenance": {
+          "ai": {
+            "amount": "0E-27",
+            "quality": "estimated",
+            "source": "supervised_ai_with_subscription_v1"
+          },
+          "funding": {
+            "amount": "0",
+            "quality": "actual",
+            "source": "unleveraged_spot_no_borrowing"
+          },
+          "hosting": {
+            "amount": "0.2662438897376157407407407409",
+            "quality": "estimated",
+            "source": "staged_railway_full_standalone_buffered_estimate_v1"
+          },
+          "tools": {
+            "amount": "0E-27",
+            "quality": "estimated",
+            "source": "strict_proposal_transport_no_paid_tools_protocol"
+          }
+        },
+        "known_accrued_costs": "0.2662438897376157407407407409",
+        "known_cost_equity": "99.73375611026238425925925926",
+        "mark_provenance": {},
+        "missing": [],
+        "net_equity": "99.73375611026238425925925926",
+        "open_basis": "0",
+        "open_entry_fees": "0",
+        "open_liquidation_value": "0",
+        "trading_cash": "100"
+      },
+      "issues": [],
+      "journal_coverage": {
+        "first_observed_at": "2026-10-23T20:13:56.622959+00:00",
+        "last_observed_at": "2026-10-25T00:00:24.566136+00:00",
+        "maximum_observed_gap_seconds": 21675.68942,
+        "observations_read": 1135
+      },
+      "observed_at": "2026-10-25T00:00:24.566136+00:00",
+      "source_status": "journal_matched",
+      "status": "observed",
+      "wallet_eur": 100
+    },
+    "adaptive_150": {
+      "activity": {
+        "counts": [
+          {
+            "action": "no_trade",
+            "count": 72,
+            "reason": "entry_condition_not_met"
+          }
+        ],
+        "coverage": "recorded_decisions_do_not_prove_uptime_or_opportunities",
+        "decision_count": 72,
+        "no_trade_decision_count": 72,
+        "status": "available",
+        "window_end_exclusive": "2026-10-25T00:00:26.323709+00:00",
+        "window_start": "2026-10-23T20:13:56.622959+00:00"
+      },
+      "arm": "adaptive",
+      "calendar_metrics": {
+        "annualized_daily_return_ratio_zero_reference": null,
+        "currency": "EUR",
+        "daily_return_count": 0,
+        "max_drawdown_30d": null,
+        "reasons": [
+          "missing_calendar_boundary"
+        ],
+        "return_30d": null,
+        "status": "incomplete",
+        "window_end": "2026-10-25T00:00:24.566136+00:00",
+        "window_start": "2026-09-25T00:00:24.566136+00:00"
+      },
+      "calendar_projection_agrees": true,
+      "calendar_source": "pure_native_journal_accounting",
+      "directory": "adaptive_150",
+      "financial": {
+        "closed_net_pnl": "0",
+        "cost_coverage": {
+          "as_of": "2026-10-24T23:58:58.104756+00:00",
+          "status": "current"
+        },
+        "cost_provenance": {
+          "ai": {
+            "amount": "0E-27",
+            "quality": "estimated",
+            "source": "supervised_ai_with_subscription_v1"
+          },
+          "funding": {
+            "amount": "0",
+            "quality": "actual",
+            "source": "unleveraged_spot_no_borrowing"
+          },
+          "hosting": {
+            "amount": "0.2662438897376157407407407409",
+            "quality": "estimated",
+            "source": "staged_railway_full_standalone_buffered_estimate_v1"
+          },
+          "tools": {
+            "amount": "0E-27",
+            "quality": "estimated",
+            "source": "strict_proposal_transport_no_paid_tools_protocol"
+          }
+        },
+        "known_accrued_costs": "0.2662438897376157407407407409",
+        "known_cost_equity": "149.7337561102623842592592593",
+        "mark_provenance": {},
+        "missing": [],
+        "net_equity": "149.7337561102623842592592593",
+        "open_basis": "0",
+        "open_entry_fees": "0",
+        "open_liquidation_value": "0",
+        "trading_cash": "150"
+      },
+      "issues": [],
+      "journal_coverage": {
+        "first_observed_at": "2026-10-23T20:13:56.622959+00:00",
+        "last_observed_at": "2026-10-25T00:00:24.566136+00:00",
+        "maximum_observed_gap_seconds": 21675.68942,
+        "observations_read": 1135
+      },
+      "observed_at": "2026-10-25T00:00:24.566136+00:00",
+      "source_status": "journal_matched",
+      "status": "observed",
+      "wallet_eur": 150
+    },
+    "adaptive_200": {
+      "activity": {
+        "counts": [
+          {
+            "action": "no_trade",
+            "count": 72,
+            "reason": "entry_condition_not_met"
+          }
+        ],
+        "coverage": "recorded_decisions_do_not_prove_uptime_or_opportunities",
+        "decision_count": 72,
+        "no_trade_decision_count": 72,
+        "status": "available",
+        "window_end_exclusive": "2026-10-25T00:00:26.323709+00:00",
+        "window_start": "2026-10-23T20:13:56.622959+00:00"
+      },
+      "arm": "adaptive",
+      "calendar_metrics": {
+        "annualized_daily_return_ratio_zero_reference": null,
+        "currency": "EUR",
+        "daily_return_count": 0,
+        "max_drawdown_30d": null,
+        "reasons": [
+          "missing_calendar_boundary"
+        ],
+        "return_30d": null,
+        "status": "incomplete",
+        "window_end": "2026-10-25T00:00:24.566136+00:00",
+        "window_start": "2026-09-25T00:00:24.566136+00:00"
+      },
+      "calendar_projection_agrees": true,
+      "calendar_source": "pure_native_journal_accounting",
+      "directory": "adaptive_200",
+      "financial": {
+        "closed_net_pnl": "0",
+        "cost_coverage": {
+          "as_of": "2026-10-24T23:58:58.104756+00:00",
+          "status": "current"
+        },
+        "cost_provenance": {
+          "ai": {
+            "amount": "0E-27",
+            "quality": "estimated",
+            "source": "supervised_ai_with_subscription_v1"
+          },
+          "funding": {
+            "amount": "0",
+            "quality": "actual",
+            "source": "unleveraged_spot_no_borrowing"
+          },
+          "hosting": {
+            "amount": "0.2662438897376157407407407409",
+            "quality": "estimated",
+            "source": "staged_railway_full_standalone_buffered_estimate_v1"
+          },
+          "tools": {
+            "amount": "0E-27",
+            "quality": "estimated",
+            "source": "strict_proposal_transport_no_paid_tools_protocol"
+          }
+        },
+        "known_accrued_costs": "0.2662438897376157407407407409",
+        "known_cost_equity": "199.7337561102623842592592593",
+        "mark_provenance": {},
+        "missing": [],
+        "net_equity": "199.7337561102623842592592593",
+        "open_basis": "0",
+        "open_entry_fees": "0",
+        "open_liquidation_value": "0",
+        "trading_cash": "200"
+      },
+      "issues": [],
+      "journal_coverage": {
+        "first_observed_at": "2026-10-23T20:13:56.622959+00:00",
+        "last_observed_at": "2026-10-25T00:00:24.566136+00:00",
+        "maximum_observed_gap_seconds": 21675.68942,
+        "observations_read": 1135
+      },
+      "observed_at": "2026-10-25T00:00:24.566136+00:00",
+      "source_status": "journal_matched",
+      "status": "observed",
+      "wallet_eur": 200
+    },
+    "adaptive_50": {
+      "activity": {
+        "counts": [
+          {
+            "action": "no_trade",
+            "count": 72,
+            "reason": "entry_condition_not_met"
+          }
+        ],
+        "coverage": "recorded_decisions_do_not_prove_uptime_or_opportunities",
+        "decision_count": 72,
+        "no_trade_decision_count": 72,
+        "status": "available",
+        "window_end_exclusive": "2026-10-25T00:00:26.323709+00:00",
+        "window_start": "2026-10-23T20:13:56.622959+00:00"
+      },
+      "arm": "adaptive",
+      "calendar_metrics": {
+        "annualized_daily_return_ratio_zero_reference": null,
+        "currency": "EUR",
+        "daily_return_count": 0,
+        "max_drawdown_30d": null,
+        "reasons": [
+          "missing_calendar_boundary"
+        ],
+        "return_30d": null,
+        "status": "incomplete",
+        "window_end": "2026-10-25T00:00:24.566136+00:00",
+        "window_start": "2026-09-25T00:00:24.566136+00:00"
+      },
+      "calendar_projection_agrees": true,
+      "calendar_source": "pure_native_journal_accounting",
+      "directory": "adaptive_50",
+      "financial": {
+        "closed_net_pnl": "0",
+        "cost_coverage": {
+          "as_of": "2026-10-24T23:58:58.104756+00:00",
+          "status": "current"
+        },
+        "cost_provenance": {
+          "ai": {
+            "amount": "0E-27",
+            "quality": "estimated",
+            "source": "supervised_ai_with_subscription_v1"
+          },
+          "funding": {
+            "amount": "0",
+            "quality": "actual",
+            "source": "unleveraged_spot_no_borrowing"
+          },
+          "hosting": {
+            "amount": "0.2662438897376157407407407409",
+            "quality": "estimated",
+            "source": "staged_railway_full_standalone_buffered_estimate_v1"
+          },
+          "tools": {
+            "amount": "0E-27",
+            "quality": "estimated",
+            "source": "strict_proposal_transport_no_paid_tools_protocol"
+          }
+        },
+        "known_accrued_costs": "0.2662438897376157407407407409",
+        "known_cost_equity": "49.73375611026238425925925926",
+        "mark_provenance": {},
+        "missing": [],
+        "net_equity": "49.73375611026238425925925926",
+        "open_basis": "0",
+        "open_entry_fees": "0",
+        "open_liquidation_value": "0",
+        "trading_cash": "50"
+      },
+      "issues": [],
+      "journal_coverage": {
+        "first_observed_at": "2026-10-23T20:13:56.622959+00:00",
+        "last_observed_at": "2026-10-25T00:00:24.566136+00:00",
+        "maximum_observed_gap_seconds": 21675.68942,
+        "observations_read": 1135
+      },
+      "observed_at": "2026-10-25T00:00:24.566136+00:00",
+      "source_status": "journal_matched",
+      "status": "observed",
+      "wallet_eur": 50
+    },
+    "control_100": {
+      "activity": {
+        "counts": [
+          {
+            "action": "no_trade",
+            "count": 72,
+            "reason": "entry_condition_not_met"
+          }
+        ],
+        "coverage": "recorded_decisions_do_not_prove_uptime_or_opportunities",
+        "decision_count": 72,
+        "no_trade_decision_count": 72,
+        "status": "available",
+        "window_end_exclusive": "2026-10-25T00:00:26.323709+00:00",
+        "window_start": "2026-10-23T20:13:56.622959+00:00"
+      },
+      "arm": "control",
+      "calendar_metrics": {
+        "annualized_daily_return_ratio_zero_reference": null,
+        "currency": "EUR",
+        "daily_return_count": 0,
+        "max_drawdown_30d": null,
+        "reasons": [
+          "missing_calendar_boundary"
+        ],
+        "return_30d": null,
+        "status": "incomplete",
+        "window_end": "2026-10-25T00:00:24.566136+00:00",
+        "window_start": "2026-09-25T00:00:24.566136+00:00"
+      },
+      "calendar_projection_agrees": true,
+      "calendar_source": "pure_native_journal_accounting",
+      "directory": "control_100",
+      "financial": {
+        "closed_net_pnl": "0",
+        "cost_coverage": {
+          "as_of": "2026-10-25T00:00:24.566136+00:00",
+          "status": "current"
+        },
+        "cost_provenance": {
+          "ai": {
+            "amount": "0E-27",
+            "quality": "estimated",
+            "source": "frozen_control_no_model_calls_protocol"
+          },
+          "funding": {
+            "amount": "0",
+            "quality": "actual",
+            "source": "unleveraged_spot_no_borrowing"
+          },
+          "hosting": {
+            "amount": "0.2662438897376157407407407409",
+            "quality": "estimated",
+            "source": "staged_railway_full_standalone_buffered_estimate_v1"
+          },
+          "tools": {
+            "amount": "0E-27",
+            "quality": "estimated",
+            "source": "strict_proposal_transport_no_paid_tools_protocol"
+          }
+        },
+        "known_accrued_costs": "0.2662438897376157407407407409",
+        "known_cost_equity": "99.73375611026238425925925926",
+        "mark_provenance": {},
+        "missing": [],
+        "net_equity": "99.73375611026238425925925926",
+        "open_basis": "0",
+        "open_entry_fees": "0",
+        "open_liquidation_value": "0",
+        "trading_cash": "100"
+      },
+      "issues": [],
+      "journal_coverage": {
+        "first_observed_at": "2026-10-23T20:13:56.622959+00:00",
+        "last_observed_at": "2026-10-25T00:00:24.566136+00:00",
+        "maximum_observed_gap_seconds": 21675.68942,
+        "observations_read": 1135
+      },
+      "observed_at": "2026-10-25T00:00:24.566136+00:00",
+      "source_status": "journal_matched",
+      "status": "observed",
+      "wallet_eur": 100
+    },
+    "control_150": {
+      "activity": {
+        "counts": [
+          {
+            "action": "no_trade",
+            "count": 72,
+            "reason": "entry_condition_not_met"
+          }
+        ],
+        "coverage": "recorded_decisions_do_not_prove_uptime_or_opportunities",
+        "decision_count": 72,
+        "no_trade_decision_count": 72,
+        "status": "available",
+        "window_end_exclusive": "2026-10-25T00:00:26.323709+00:00",
+        "window_start": "2026-10-23T20:13:56.622959+00:00"
+      },
+      "arm": "control",
+      "calendar_metrics": {
+        "annualized_daily_return_ratio_zero_reference": null,
+        "currency": "EUR",
+        "daily_return_count": 0,
+        "max_drawdown_30d": null,
+        "reasons": [
+          "missing_calendar_boundary"
+        ],
+        "return_30d": null,
+        "status": "incomplete",
+        "window_end": "2026-10-25T00:00:24.566136+00:00",
+        "window_start": "2026-09-25T00:00:24.566136+00:00"
+      },
+      "calendar_projection_agrees": true,
+      "calendar_source": "pure_native_journal_accounting",
+      "directory": "control_150",
+      "financial": {
+        "closed_net_pnl": "0",
+        "cost_coverage": {
+          "as_of": "2026-10-25T00:00:24.566136+00:00",
+          "status": "current"
+        },
+        "cost_provenance": {
+          "ai": {
+            "amount": "0E-27",
+            "quality": "estimated",
+            "source": "frozen_control_no_model_calls_protocol"
+          },
+          "funding": {
+            "amount": "0",
+            "quality": "actual",
+            "source": "unleveraged_spot_no_borrowing"
+          },
+          "hosting": {
+            "amount": "0.2662438897376157407407407409",
+            "quality": "estimated",
+            "source": "staged_railway_full_standalone_buffered_estimate_v1"
+          },
+          "tools": {
+            "amount": "0E-27",
+            "quality": "estimated",
+            "source": "strict_proposal_transport_no_paid_tools_protocol"
+          }
+        },
+        "known_accrued_costs": "0.2662438897376157407407407409",
+        "known_cost_equity": "149.7337561102623842592592593",
+        "mark_provenance": {},
+        "missing": [],
+        "net_equity": "149.7337561102623842592592593",
+        "open_basis": "0",
+        "open_entry_fees": "0",
+        "open_liquidation_value": "0",
+        "trading_cash": "150"
+      },
+      "issues": [],
+      "journal_coverage": {
+        "first_observed_at": "2026-10-23T20:13:56.622959+00:00",
+        "last_observed_at": "2026-10-25T00:00:24.566136+00:00",
+        "maximum_observed_gap_seconds": 21675.68942,
+        "observations_read": 1135
+      },
+      "observed_at": "2026-10-25T00:00:24.566136+00:00",
+      "source_status": "journal_matched",
+      "status": "observed",
+      "wallet_eur": 150
+    },
+    "control_200": {
+      "activity": {
+        "counts": [
+          {
+            "action": "no_trade",
+            "count": 72,
+            "reason": "entry_condition_not_met"
+          }
+        ],
+        "coverage": "recorded_decisions_do_not_prove_uptime_or_opportunities",
+        "decision_count": 72,
+        "no_trade_decision_count": 72,
+        "status": "available",
+        "window_end_exclusive": "2026-10-25T00:00:26.323709+00:00",
+        "window_start": "2026-10-23T20:13:56.622959+00:00"
+      },
+      "arm": "control",
+      "calendar_metrics": {
+        "annualized_daily_return_ratio_zero_reference": null,
+        "currency": "EUR",
+        "daily_return_count": 0,
+        "max_drawdown_30d": null,
+        "reasons": [
+          "missing_calendar_boundary"
+        ],
+        "return_30d": null,
+        "status": "incomplete",
+        "window_end": "2026-10-25T00:00:24.566136+00:00",
+        "window_start": "2026-09-25T00:00:24.566136+00:00"
+      },
+      "calendar_projection_agrees": true,
+      "calendar_source": "pure_native_journal_accounting",
+      "directory": "control_200",
+      "financial": {
+        "closed_net_pnl": "0",
+        "cost_coverage": {
+          "as_of": "2026-10-25T00:00:24.566136+00:00",
+          "status": "current"
+        },
+        "cost_provenance": {
+          "ai": {
+            "amount": "0E-27",
+            "quality": "estimated",
+            "source": "frozen_control_no_model_calls_protocol"
+          },
+          "funding": {
+            "amount": "0",
+            "quality": "actual",
+            "source": "unleveraged_spot_no_borrowing"
+          },
+          "hosting": {
+            "amount": "0.2662438897376157407407407409",
+            "quality": "estimated",
+            "source": "staged_railway_full_standalone_buffered_estimate_v1"
+          },
+          "tools": {
+            "amount": "0E-27",
+            "quality": "estimated",
+            "source": "strict_proposal_transport_no_paid_tools_protocol"
+          }
+        },
+        "known_accrued_costs": "0.2662438897376157407407407409",
+        "known_cost_equity": "199.7337561102623842592592593",
+        "mark_provenance": {},
+        "missing": [],
+        "net_equity": "199.7337561102623842592592593",
+        "open_basis": "0",
+        "open_entry_fees": "0",
+        "open_liquidation_value": "0",
+        "trading_cash": "200"
+      },
+      "issues": [],
+      "journal_coverage": {
+        "first_observed_at": "2026-10-23T20:13:56.622959+00:00",
+        "last_observed_at": "2026-10-25T00:00:24.566136+00:00",
+        "maximum_observed_gap_seconds": 21675.68942,
+        "observations_read": 1135
+      },
+      "observed_at": "2026-10-25T00:00:24.566136+00:00",
+      "source_status": "journal_matched",
+      "status": "observed",
+      "wallet_eur": 200
+    },
+    "control_50": {
+      "activity": {
+        "counts": [
+          {
+            "action": "no_trade",
+            "count": 72,
+            "reason": "entry_condition_not_met"
+          }
+        ],
+        "coverage": "recorded_decisions_do_not_prove_uptime_or_opportunities",
+        "decision_count": 72,
+        "no_trade_decision_count": 72,
+        "status": "available",
+        "window_end_exclusive": "2026-10-25T00:00:26.323709+00:00",
+        "window_start": "2026-10-23T20:13:56.622959+00:00"
+      },
+      "arm": "control",
+      "calendar_metrics": {
+        "annualized_daily_return_ratio_zero_reference": null,
+        "currency": "EUR",
+        "daily_return_count": 0,
+        "max_drawdown_30d": null,
+        "reasons": [
+          "missing_calendar_boundary"
+        ],
+        "return_30d": null,
+        "status": "incomplete",
+        "window_end": "2026-10-25T00:00:24.566136+00:00",
+        "window_start": "2026-09-25T00:00:24.566136+00:00"
+      },
+      "calendar_projection_agrees": true,
+      "calendar_source": "pure_native_journal_accounting",
+      "directory": "control_50",
+      "financial": {
+        "closed_net_pnl": "0",
+        "cost_coverage": {
+          "as_of": "2026-10-25T00:00:24.566136+00:00",
+          "status": "current"
+        },
+        "cost_provenance": {
+          "ai": {
+            "amount": "0E-27",
+            "quality": "estimated",
+            "source": "frozen_control_no_model_calls_protocol"
+          },
+          "funding": {
+            "amount": "0",
+            "quality": "actual",
+            "source": "unleveraged_spot_no_borrowing"
+          },
+          "hosting": {
+            "amount": "0.2662438897376157407407407409",
+            "quality": "estimated",
+            "source": "staged_railway_full_standalone_buffered_estimate_v1"
+          },
+          "tools": {
+            "amount": "0E-27",
+            "quality": "estimated",
+            "source": "strict_proposal_transport_no_paid_tools_protocol"
+          }
+        },
+        "known_accrued_costs": "0.2662438897376157407407407409",
+        "known_cost_equity": "49.73375611026238425925925926",
+        "mark_provenance": {},
+        "missing": [],
+        "net_equity": "49.73375611026238425925925926",
+        "open_basis": "0",
+        "open_entry_fees": "0",
+        "open_liquidation_value": "0",
+        "trading_cash": "50"
+      },
+      "issues": [],
+      "journal_coverage": {
+        "first_observed_at": "2026-10-23T20:13:56.622959+00:00",
+        "last_observed_at": "2026-10-25T00:00:24.566136+00:00",
+        "maximum_observed_gap_seconds": 21675.68942,
+        "observations_read": 1135
+      },
+      "observed_at": "2026-10-25T00:00:24.566136+00:00",
+      "source_status": "journal_matched",
+      "status": "observed",
+      "wallet_eur": 50
+    }
+  },
+  "activity_window": {
+    "end_exclusive": "2026-10-25T00:00:26.323709+00:00",
+    "start": "2026-10-23T20:13:56.622959+00:00"
+  },
+  "checkpoint": {
+    "coverage_verified": false,
+    "missing_accounts": [
+      "adaptive_100",
+      "adaptive_150",
+      "adaptive_200",
+      "adaptive_50",
+      "control_100",
+      "control_150",
+      "control_200",
+      "control_50"
+    ],
+    "reported_account_count": null,
+    "status": "not_observed"
+  },
+  "cohort": {
+    "batch_id": "4cc93668-6310-47fe-8652-3a3f9340cccf",
+    "issues": [],
+    "observed_at": "2026-10-25T00:00:24.566136+00:00",
+    "pending_batch": false,
+    "status": "verified_completed_batch"
+  },
+  "comparisons": {
+    "100": {
+      "basis": "adaptive_minus_control_snapshot_equity; independent_scenarios_not_poolable_or_independent_replications",
+      "net_equity_difference": "0E-26",
+      "primary": false
+    },
+    "150": {
+      "basis": "adaptive_minus_control_snapshot_equity; independent_scenarios_not_poolable_or_independent_replications",
+      "net_equity_difference": "0E-25",
+      "primary": false
+    },
+    "200": {
+      "basis": "adaptive_minus_control_snapshot_equity; independent_scenarios_not_poolable_or_independent_replications",
+      "net_equity_difference": "0E-25",
+      "primary": true
+    },
+    "50": {
+      "basis": "adaptive_minus_control_snapshot_equity; independent_scenarios_not_poolable_or_independent_replications",
+      "net_equity_difference": "0E-26",
+      "primary": false
+    }
+  },
+  "eligible_for_real_trading": false,
+  "inception_at": "2026-10-23T20:13:56.622959+00:00",
+  "issues": [],
+  "kind": "offline_snapshot_operator_summary",
+  "learning": {
+    "reason": "separate_supervisor_review_audit_required",
+    "status": "not_observed"
+  },
+  "metrics_window": "native_rolling_30d_at_each_projection_time_recomputed_from_journal_not_activity_window",
+  "operations": {
+    "calendar_elapsed_seconds": 99989.70075,
+    "entry_admission": {
+      "blocked": false,
+      "enabled": true,
+      "reasons": [],
+      "supervisor": {
+        "consecutive_errors": 0,
+        "entry_halt": false,
+        "error_kind": null,
+        "event_id": "b59843ac0a0f41dc84eea640cda5cfe7",
+        "last_seen": "2026-10-24T23:59:00.260041+00:00",
+        "success": true
+      },
+      "volume": {
+        "blocked": false,
+        "capacity_bytes": 500000000,
+        "reasons": [],
+        "threshold_bytes": 350000000,
+        "used_bytes": 149463747
+      },
+      "worker": {
+        "consecutive_errors": 0,
+        "entry_halt": false,
+        "error_kind": null,
+        "last_seen": "2026-10-24T23:59:16.504482+00:00",
+        "success": true
+      }
+    },
+    "latest_error": null,
+    "lifecycle": {
+      "activated_at": "2026-10-23T20:13:56.622959+00:00",
+      "administrative_activated_at": "2026-10-23T20:13:29.470165+00:00",
+      "completed_batches": 1133,
+      "configuration_hash": "9f36b244769bb14def435d5c0a236d0ed8b6b450525f9e4a4315b5f0337d2154",
+      "daily_backup": {
+        "date": "2026-10-24",
+        "off_host_verified": false,
+        "path": "/tmp/hermes-paper-daily-backups/state-2026-10-24-73a6a6a8ab53",
+        "sha256": "c127479c03a010eaf4bc8e031e298e51a4dcd0def90d076fe6069844233016f4",
+        "status": "completed"
+      },
+      "daily_backup_error": null,
+      "deadline": "2027-04-21T20:13:56.622959+00:00",
+      "entry_admission": {
+        "blocked": false,
+        "enabled": true,
+        "reasons": [],
+        "supervisor": {
+          "consecutive_errors": 0,
+          "entry_halt": false,
+          "error_kind": null,
+          "event_id": "b59843ac0a0f41dc84eea640cda5cfe7",
+          "last_seen": "2026-10-24T23:59:00.260041+00:00",
+          "success": true
+        },
+        "volume": {
+          "blocked": false,
+          "capacity_bytes": 500000000,
+          "reasons": [],
+          "threshold_bytes": 350000000,
+          "used_bytes": 149463747
+        },
+        "worker": {
+          "consecutive_errors": 0,
+          "entry_halt": false,
+          "error_kind": null,
+          "last_seen": "2026-10-24T23:59:16.504482+00:00",
+          "success": true
+        }
+      },
+      "experiment_id": "paper-beta-v1-20261021-6c9d520",
+      "limits": {
+        "daily_backup": {
+          "destination": "/tmp/hermes-paper-daily-backups",
+          "keep": 2,
+          "max_bytes": 500000000,
+          "schema_version": 1,
+          "timeout_seconds": 30
+        },
+        "experiment_id": "paper-beta-v1-20261021-6c9d520",
+        "interval_seconds": 60,
+        "max_cycles": 259200,
+        "max_runtime_seconds": 15552000,
+        "schema_version": 1
+      },
+      "schema_version": 1,
+      "status": "running",
+      "storage_report": {
+        "files": 526,
+        "free_bytes": 292806656,
+        "limits": {
+          "experiment_id": "paper-beta-v1-20261021-6c9d520",
+          "max_state_bytes": 500000000,
+          "protective_stop_on_pressure": true,
+          "reserve_bytes": 134217728,
+          "schema_version": 1
+        },
+        "observed_at": "2026-10-24T23:59:15.792259+00:00",
+        "reason": null,
+        "state_bytes": 149451392,
+        "status": "ready"
+      }
+    },
+    "measured_operating_seconds": null,
+    "model_ready": true,
+    "status": "diagnostic_only",
+    "timestamp": "2026-10-24T23:59:16.517560+00:00",
+    "worker_status": "ok"
+  },
+  "primary_wallet_eur": 200,
+  "profitability_qualified": false,
+  "schema_version": 1,
+  "snapshot_consistency": "caller_asserted_closed_copy; checked_for_sidecars_and_read_time_file_changes",
+  "source_json_sha256": {
+    "adaptive_100/wallet_account.json": "e45ccc0a606614fd6d820391ec4add3e6bcb00bac294532164011e17d03f597d",
+    "adaptive_100/wallet_metrics.json": "693666cb7fd453b61c721385f253d937802a5d459f377d0bcabe7bf004eb3814",
+    "adaptive_150/wallet_account.json": "afb59640f800ac6b9ed81b3c5d84d626a215461ff9d4cb188975a00729d68f0d",
+    "adaptive_150/wallet_metrics.json": "03d9ad0dbf927b99d2cb4f908574f12b0d8345c0779b77d93da45bd894238feb",
+    "adaptive_200/wallet_account.json": "6d4f37a11acbeeb44acc458886fa60b374fcb41132860b4e792821520ee1ca12",
+    "adaptive_200/wallet_metrics.json": "e23eb20b3b28faefe098f5a5b2c53656c2d11f2de509acff0cf945c1e1b13bbc",
+    "adaptive_50/wallet_account.json": "5e2da884051c160ede0dc7ed2a6bb6e64d3887c49d7a48ebdaead27f09b0baaa",
+    "adaptive_50/wallet_metrics.json": "663a9298e02d21ede8b3a9184b48a2501af59a0da9fcb05c0d86db06e91904cf",
+    "control_100/wallet_account.json": "eafbefe4c2d2fa522f1cec6b07baac75ee73ffd7cc0cb47d9d4afd44ef427dca",
+    "control_100/wallet_metrics.json": "3fef3bab634ed4664e064908fe7f14015b1aa3b9344675cb225de988d0451ce7",
+    "control_150/wallet_account.json": "007203fd171ecbb1e0af523d1780487d5dbf7c291eb3b0f5cc72d2c6645e2665",
+    "control_150/wallet_metrics.json": "e4b4ca34fbd7d8862be74acd8d16efb9969b0cf861f616e834d42416d9e86def",
+    "control_200/wallet_account.json": "a37e8882d1f2a54313532c525073fb518b72f09a98ac659242f1756a4db6d8f9",
+    "control_200/wallet_metrics.json": "38f9973b68315f146c929acec419c0a89624dbf93ea7ac32268dd0a4872291c4",
+    "control_50/wallet_account.json": "0daffa6270261c29363d201846cb2d4b914dfe19dae706d01e033ca97181bfe2",
+    "control_50/wallet_metrics.json": "86172c38069d6b86d42045432bc96bd98f583169c94fc50adcc6caefe40e8a2c",
+    "heartbeat.json": "dcfcc5cb3f01bd1d3d44912981baa31717556970ca3b5389cb648fd37eed9825",
+    "manifest.json": "43ec91c55d05f6f04f7a227dd9adc23a2283dd0d788a2255903cb63ee60cbb64"
+  },
+  "source_root": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-trading\\backups\\paper-beta-v1\\paper-beta-v1-20261021-6c9d520\\state-2026-10-25-73a6a6a8ab53"
+}

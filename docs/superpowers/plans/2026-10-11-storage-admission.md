@@ -1,0 +1,11 @@
+# Finite storage admission plan
+
+Continue approved recovery with explicit storage limits for the bounded paired worker. No paid capacity or actual experiment is activated. Missing limits prevent initial collection. Bind experiment, maximum logical state bytes and recovery reserve into immutable worker configuration. Reserve at least two decoded maximum packets; this is an observed safety margin, not a filesystem quota or proof of every possible concurrent write.
+
+Measure regular files inside the experiment root and actual filesystem free bytes. Reject symlinks/junctions and unavailable measurements rather than overlooking external/unknown storage. Check before collecting a NEW batch and again before final financial packet commit after source refresh. A breach permanently records storage_stop. Preserve enough room for terminal metadata and replay already frozen pending batches; stop after replay. New collection/model steering must not resume automatically if free space later grows. Existing simulated inventory remains recorded, with no invented liquidation, equity or hosting-cost stop.
+
+Add paired_storage_admission.py; integrate storage policy/report into paired_worker lifecycle and heartbeat and the final packet preflight boundary. Tests first: numeric/identity/reserve validation, actual file size/free threshold and inaccessible/link failure, refusal before collection, capacity crossed during collection, terminal restart and altered limit rejection, original pending replay. Verify focused/full suites and independent review. Keep sustained whole-state/usage growth and adequate authorized volume capacity as separate launch requirements; the guard does not certify the current500MBvolume.
+
+## Verified checkpoint
+
+Implemented with5storage/20worker/21publication checks and863full-suite tests passing in81.928s. A reserve-boundary regression now keeps headroom inside the logical state budget as well as filesystem free bytes. Review exposed a pending-publication path bypassing runtime storage stop; an atomic halt marker, serialized under the publication lease, now blocks shared review/snapshot/publication guards. Frozen pending financial recovery remains permitted. Follow-up scoped review clear. Evidence research/runs/storage-admission-v1. No deployed limits, paid capacity, experiment activation or new model call occurred.

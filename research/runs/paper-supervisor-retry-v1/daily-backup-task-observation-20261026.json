@@ -1,0 +1,19 @@
+{
+  "observed_at": "2026-10-26T06:57:45.543366+00:00",
+  "task": {
+    "task_name": "Hermes_Paper_Backup_6c9d520",
+    "state": "Ready",
+    "enabled": true,
+    "last_run_utc": "2026-10-26T00:15:01.0000000Z",
+    "last_task_result": 0,
+    "next_run_utc": "2026-10-27T00:15:00.0000000Z",
+    "number_of_missed_runs": 0
+  },
+  "task_stdout_sha256": "032e28cacc94c4a3f45c86a58c8b6a9086f83a8df7999abc0f43c046ede08c7c",
+  "task_stderr_bytes": 0,
+  "daily_copy_evidence_sha256": "cd62c4d63e0a4edd45dd3ab0d79efe070181567d32ee72f616a686a1943ec399",
+  "scope": "read_only_task_and_completed_copy_observation",
+  "task_reconfigured": false,
+  "task_invoked": false,
+  "network_requests": 0
+}

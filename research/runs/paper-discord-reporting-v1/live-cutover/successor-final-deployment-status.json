@@ -1,0 +1,14 @@
+{
+  "data": {
+    "deployment": {
+      "id": "3cf55164-902f-4493-9a8a-6c97d394c0b8",
+      "instances": [
+        {
+          "id": "b45705e2-e89a-49fe-89c5-f2f81bbac862",
+          "status": "RUNNING"
+        }
+      ],
+      "status": "SUCCESS"
+    }
+  }
+}

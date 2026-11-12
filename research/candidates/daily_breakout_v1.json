@@ -1,0 +1,26 @@
+{
+  "name": "daily_breakout_v1",
+  "assets": ["BTC/USDT", "ETH/USDT"],
+  "timeframe": "1d",
+  "daily_boundary": "00:00 UTC",
+  "entry": {
+    "close_above_prior_high_days": 20,
+    "trend_sma_days": 100,
+    "sma_rising_lookback_days": 5,
+    "fill": "next_daily_open"
+  },
+  "future_portfolio_rules_not_tested_in_event_study": {
+    "initial_stop_atr": 3,
+    "atr_days": 14,
+    "exit_close_below_prior_low_days": 10,
+    "discretionary_exit_fill": "next_daily_open",
+    "partial_exits": false,
+    "fixed_profit_target": false,
+    "preserve_existing_risk_and_exposure_limits": true,
+    "one_position_per_asset": true,
+    "no_adding_to_positions": true
+  },
+  "primary_horizon_days": 7,
+  "secondary_horizon_days": [3, 14],
+  "frozen": true
+}

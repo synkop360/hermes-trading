@@ -1,0 +1,6 @@
+{
+  "observed_at": "2026-10-25T11:54:35.248271+00:00",
+  "native_exit_code": 0,
+  "stdout": "{\"timestamp\":\"2026-10-25T11:54:18.901329259Z\",\"level\":\"info\",\"message\":\"Mounting volume on: /var/lib/containers/railwayapp/bind-mounts/b45705e2-e89a-49fe-89c5-f2f81bbac862/vol_f24oqsetqf1kwzyg\"}\n{\"message\":\"Starting Container\",\"timestamp\":\"2026-10-25T11:54:18.901346985Z\",\"level\":\"info\"}\n",
+  "stderr": ""
+}

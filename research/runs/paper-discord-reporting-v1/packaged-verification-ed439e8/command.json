@@ -1,0 +1,11 @@
+{
+  "argv": [
+    "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-trading\\.venv\\Scripts\\python.exe",
+    "-B",
+    "-X",
+    "utf8",
+    "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-discord-reporting-v1\\packaged-verification-ed439e8\\run_packaged_verification.py"
+  ],
+  "cwd": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-discord-reporting-v1\\release-upload-ed439e8",
+  "source_commit": "ed439e897a4dd388fdcf6425e7e8b6171d5a88a9"
+}

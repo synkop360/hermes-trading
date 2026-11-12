@@ -1,0 +1,28 @@
+{
+  "observed_at": "2026-10-26T06:03:31.256435+00:00",
+  "exit_code": 0,
+  "result": {
+    "kind": "missing_fixture_cleanup_negative_control",
+    "observations": [
+      {
+        "explicit_cleanup": false,
+        "setup_error_type": "FileNotFoundError",
+        "resource_warnings": 1,
+        "matches_owned_temp_cleanup": true,
+        "owned_directory_removed": true
+      },
+      {
+        "explicit_cleanup": true,
+        "setup_error_type": "FileNotFoundError",
+        "resource_warnings": 0,
+        "matches_owned_temp_cleanup": true,
+        "owned_directory_removed": true
+      }
+    ],
+    "raw_error_or_warning_messages_retained": false
+  },
+  "stderr_bytes": 0,
+  "original_full_warning_erased": false,
+  "product_source_changed": false,
+  "live_state_changed": false
+}

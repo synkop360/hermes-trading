@@ -1,0 +1,12 @@
+{
+  "observed_at": "2026-10-28T07:26:28.914006+00:00",
+  "status": "original_remote_intent_and_rollback_verified_offhost",
+  "transition_id": "2af9eb98324431a533af3bf00a9fd78af841a72f5906841e821e38f1a588a4d4",
+  "remote_root_binding": "db4c50d5971565eaf21336cc9e165ba02e8e26908578f39fcc8eee946a70a86a",
+  "intent_hash": "15c9258d2fd78f30f65acdee37cabc16aa72dd2d6075a9461cf3a77139778991",
+  "offhost_audit": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\r27-ea752c5\\audit-closed-bundle\\worker-audit",
+  "wire_bytes": 236902400,
+  "wire_sha256": "58480204507bbf34f56d8817a627fba70101e8c1f6c7d9f6cf9f013d2a223e84",
+  "all_live_bindings_still_original_at_intent": true,
+  "elapsed_seconds": 12.984999999869615
+}

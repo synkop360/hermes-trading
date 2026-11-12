@@ -1,0 +1,82 @@
+{
+  "a316e6ed4190": {
+    "id": "a316e6ed4190",
+    "name": "hermes-trading-watch",
+    "prompt": "",
+    "skills": [],
+    "skill": null,
+    "model": null,
+    "provider": null,
+    "provider_snapshot": null,
+    "model_snapshot": null,
+    "base_url": null,
+    "script": "hermes_watch.py",
+    "no_agent": true,
+    "context_from": null,
+    "schedule": {
+      "kind": "interval",
+      "minutes": 10,
+      "display": "every 10m"
+    },
+    "schedule_display": "every 10m",
+    "repeat": {
+      "times": null,
+      "completed": 8451
+    },
+    "enabled": false,
+    "state": "paused",
+    "paused_at": "2026-10-21T09:41:29.563718+02:00",
+    "paused_reason": null,
+    "created_at": "2026-08-13T09:46:57.082595+02:00",
+    "next_run_at": "2026-10-21T10:04:49.082706+02:00",
+    "last_run_at": "2026-10-21T09:54:49.082706+02:00",
+    "last_status": "error",
+    "last_error": "Script timed out after 3600s: C:\\Users\\thoma\\AppData\\Local\\hermes\\scripts\\hermes_watch.py",
+    "last_delivery_error": null,
+    "deliver": "local",
+    "origin": null,
+    "enabled_toolsets": null,
+    "workdir": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-trading",
+    "fire_claim": null
+  },
+  "2f6c5088c6ff": {
+    "id": "2f6c5088c6ff",
+    "name": "hermes-paper-beta-6c9d520-supervisor",
+    "prompt": "",
+    "skills": [],
+    "skill": null,
+    "model": null,
+    "provider": null,
+    "provider_snapshot": null,
+    "model_snapshot": null,
+    "base_url": null,
+    "script": "hermes_trading_paper_6c9d520_job.py",
+    "no_agent": true,
+    "context_from": null,
+    "schedule": {
+      "kind": "interval",
+      "minutes": 1,
+      "display": "every 1m"
+    },
+    "schedule_display": "every 1m",
+    "repeat": {
+      "times": 259200,
+      "completed": 1541
+    },
+    "enabled": true,
+    "state": "scheduled",
+    "paused_at": null,
+    "paused_reason": null,
+    "created_at": "2026-10-21T09:57:30.100772+02:00",
+    "next_run_at": "2026-10-26T08:03:32.133759+01:00",
+    "last_run_at": "2026-10-26T08:02:32.133759+01:00",
+    "last_status": "error",
+    "last_error": "Script exited with code 1\nstdout:\n{\"exit_code\": 1, \"status\": \"child_failed\", \"wakeAgent\": false}",
+    "last_delivery_error": null,
+    "deliver": "local",
+    "origin": null,
+    "enabled_toolsets": null,
+    "workdir": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-trading",
+    "fire_claim": null
+  }
+}

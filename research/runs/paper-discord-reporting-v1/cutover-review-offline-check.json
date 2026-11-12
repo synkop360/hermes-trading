@@ -1,0 +1,31 @@
+{
+  "changed_previous_files": [
+    "docs/superpowers/plans/2026-10-23-paper-beta-operational-corrections.md",
+    "hermes_trading/notifications.py",
+    "hermes_trading/paired_paper.py",
+    "hermes_trading/paired_worker.py",
+    "hermes_trading/paper_boot.py",
+    "scripts/paper_release_transition.py"
+  ],
+  "export_files": 586,
+  "new_files": 64,
+  "new_runtime_map": "61c0cd1055148b6261b6a828bbf04f97ce7d9496a529b81c157f0bb44df6748e",
+  "new_source_normalized_matches": true,
+  "new_supervisor_release": "aa06920c43908fddea535a337cd91f43cd7866ce91e40bb01e5f9eff4d13418d",
+  "old_pins_verified": 522,
+  "old_raw_preserved": 516,
+  "old_supervisor_release": "f5cae59278c4e99fc3fa3a33da4bf55890276b29370a28260e9cf3400729edfd",
+  "raw_inventory_matches": true,
+  "raw_pin_manifest_sha256": "ac2383d3a76f6dcfd1642f87a1640400a660a3f95ab4661873473d6f1a2a4dba",
+  "release_plan_sha256": "a71cb8210718b6c43eeb38c9f824f002cb30a3b1946274989da8c0fc2d35e132",
+  "release_plan_validated": true,
+  "removed_previous_files": [],
+  "runtime_delta": [
+    "notifications.py",
+    "paired_paper.py",
+    "paired_worker.py",
+    "paper_boot.py"
+  ],
+  "runtime_modules": 129,
+  "source_commit": "8f315b35cf6a40267cc07be1bac2c9be126006c7"
+}

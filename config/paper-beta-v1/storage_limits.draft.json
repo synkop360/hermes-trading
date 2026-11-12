@@ -1,0 +1,7 @@
+{
+  "experiment_id": "unassigned_until_activation",
+  "max_state_bytes": 500000000,
+  "protective_stop_on_pressure": true,
+  "reserve_bytes": 134217728,
+  "schema_version": 1
+}

@@ -1,0 +1,8 @@
+{
+  "observed_at": "2026-10-26T07:05:55.471537+00:00",
+  "exit_code": 1,
+  "stdout": "\nYour service's container is not running (status: exited).\nDeploy or restart your service, then try again.\n\n",
+  "stderr_bytes": 98,
+  "gateway_container_exited": false,
+  "gateway_connection_failed": false
+}

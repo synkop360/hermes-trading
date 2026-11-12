@@ -1,0 +1,15 @@
+{
+  "observed_at": "2026-10-29T11:43:51.085103+00:00",
+  "status": "existing_usage_import_completed",
+  "receipt": {
+    "account_hash": "8537e0f7f17abc8a092f2ca8e39ad8b1d290f8ee222296fbdc834fe00bb488f3",
+    "covered_through": "2026-10-29T11:43:48.975414+00:00",
+    "experiment_id": "paper-beta-v1-20261021-6c9d520",
+    "imported_at": "2026-10-29T11:43:50.734135+00:00",
+    "policy_hash": "db684ab9780a550de2cbaa22d586dfe706154cea47dfd6bef8ed247ff56d1577",
+    "source_sha256": "b707100299826db51ea7f973e02d7aedfc085d89183ed272e918e0a7dfc70f8d",
+    "status": "imported"
+  },
+  "inference_test_performed": false,
+  "paid_calls_authorized": false
+}

@@ -1,0 +1,25 @@
+F
+======================================================================
+FAIL: test_close_bullets_show_canonical_money_quantity_and_distinct_timestamps (tests.test_paper_notifications.PaperNotificationTests.test_close_bullets_show_canonical_money_quantity_and_distinct_timestamps)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\unittest\async_case.py", line 90, in _callTestMethod
+    if self._callMaybeAsync(method) is not None:
+       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\unittest\async_case.py", line 112, in _callMaybeAsync
+    return self._asyncioRunner.run(
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\base_events.py", line 654, in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+  File "E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\tests\test_paper_notifications.py", line 214, in test_close_bullets_show_canonical_money_quantity_and_distinct_timestamps
+    self.assertIn("Display rounded to cents", text)
+AssertionError: 'Display rounded to cents' not found in '**Hermes paper/simulated | observed events**\n- **Observed at:** 2026-10-24T10:00:03+00:00\n- **Last settled:** 2026-10-24T10:00:03+00:00\n- **Worker:** healthy | **New entries:** enabled\n- **Model readiness/access:** {"success": true, "status": "not_due"}; review audit unavailable (healthy can mean not_due)\n- **Strategy version:** v1\n- **Observed interval:** 2026-10-24T10:00:00+00:00 -> 2026-10-24T10:00:03+00:00; coverage unknown\n- **Delivery:** gaps=0 coalesced=0 dropped=0 delivery_unknown=0 repeats=0\n- Retries may duplicate; stable tags identify parts/events.\n- **Close · Adaptive €200 · PRIMARY · BTC/EUR** | **Realized P&L:** EUR -<0.01\n  - **Quantity:** 0.002 | **Closed at:** 2026-10-24T10:00:00+00:00 | **Position:** position-1 [event:7022af7efa5b377033ccc6e7]\n[paper:d46f7739f7b430fcc4b52184 part:1/1]'
+
+----------------------------------------------------------------------
+Ran 1 test in 0.290s
+
+FAILED (failures=1)

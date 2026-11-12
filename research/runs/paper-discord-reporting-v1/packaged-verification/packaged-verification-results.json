@@ -1,0 +1,1055 @@
+{
+  "after_raw_pins": {
+    "expected_files": 586,
+    "manifest_sha256": "ac2383d3a76f6dcfd1642f87a1640400a660a3f95ab4661873473d6f1a2a4dba",
+    "mismatches": [],
+    "missing_files": [],
+    "observed_at": "2026-10-24T21:44:54.501646+00:00",
+    "observed_files": 586,
+    "phase": "after",
+    "unexpected_files": []
+  },
+  "before_raw_pins": {
+    "expected_files": 586,
+    "manifest_sha256": "ac2383d3a76f6dcfd1642f87a1640400a660a3f95ab4661873473d6f1a2a4dba",
+    "mismatches": [],
+    "missing_files": [],
+    "observed_at": "2026-10-24T21:37:55.500756+00:00",
+    "observed_files": 586,
+    "phase": "before",
+    "unexpected_files": []
+  },
+  "child_processes": [
+    {
+      "argv": [
+        "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-discord-reporting-v1\\release-upload-8f315b3-v2\\scripts\\paper_release_transition.py",
+        "--plan",
+        "C:\\Users\\thoma\\AppData\\Local\\Temp\\synthetic-release-transition-n65a2zc2\\project\\transition-plan.json",
+        "--worker-root",
+        "C:\\Users\\thoma\\AppData\\Local\\Temp\\tmph56emdya",
+        "--supervisor-root",
+        "C:\\Users\\thoma\\AppData\\Local\\Temp\\synthetic-release-transition-n65a2zc2\\project\\state\\paired-supervisor\\paired-test\\adaptive_200",
+        "--launch-file",
+        "C:\\Users\\thoma\\AppData\\Local\\Temp\\synthetic-release-transition-n65a2zc2\\project\\launch.json",
+        "--audit-dir",
+        "C:\\Users\\thoma\\AppData\\Local\\Temp\\synthetic-release-transition-n65a2zc2\\transition-audit"
+      ],
+      "elapsed_seconds": 2.562000000034459,
+      "import_provenance_violations": {},
+      "imported_module_count": 61,
+      "pid": 50784,
+      "raw_http_denials": [],
+      "raw_transport_guards_active": true,
+      "receipt": "process-50784.json"
+    },
+    {
+      "argv": [
+        "-c",
+        "_load"
+      ],
+      "elapsed_seconds": 1.047000000020489,
+      "import_provenance_violations": {},
+      "imported_module_count": 22,
+      "pid": 54836,
+      "raw_http_denials": [],
+      "raw_transport_guards_active": true,
+      "receipt": "process-54836.json"
+    },
+    {
+      "argv": [
+        "-c",
+        "_persist"
+      ],
+      "elapsed_seconds": 1.4219999999040738,
+      "import_provenance_violations": {},
+      "imported_module_count": 22,
+      "pid": 57568,
+      "raw_http_denials": [],
+      "raw_transport_guards_active": true,
+      "receipt": "process-57568.json"
+    }
+  ],
+  "cwd": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-discord-reporting-v1\\release-upload-8f315b3-v2",
+  "deployed": false,
+  "errors": 0,
+  "executable": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-trading\\.venv\\Scripts\\python.exe",
+  "expected_failures": 0,
+  "export": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-discord-reporting-v1\\release-upload-8f315b3-v2",
+  "failures": 0,
+  "finished_at": "2026-10-24T21:44:54.511719+00:00",
+  "groups": {
+    "test_archive_protective_worker": 10,
+    "test_notifications": 29,
+    "test_paired_paper": 27,
+    "test_paired_risk": 3,
+    "test_paired_worker": 25,
+    "test_paper_boot": 4,
+    "test_paper_discord_transition": 3,
+    "test_paper_notification_capture": 12,
+    "test_paper_notifications": 29,
+    "test_paper_release_transition": 19
+  },
+  "import_provenance_violations": {},
+  "imported_modules": {
+    "hermes_trading": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-discord-reporting-v1\\release-upload-8f315b3-v2\\hermes_trading\\__init__.py",
+    "hermes_trading.adapters": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-discord-reporting-v1\\release-upload-8f315b3-v2\\hermes_trading\\adapters\\__init__.py",
+    "hermes_trading.adapters.execution": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-discord-reporting-v1\\release-upload-8f315b3-v2\\hermes_trading\\adapters\\execution.py",
+    "hermes_trading.adapters.macro": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-discord-reporting-v1\\release-upload-8f315b3-v2\\hermes_trading\\adapters\\macro.py",
+    "hermes_trading.adapters.market_analysis": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-discord-reporting-v1\\release-upload-8f315b3-v2\\hermes_trading\\adapters\\market_analysis.py",
+    "hermes_trading.adapters.news": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-discord-reporting-v1\\release-upload-8f315b3-v2\\hermes_trading\\adapters\\news.py",
+    "hermes_trading.adapters.onchain": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-discord-reporting-v1\\release-upload-8f315b3-v2\\hermes_trading\\adapters\\onchain.py",
+    "hermes_trading.adapters.price": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-discord-reporting-v1\\release-upload-8f315b3-v2\\hermes_trading\\adapters\\price.py",
+    "hermes_trading.archive_capacity": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-discord-reporting-v1\\release-upload-8f315b3-v2\\hermes_trading\\archive_capacity.py",
+    "hermes_trading.archive_certificate": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-discord-reporting-v1\\release-upload-8f315b3-v2\\hermes_trading\\archive_certificate.py",
+    "hermes_trading.archive_journal": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-discord-reporting-v1\\release-upload-8f315b3-v2\\hermes_trading\\archive_journal.py",
+    "hermes_trading.archive_nonce": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-discord-reporting-v1\\release-upload-8f315b3-v2\\hermes_trading\\archive_nonce.py",
+    "hermes_trading.archive_protective_session": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-discord-reporting-v1\\release-upload-8f315b3-v2\\hermes_trading\\archive_protective_session.py",
+    "hermes_trading.archive_protective_source": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-discord-reporting-v1\\release-upload-8f315b3-v2\\hermes_trading\\archive_protective_source.py",
+    "hermes_trading.archive_protective_transport": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-discord-reporting-v1\\release-upload-8f315b3-v2\\hermes_trading\\archive_protective_transport.py",
+    "hermes_trading.archive_protective_witness": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-discord-reporting-v1\\release-upload-8f315b3-v2\\hermes_trading\\archive_protective_witness.py",
+    "hermes_trading.archive_quote_checkpoint_state": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-discord-reporting-v1\\release-upload-8f315b3-v2\\hermes_trading\\archive_quote_checkpoint_state.py",
+    "hermes_trading.archive_quote_state": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-discord-reporting-v1\\release-upload-8f315b3-v2\\hermes_trading\\archive_quote_state.py",
+    "hermes_trading.archive_review": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-discord-reporting-v1\\release-upload-8f315b3-v2\\hermes_trading\\archive_review.py",
+    "hermes_trading.archive_snapshot": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-discord-reporting-v1\\release-upload-8f315b3-v2\\hermes_trading\\archive_snapshot.py",
+    "hermes_trading.archive_store": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-discord-reporting-v1\\release-upload-8f315b3-v2\\hermes_trading\\archive_store.py",
+    "hermes_trading.archive_witness": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-discord-reporting-v1\\release-upload-8f315b3-v2\\hermes_trading\\archive_witness.py",
+    "hermes_trading.archive_witness_transport": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-discord-reporting-v1\\release-upload-8f315b3-v2\\hermes_trading\\archive_witness_transport.py",
+    "hermes_trading.archive_worker_boundary": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-discord-reporting-v1\\release-upload-8f315b3-v2\\hermes_trading\\archive_worker_boundary.py",
+    "hermes_trading.config": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-discord-reporting-v1\\release-upload-8f315b3-v2\\hermes_trading\\config.py",
+    "hermes_trading.control_auth": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-discord-reporting-v1\\release-upload-8f315b3-v2\\hermes_trading\\control_auth.py",
+    "hermes_trading.costs": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-discord-reporting-v1\\release-upload-8f315b3-v2\\hermes_trading\\costs.py",
+    "hermes_trading.domain": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-discord-reporting-v1\\release-upload-8f315b3-v2\\hermes_trading\\domain.py",
+    "hermes_trading.entry_contracts": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-discord-reporting-v1\\release-upload-8f315b3-v2\\hermes_trading\\entry_contracts.py",
+    "hermes_trading.entry_cost_reserve": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-discord-reporting-v1\\release-upload-8f315b3-v2\\hermes_trading\\entry_cost_reserve.py",
+    "hermes_trading.exchange": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-discord-reporting-v1\\release-upload-8f315b3-v2\\hermes_trading\\exchange.py",
+    "hermes_trading.execution": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-discord-reporting-v1\\release-upload-8f315b3-v2\\hermes_trading\\execution.py",
+    "hermes_trading.execution_policy": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-discord-reporting-v1\\release-upload-8f315b3-v2\\hermes_trading\\execution_policy.py",
+    "hermes_trading.funds": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-discord-reporting-v1\\release-upload-8f315b3-v2\\hermes_trading\\funds.py",
+    "hermes_trading.global_reflection": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-discord-reporting-v1\\release-upload-8f315b3-v2\\hermes_trading\\global_reflection.py",
+    "hermes_trading.identifiers": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-discord-reporting-v1\\release-upload-8f315b3-v2\\hermes_trading\\identifiers.py",
+    "hermes_trading.loop": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-discord-reporting-v1\\release-upload-8f315b3-v2\\hermes_trading\\loop.py",
+    "hermes_trading.market_data": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-discord-reporting-v1\\release-upload-8f315b3-v2\\hermes_trading\\market_data.py",
+    "hermes_trading.model_access_refresh": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-discord-reporting-v1\\release-upload-8f315b3-v2\\hermes_trading\\model_access_refresh.py",
+    "hermes_trading.model_runner": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-discord-reporting-v1\\release-upload-8f315b3-v2\\hermes_trading\\model_runner.py",
+    "hermes_trading.notifications": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-discord-reporting-v1\\release-upload-8f315b3-v2\\hermes_trading\\notifications.py",
+    "hermes_trading.operational_exits": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-discord-reporting-v1\\release-upload-8f315b3-v2\\hermes_trading\\operational_exits.py",
+    "hermes_trading.operator_config": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-discord-reporting-v1\\release-upload-8f315b3-v2\\hermes_trading\\operator_config.py",
+    "hermes_trading.paired_cost_stress": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-discord-reporting-v1\\release-upload-8f315b3-v2\\hermes_trading\\paired_cost_stress.py",
+    "hermes_trading.paired_inception": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-discord-reporting-v1\\release-upload-8f315b3-v2\\hermes_trading\\paired_inception.py",
+    "hermes_trading.paired_packet_storage": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-discord-reporting-v1\\release-upload-8f315b3-v2\\hermes_trading\\paired_packet_storage.py",
+    "hermes_trading.paired_paper": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-discord-reporting-v1\\release-upload-8f315b3-v2\\hermes_trading\\paired_paper.py",
+    "hermes_trading.paired_performance_report": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-discord-reporting-v1\\release-upload-8f315b3-v2\\hermes_trading\\paired_performance_report.py",
+    "hermes_trading.paired_primary": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-discord-reporting-v1\\release-upload-8f315b3-v2\\hermes_trading\\paired_primary.py",
+    "hermes_trading.paired_risk": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-discord-reporting-v1\\release-upload-8f315b3-v2\\hermes_trading\\paired_risk.py",
+    "hermes_trading.paired_source_validation": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-discord-reporting-v1\\release-upload-8f315b3-v2\\hermes_trading\\paired_source_validation.py",
+    "hermes_trading.paired_statistics": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-discord-reporting-v1\\release-upload-8f315b3-v2\\hermes_trading\\paired_statistics.py",
+    "hermes_trading.paired_storage_admission": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-discord-reporting-v1\\release-upload-8f315b3-v2\\hermes_trading\\paired_storage_admission.py",
+    "hermes_trading.paired_worker": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-discord-reporting-v1\\release-upload-8f315b3-v2\\hermes_trading\\paired_worker.py",
+    "hermes_trading.paper_backup": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-discord-reporting-v1\\release-upload-8f315b3-v2\\hermes_trading\\paper_backup.py",
+    "hermes_trading.paper_boot": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-discord-reporting-v1\\release-upload-8f315b3-v2\\hermes_trading\\paper_boot.py",
+    "hermes_trading.paper_publication": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-discord-reporting-v1\\release-upload-8f315b3-v2\\hermes_trading\\paper_publication.py",
+    "hermes_trading.paper_safety": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-discord-reporting-v1\\release-upload-8f315b3-v2\\hermes_trading\\paper_safety.py",
+    "hermes_trading.paper_strategy_proposal": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-discord-reporting-v1\\release-upload-8f315b3-v2\\hermes_trading\\paper_strategy_proposal.py",
+    "hermes_trading.persistence": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-discord-reporting-v1\\release-upload-8f315b3-v2\\hermes_trading\\persistence\\__init__.py",
+    "hermes_trading.persistence.artifacts": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-discord-reporting-v1\\release-upload-8f315b3-v2\\hermes_trading\\persistence\\artifacts.py",
+    "hermes_trading.persistence.migrations": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-discord-reporting-v1\\release-upload-8f315b3-v2\\hermes_trading\\persistence\\migrations.py",
+    "hermes_trading.persistence.repository": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-discord-reporting-v1\\release-upload-8f315b3-v2\\hermes_trading\\persistence\\repository.py",
+    "hermes_trading.positions": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-discord-reporting-v1\\release-upload-8f315b3-v2\\hermes_trading\\positions.py",
+    "hermes_trading.profitability": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-discord-reporting-v1\\release-upload-8f315b3-v2\\hermes_trading\\profitability.py",
+    "hermes_trading.proposal_transport": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-discord-reporting-v1\\release-upload-8f315b3-v2\\hermes_trading\\proposal_transport.py",
+    "hermes_trading.prospective_execution": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-discord-reporting-v1\\release-upload-8f315b3-v2\\hermes_trading\\prospective_execution.py",
+    "hermes_trading.providers": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-discord-reporting-v1\\release-upload-8f315b3-v2\\hermes_trading\\providers.py",
+    "hermes_trading.publication_timeline": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-discord-reporting-v1\\release-upload-8f315b3-v2\\hermes_trading\\publication_timeline.py",
+    "hermes_trading.qualification": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-discord-reporting-v1\\release-upload-8f315b3-v2\\hermes_trading\\qualification.py",
+    "hermes_trading.qualification_evidence": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-discord-reporting-v1\\release-upload-8f315b3-v2\\hermes_trading\\qualification_evidence.py",
+    "hermes_trading.qualification_runner": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-discord-reporting-v1\\release-upload-8f315b3-v2\\hermes_trading\\qualification_runner.py",
+    "hermes_trading.reconciliation": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-discord-reporting-v1\\release-upload-8f315b3-v2\\hermes_trading\\reconciliation.py",
+    "hermes_trading.reflect": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-discord-reporting-v1\\release-upload-8f315b3-v2\\hermes_trading\\reflect.py",
+    "hermes_trading.reflection_guard": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-discord-reporting-v1\\release-upload-8f315b3-v2\\hermes_trading\\reflection_guard.py",
+    "hermes_trading.reflection_supervision": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-discord-reporting-v1\\release-upload-8f315b3-v2\\hermes_trading\\reflection_supervision.py",
+    "hermes_trading.risk": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-discord-reporting-v1\\release-upload-8f315b3-v2\\hermes_trading\\risk.py",
+    "hermes_trading.run": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-discord-reporting-v1\\release-upload-8f315b3-v2\\hermes_trading\\run.py",
+    "hermes_trading.score": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-discord-reporting-v1\\release-upload-8f315b3-v2\\hermes_trading\\score.py",
+    "hermes_trading.strategy": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-discord-reporting-v1\\release-upload-8f315b3-v2\\hermes_trading\\strategy.py",
+    "hermes_trading.strategy_registry": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-discord-reporting-v1\\release-upload-8f315b3-v2\\hermes_trading\\strategy_registry.py",
+    "hermes_trading.supervisor_budget": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-discord-reporting-v1\\release-upload-8f315b3-v2\\hermes_trading\\supervisor_budget.py",
+    "hermes_trading.supervisor_launch": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-discord-reporting-v1\\release-upload-8f315b3-v2\\hermes_trading\\supervisor_launch.py",
+    "hermes_trading.supervisor_lifecycle": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-discord-reporting-v1\\release-upload-8f315b3-v2\\hermes_trading\\supervisor_lifecycle.py",
+    "hermes_trading.supervisor_sync": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-discord-reporting-v1\\release-upload-8f315b3-v2\\hermes_trading\\supervisor_sync.py",
+    "hermes_trading.supervisor_usage_feed": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-discord-reporting-v1\\release-upload-8f315b3-v2\\hermes_trading\\supervisor_usage_feed.py",
+    "hermes_trading.supervisor_usage_source": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-discord-reporting-v1\\release-upload-8f315b3-v2\\hermes_trading\\supervisor_usage_source.py",
+    "hermes_trading.venue_collection": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-discord-reporting-v1\\release-upload-8f315b3-v2\\hermes_trading\\venue_collection.py",
+    "hermes_trading.venue_constraints": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-discord-reporting-v1\\release-upload-8f315b3-v2\\hermes_trading\\venue_constraints.py",
+    "hermes_trading.wallet_cost_accrual": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-discord-reporting-v1\\release-upload-8f315b3-v2\\hermes_trading\\wallet_cost_accrual.py",
+    "hermes_trading.wallet_metrics": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-discord-reporting-v1\\release-upload-8f315b3-v2\\hermes_trading\\wallet_metrics.py",
+    "hermes_trading.wallet_observer": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-discord-reporting-v1\\release-upload-8f315b3-v2\\hermes_trading\\wallet_observer.py",
+    "release_transition_fixtures": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-discord-reporting-v1\\release-upload-8f315b3-v2\\tests\\release_transition_fixtures.py",
+    "scripts.hermes_watch": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-discord-reporting-v1\\release-upload-8f315b3-v2\\scripts\\hermes_watch.py",
+    "scripts.paper_release_transition": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-discord-reporting-v1\\release-upload-8f315b3-v2\\scripts\\paper_release_transition.py",
+    "test_archive_protective_source": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-discord-reporting-v1\\release-upload-8f315b3-v2\\tests\\test_archive_protective_source.py",
+    "test_archive_protective_worker": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-discord-reporting-v1\\release-upload-8f315b3-v2\\tests\\test_archive_protective_worker.py",
+    "test_notifications": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-discord-reporting-v1\\release-upload-8f315b3-v2\\tests\\test_notifications.py",
+    "test_paired_inception": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-discord-reporting-v1\\release-upload-8f315b3-v2\\tests\\test_paired_inception.py",
+    "test_paired_paper": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-discord-reporting-v1\\release-upload-8f315b3-v2\\tests\\test_paired_paper.py",
+    "test_paired_primary_finance": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-discord-reporting-v1\\release-upload-8f315b3-v2\\tests\\test_paired_primary_finance.py",
+    "test_paired_risk": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-discord-reporting-v1\\release-upload-8f315b3-v2\\tests\\test_paired_risk.py",
+    "test_paired_worker": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-discord-reporting-v1\\release-upload-8f315b3-v2\\tests\\test_paired_worker.py",
+    "test_paper_boot": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-discord-reporting-v1\\release-upload-8f315b3-v2\\tests\\test_paper_boot.py",
+    "test_paper_discord_transition": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-discord-reporting-v1\\release-upload-8f315b3-v2\\tests\\test_paper_discord_transition.py",
+    "test_paper_notification_capture": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-discord-reporting-v1\\release-upload-8f315b3-v2\\tests\\test_paper_notification_capture.py",
+    "test_paper_notifications": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-discord-reporting-v1\\release-upload-8f315b3-v2\\tests\\test_paper_notifications.py",
+    "test_paper_release_transition": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-discord-reporting-v1\\release-upload-8f315b3-v2\\tests\\test_paper_release_transition.py"
+  },
+  "kind": "source_frozen_packaged_correctness_verification",
+  "live_discord_requests": 0,
+  "live_state_touched": false,
+  "observed_at": "2026-10-24T21:37:55.369595+00:00",
+  "passed": 161,
+  "per_test": [
+    {
+      "elapsed_seconds": 0.0,
+      "status": "passed",
+      "test_id": "test_notifications.CycleNotificationTests.test_cycle_notifications_include_orders_and_trades"
+    },
+    {
+      "elapsed_seconds": 0.0,
+      "status": "passed",
+      "test_id": "test_notifications.CycleNotificationTests.test_inprocess_reflection_notification_reports_no_change"
+    },
+    {
+      "elapsed_seconds": 0.0,
+      "status": "passed",
+      "test_id": "test_notifications.CycleNotificationTests.test_inprocess_reflection_notification_reports_version_change"
+    },
+    {
+      "elapsed_seconds": 0.0,
+      "status": "passed",
+      "test_id": "test_notifications.CycleNotificationTests.test_orders_only_mode_filters_trade_messages"
+    },
+    {
+      "elapsed_seconds": 0.0,
+      "status": "passed",
+      "test_id": "test_notifications.CycleNotificationTests.test_pnl_only_mode_filters_flat_trades_and_orders"
+    },
+    {
+      "elapsed_seconds": 0.0,
+      "status": "passed",
+      "test_id": "test_notifications.CycleNotificationTests.test_pnl_trade_message_uses_gain_loss_formalism"
+    },
+    {
+      "elapsed_seconds": 0.01600000006146729,
+      "status": "passed",
+      "test_id": "test_notifications.CycleNotificationTests.test_profitability_snapshot_is_due_once_per_configured_period"
+    },
+    {
+      "elapsed_seconds": 0.030999999959021807,
+      "status": "passed",
+      "test_id": "test_notifications.CycleNotificationTests.test_qualification_notification_summarizes_run_and_blockers"
+    },
+    {
+      "elapsed_seconds": 0.0,
+      "status": "passed",
+      "test_id": "test_notifications.CycleNotificationTests.test_simulated_order_message_uses_virtual_order_fields"
+    },
+    {
+      "elapsed_seconds": 0.0,
+      "status": "passed",
+      "test_id": "test_notifications.CycleNotificationTests.test_worker_feature_update_is_sent_once_per_feature"
+    },
+    {
+      "elapsed_seconds": 0.125,
+      "status": "passed",
+      "test_id": "test_notifications.LoopNotificationTests.test_run_loop_notifies_control_api_feature_once_when_enabled"
+    },
+    {
+      "elapsed_seconds": 0.10899999993853271,
+      "status": "passed",
+      "test_id": "test_notifications.LoopNotificationTests.test_run_loop_notifies_scheduled_qualification_report"
+    },
+    {
+      "elapsed_seconds": 0.10999999998603016,
+      "status": "passed",
+      "test_id": "test_notifications.LoopNotificationTests.test_run_loop_notifies_worker_error_when_enabled"
+    },
+    {
+      "elapsed_seconds": 0.125,
+      "status": "passed",
+      "test_id": "test_notifications.LoopNotificationTests.test_worker_feature_update_retries_after_delivery_failure"
+    },
+    {
+      "elapsed_seconds": 0.14099999994505197,
+      "status": "passed",
+      "test_id": "test_notifications.LoopNotificationTests.test_worker_feature_update_retries_after_notifications_disabled"
+    },
+    {
+      "elapsed_seconds": 0.015000000013969839,
+      "status": "passed",
+      "test_id": "test_notifications.NotificationDeliveryTests.test_disabled_notifications_do_not_call_webhook"
+    },
+    {
+      "elapsed_seconds": 0.015999999945051968,
+      "status": "passed",
+      "test_id": "test_notifications.NotificationDeliveryTests.test_discord_notification_posts_content_to_webhook"
+    },
+    {
+      "elapsed_seconds": 0.0,
+      "status": "passed",
+      "test_id": "test_notifications.NotificationSettingsTests.test_discord_requires_webhook_when_enabled"
+    },
+    {
+      "elapsed_seconds": 0.015000000013969839,
+      "status": "passed",
+      "test_id": "test_notifications.NotificationSettingsTests.test_hourly_summary_alias_is_normalized"
+    },
+    {
+      "elapsed_seconds": 0.0,
+      "status": "passed",
+      "test_id": "test_notifications.NotificationSettingsTests.test_notification_mode_aliases_are_normalized"
+    },
+    {
+      "elapsed_seconds": 0.0,
+      "status": "passed",
+      "test_id": "test_notifications.NotificationSettingsTests.test_notifications_are_disabled_by_default"
+    },
+    {
+      "elapsed_seconds": 0.0,
+      "status": "passed",
+      "test_id": "test_notifications.NotificationSettingsTests.test_profitability_frequency_is_normalized_independently"
+    },
+    {
+      "elapsed_seconds": 0.0,
+      "status": "passed",
+      "test_id": "test_notifications.NotificationSettingsTests.test_summary_frequency_list_is_normalized"
+    },
+    {
+      "elapsed_seconds": 0.0,
+      "status": "passed",
+      "test_id": "test_notifications.NotificationSettingsTests.test_summary_frequency_rejects_ambiguous_month_shortcut"
+    },
+    {
+      "elapsed_seconds": 0.0,
+      "status": "passed",
+      "test_id": "test_notifications.PeriodicSummaryTests.test_cycle_and_hourly_summaries_can_publish_together"
+    },
+    {
+      "elapsed_seconds": 0.01600000006146729,
+      "status": "passed",
+      "test_id": "test_notifications.PeriodicSummaryTests.test_periodic_summary_includes_trades_orders_and_flat_pnl"
+    },
+    {
+      "elapsed_seconds": 0.0,
+      "status": "passed",
+      "test_id": "test_notifications.PeriodicSummaryTests.test_periodic_summary_reports_empty_period_and_does_not_repeat_same_slot"
+    },
+    {
+      "elapsed_seconds": 0.0,
+      "status": "passed",
+      "test_id": "test_notifications.PnlSummaryCounterTests.test_counter_is_disabled_when_period_is_zero"
+    },
+    {
+      "elapsed_seconds": 0.0,
+      "status": "passed",
+      "test_id": "test_notifications.PnlSummaryCounterTests.test_counter_publishes_summary_after_configured_cycles_and_resets"
+    },
+    {
+      "elapsed_seconds": 2.9839999999385327,
+      "status": "passed",
+      "test_id": "test_paper_notifications.PaperNotificationProcessShutdownTests.test_stalled_metadata_never_keeps_asyncio_run_alive_after_cancellation"
+    },
+    {
+      "elapsed_seconds": 0.1720000000204891,
+      "status": "passed",
+      "test_id": "test_paper_notifications.PaperNotificationTests.test_abandoned_startup_does_not_disable_future_distinct_snapshots"
+    },
+    {
+      "elapsed_seconds": 0.0940000000409782,
+      "status": "passed",
+      "test_id": "test_paper_notifications.PaperNotificationTests.test_all_cost_categories_keep_individual_actual_estimated_missing_quality"
+    },
+    {
+      "elapsed_seconds": 0.14000000001396984,
+      "status": "passed",
+      "test_id": "test_paper_notifications.PaperNotificationTests.test_batch_counter_survives_restart_between_summaries"
+    },
+    {
+      "elapsed_seconds": 0.17199999990407377,
+      "status": "passed",
+      "test_id": "test_paper_notifications.PaperNotificationTests.test_bounded_parts_have_simulation_timestamp_and_mention_suppression"
+    },
+    {
+      "elapsed_seconds": 0.062000000034458935,
+      "status": "passed",
+      "test_id": "test_paper_notifications.PaperNotificationTests.test_cancellation_after_dispatch_retains_uncertainty_without_success"
+    },
+    {
+      "elapsed_seconds": 0.15700000000651926,
+      "status": "passed",
+      "test_id": "test_paper_notifications.PaperNotificationTests.test_conflicting_replay_is_rejected_without_replacing_snapshot"
+    },
+    {
+      "elapsed_seconds": 0.125,
+      "status": "passed",
+      "test_id": "test_paper_notifications.PaperNotificationTests.test_corrupt_metadata_schedule_type_disables_instead_of_sending"
+    },
+    {
+      "elapsed_seconds": 0.0779999999795109,
+      "status": "passed",
+      "test_id": "test_paper_notifications.PaperNotificationTests.test_default_http_confirmation_preserves_thread_and_disables_mentions"
+    },
+    {
+      "elapsed_seconds": 0.15700000000651926,
+      "status": "passed",
+      "test_id": "test_paper_notifications.PaperNotificationTests.test_delivery_markers_require_confirmation_and_restart_suppresses_replay"
+    },
+    {
+      "elapsed_seconds": 0.125,
+      "status": "passed",
+      "test_id": "test_paper_notifications.PaperNotificationTests.test_emission_after_settlement_and_native_order_id_are_supported"
+    },
+    {
+      "elapsed_seconds": 0.125,
+      "status": "passed",
+      "test_id": "test_paper_notifications.PaperNotificationTests.test_error_details_are_never_stored_or_sent_and_interval_is_explicit"
+    },
+    {
+      "elapsed_seconds": 0.26500000001396984,
+      "status": "passed",
+      "test_id": "test_paper_notifications.PaperNotificationTests.test_five_new_batches_only_and_utc_schedules_are_current_snapshots"
+    },
+    {
+      "elapsed_seconds": 0.2190000000409782,
+      "status": "passed",
+      "test_id": "test_paper_notifications.PaperNotificationTests.test_heartbeat_fallback_and_state_changes_do_not_count_financial_batches"
+    },
+    {
+      "elapsed_seconds": 0.0940000000409782,
+      "status": "passed",
+      "test_id": "test_paper_notifications.PaperNotificationTests.test_identity_and_row_mismatches_never_present_unrelated_money"
+    },
+    {
+      "elapsed_seconds": 0.10899999993853271,
+      "status": "passed",
+      "test_id": "test_paper_notifications.PaperNotificationTests.test_invalid_or_oversized_input_is_isolated"
+    },
+    {
+      "elapsed_seconds": 0.125,
+      "status": "passed",
+      "test_id": "test_paper_notifications.PaperNotificationTests.test_long_untrusted_cost_details_cannot_remove_any_of_the_eight_rows"
+    },
+    {
+      "elapsed_seconds": 0.045999999972991645,
+      "status": "passed",
+      "test_id": "test_paper_notifications.PaperNotificationTests.test_metadata_corruption_or_write_failure_isolated_before_dispatch"
+    },
+    {
+      "elapsed_seconds": 0.0940000000409782,
+      "status": "passed",
+      "test_id": "test_paper_notifications.PaperNotificationTests.test_missing_costs_and_null_observation_remain_unknown"
+    },
+    {
+      "elapsed_seconds": 0.5310000000754371,
+      "status": "passed",
+      "test_id": "test_paper_notifications.PaperNotificationTests.test_modes_use_canonical_close_money_and_suppress_duplicate_events"
+    },
+    {
+      "elapsed_seconds": 0.0779999999795109,
+      "status": "passed",
+      "test_id": "test_paper_notifications.PaperNotificationTests.test_native_observation_identity_and_timestamp_must_match_row"
+    },
+    {
+      "elapsed_seconds": 0.03100000007543713,
+      "status": "passed",
+      "test_id": "test_paper_notifications.PaperNotificationTests.test_offer_has_no_io_and_disabled_or_invalid_config_has_no_delivery"
+    },
+    {
+      "elapsed_seconds": 0.0470000000204891,
+      "status": "passed",
+      "test_id": "test_paper_notifications.PaperNotificationTests.test_permanent_http_error_disables_delivery_with_no_retry"
+    },
+    {
+      "elapsed_seconds": 0.1559999999590218,
+      "status": "passed",
+      "test_id": "test_paper_notifications.PaperNotificationTests.test_queue_overflow_and_coalescing_are_disclosed_while_offer_keeps_progressing"
+    },
+    {
+      "elapsed_seconds": 0.125,
+      "status": "passed",
+      "test_id": "test_paper_notifications.PaperNotificationTests.test_rate_limit_honors_delay_and_partial_success_is_not_resent"
+    },
+    {
+      "elapsed_seconds": 0.125,
+      "status": "passed",
+      "test_id": "test_paper_notifications.PaperNotificationTests.test_stalled_metadata_write_leaves_the_event_loop_available"
+    },
+    {
+      "elapsed_seconds": 0.0940000000409782,
+      "status": "passed",
+      "test_id": "test_paper_notifications.PaperNotificationTests.test_startup_uses_eight_native_eur_rows_and_all_four_cohort_differences"
+    },
+    {
+      "elapsed_seconds": 0.515999999945052,
+      "status": "passed",
+      "test_id": "test_paper_notifications.PaperNotificationTests.test_timeout_is_bounded_uncertain_and_never_marks_success"
+    },
+    {
+      "elapsed_seconds": 0.26599999994505197,
+      "status": "passed",
+      "test_id": "test_paper_notifications.PaperNotificationTests.test_unconfirmed_default_response_and_redirect_never_mark_delivery"
+    },
+    {
+      "elapsed_seconds": 0.35900000005494803,
+      "status": "passed",
+      "test_id": "test_paper_notification_capture.NotificationBootTests.test_background_reporter_runs_but_does_not_start_a_legacy_writer"
+    },
+    {
+      "elapsed_seconds": 0.31299999996554106,
+      "status": "passed",
+      "test_id": "test_paper_notification_capture.NotificationBootTests.test_bad_notification_configuration_leaves_original_worker_dispatch_unchanged"
+    },
+    {
+      "elapsed_seconds": 0.31299999996554106,
+      "status": "passed",
+      "test_id": "test_paper_notification_capture.NotificationBootTests.test_failed_background_sender_does_not_replace_worker_result"
+    },
+    {
+      "elapsed_seconds": 1.1560000000754371,
+      "status": "passed",
+      "test_id": "test_paper_notification_capture.NotificationCaptureTests.test_final_observations_and_orders_are_ephemeral_and_bound_to_all_eight_accounts"
+    },
+    {
+      "elapsed_seconds": 1.0309999999590218,
+      "status": "passed",
+      "test_id": "test_paper_notification_capture.NotificationCaptureTests.test_missing_cost_remains_unknown_in_final_capture"
+    },
+    {
+      "elapsed_seconds": 1.9219999999040738,
+      "status": "passed",
+      "test_id": "test_paper_notification_capture.NotificationCaptureTests.test_native_final_risk_sweep_closes_are_captured_with_eur_pnl"
+    },
+    {
+      "elapsed_seconds": 1.0160000000614673,
+      "status": "passed",
+      "test_id": "test_paper_notification_capture.NotificationCaptureTests.test_notification_source_failure_cannot_undo_settlement"
+    },
+    {
+      "elapsed_seconds": 1.9689999999245629,
+      "status": "passed",
+      "test_id": "test_paper_notification_capture.NotificationCaptureTests.test_partial_leg_is_reported_once_with_its_native_size_and_remainder_open"
+    },
+    {
+      "elapsed_seconds": 1.0940000000409782,
+      "status": "passed",
+      "test_id": "test_paper_notification_capture.NotificationCaptureTests.test_pending_batch_recovery_uses_original_event_timestamp_without_duplicate_orders"
+    },
+    {
+      "elapsed_seconds": 4.655999999959022,
+      "status": "passed",
+      "test_id": "test_paper_notification_capture.NotificationWorkerIsolationTests.test_archive_outage_protection_emits_final_native_closes_without_replaying_on_ack"
+    },
+    {
+      "elapsed_seconds": 1.172000000020489,
+      "status": "passed",
+      "test_id": "test_paper_notification_capture.NotificationWorkerIsolationTests.test_observer_exception_does_not_become_worker_failure"
+    },
+    {
+      "elapsed_seconds": 4.375,
+      "status": "passed",
+      "test_id": "test_paper_notification_capture.NotificationWorkerIsolationTests.test_real_sender_stall_allows_next_batch_to_protect_positions_and_retains_opening"
+    },
+    {
+      "elapsed_seconds": 9.375,
+      "status": "passed",
+      "test_id": "test_paper_discord_transition.ReportingClosedCopyTests.test_exact_both_host_transition_preserves_original_state_and_retries"
+    },
+    {
+      "elapsed_seconds": 0.030999999959021807,
+      "status": "passed",
+      "test_id": "test_paper_discord_transition.ReportingReleaseValidationTests.test_exact_reporting_delta_is_admitted_from_installed_successor_only"
+    },
+    {
+      "elapsed_seconds": 0.1720000000204891,
+      "status": "passed",
+      "test_id": "test_paper_discord_transition.ReportingReleaseValidationTests.test_reporting_admission_does_not_expand_backup_or_other_runtime_permission"
+    },
+    {
+      "elapsed_seconds": 1.2810000000754371,
+      "status": "passed",
+      "test_id": "test_paired_worker.WorkerTests.test_bound_change_cannot_restart_completed_experiment"
+    },
+    {
+      "elapsed_seconds": 1.859000000054948,
+      "status": "passed",
+      "test_id": "test_paired_worker.WorkerTests.test_bound_survives_restart_and_no_new_collection"
+    },
+    {
+      "elapsed_seconds": 1.562000000034459,
+      "status": "passed",
+      "test_id": "test_paired_worker.WorkerTests.test_completed_packet_database_hash_must_match"
+    },
+    {
+      "elapsed_seconds": 1.609000000054948,
+      "status": "passed",
+      "test_id": "test_paired_worker.WorkerTests.test_crash_after_core_commit_counts_once_on_restart"
+    },
+    {
+      "elapsed_seconds": 1.577999999979511,
+      "status": "passed",
+      "test_id": "test_paired_worker.WorkerTests.test_cycle_failure_replaces_previous_healthy_heartbeat"
+    },
+    {
+      "elapsed_seconds": 1.6570000000065193,
+      "status": "passed",
+      "test_id": "test_paired_worker.WorkerTests.test_day30_checkpoint_is_preserved"
+    },
+    {
+      "elapsed_seconds": 0.26500000001396984,
+      "status": "passed",
+      "test_id": "test_paired_worker.WorkerTests.test_deadline_crossed_during_collection_cannot_open_positions"
+    },
+    {
+      "elapsed_seconds": 0.06299999996554106,
+      "status": "passed",
+      "test_id": "test_paired_worker.WorkerTests.test_draft_rejected_before_factory"
+    },
+    {
+      "elapsed_seconds": 0.125,
+      "status": "passed",
+      "test_id": "test_paired_worker.WorkerTests.test_expired_model_access_rejected_before_collection"
+    },
+    {
+      "elapsed_seconds": 1.25,
+      "status": "passed",
+      "test_id": "test_paired_worker.WorkerTests.test_flat_wallet_bad_quote_cannot_report_healthy"
+    },
+    {
+      "elapsed_seconds": 1.7820000000065193,
+      "status": "passed",
+      "test_id": "test_paired_worker.WorkerTests.test_low_storage_replays_original_pending_batch_then_stops"
+    },
+    {
+      "elapsed_seconds": 2.48499999998603,
+      "status": "passed",
+      "test_id": "test_paired_worker.WorkerTests.test_malformed_access_blocks_entries_but_running_worker_closes_due_exit"
+    },
+    {
+      "elapsed_seconds": 0.10999999998603016,
+      "status": "passed",
+      "test_id": "test_paired_worker.WorkerTests.test_missing_storage_policy_prevents_collection"
+    },
+    {
+      "elapsed_seconds": 3.562000000034459,
+      "status": "passed",
+      "test_id": "test_paired_worker.WorkerTests.test_partial_public_failure_protects_peer_and_recovers_running_worker"
+    },
+    {
+      "elapsed_seconds": 0.062000000034458935,
+      "status": "passed",
+      "test_id": "test_paired_worker.WorkerTests.test_public_collector_cancellation_is_not_an_unavailable_result"
+    },
+    {
+      "elapsed_seconds": 1.1570000000065193,
+      "status": "passed",
+      "test_id": "test_paired_worker.WorkerTests.test_public_collector_normalizes_and_excludes_forming_bar"
+    },
+    {
+      "elapsed_seconds": 0.0779999999795109,
+      "status": "passed",
+      "test_id": "test_paired_worker.WorkerTests.test_public_collector_preserves_successful_peer_for_failed_missing_and_malformed_asset"
+    },
+    {
+      "elapsed_seconds": 0.0779999999795109,
+      "status": "passed",
+      "test_id": "test_paired_worker.WorkerTests.test_public_collector_whole_failure_is_complete_unavailable_batch"
+    },
+    {
+      "elapsed_seconds": 2.5790000000270084,
+      "status": "passed",
+      "test_id": "test_paired_worker.WorkerTests.test_second_worker_cannot_interleave_during_sleep"
+    },
+    {
+      "elapsed_seconds": 1.2190000000409782,
+      "status": "passed",
+      "test_id": "test_paired_worker.WorkerTests.test_stale_signal_with_fresh_quote_cannot_open"
+    },
+    {
+      "elapsed_seconds": 0.3279999999795109,
+      "status": "passed",
+      "test_id": "test_paired_worker.WorkerTests.test_stop_during_collection_cannot_open_positions"
+    },
+    {
+      "elapsed_seconds": 0.26500000001396984,
+      "status": "passed",
+      "test_id": "test_paired_worker.WorkerTests.test_storage_breach_stops_before_collection_and_survives_restart"
+    },
+    {
+      "elapsed_seconds": 0.26599999994505197,
+      "status": "passed",
+      "test_id": "test_paired_worker.WorkerTests.test_storage_crossed_during_collection_cannot_execute"
+    },
+    {
+      "elapsed_seconds": 1.2959999999729916,
+      "status": "passed",
+      "test_id": "test_paired_worker.WorkerTests.test_storage_limit_changes_cannot_reset_lifecycle"
+    },
+    {
+      "elapsed_seconds": 1.515999999945052,
+      "status": "passed",
+      "test_id": "test_paired_worker.WorkerTests.test_supervisor_cannot_use_quote_older_than_five_minutes"
+    },
+    {
+      "elapsed_seconds": 0.3910000000614673,
+      "status": "passed",
+      "test_id": "test_paper_boot.PaperBootTests.test_approved_paper_boot_creates_real_common_opening_in_selected_primary"
+    },
+    {
+      "elapsed_seconds": 0.030999999959021807,
+      "status": "passed",
+      "test_id": "test_paper_boot.PaperBootTests.test_draft_or_archive_enabled_candidate_cannot_create_inception"
+    },
+    {
+      "elapsed_seconds": 4.844000000040978,
+      "status": "passed",
+      "test_id": "test_paper_boot.PaperBootTests.test_expired_model_after_restart_still_closes_retained_positions"
+    },
+    {
+      "elapsed_seconds": 0.015000000013969839,
+      "status": "passed",
+      "test_id": "test_paper_boot.PaperBootTests.test_live_ambiguous_or_real_order_environment_rejected_before_state_io"
+    },
+    {
+      "elapsed_seconds": 0.1559999999590218,
+      "status": "passed",
+      "test_id": "test_paired_paper.PairedPaperTests.test_all_controls_cannot_drift_together_or_initial_adaptive_change"
+    },
+    {
+      "elapsed_seconds": 1.1559999999590218,
+      "status": "passed",
+      "test_id": "test_paired_paper.PairedPaperTests.test_common_packet_executes_at_ask_not_closed_candle"
+    },
+    {
+      "elapsed_seconds": 1.922000000020489,
+      "status": "passed",
+      "test_id": "test_paired_paper.PairedPaperTests.test_cost_journal_failure_does_not_starve_protective_exits"
+    },
+    {
+      "elapsed_seconds": 1.359000000054948,
+      "status": "passed",
+      "test_id": "test_paired_paper.PairedPaperTests.test_cost_producer_refreshes_new_batch_but_never_pending_replay"
+    },
+    {
+      "elapsed_seconds": 1.625,
+      "status": "passed",
+      "test_id": "test_paired_paper.PairedPaperTests.test_cost_reserve_is_frozen_and_reused_after_account_restart"
+    },
+    {
+      "elapsed_seconds": 1.4690000000409782,
+      "status": "passed",
+      "test_id": "test_paired_paper.PairedPaperTests.test_crash_between_assets_preserves_prebatch_equity_budget"
+    },
+    {
+      "elapsed_seconds": 1.265999999945052,
+      "status": "passed",
+      "test_id": "test_paired_paper.PairedPaperTests.test_delayed_replay_uses_original_costs_and_risk_budget"
+    },
+    {
+      "elapsed_seconds": 0.0940000000409782,
+      "status": "passed",
+      "test_id": "test_paired_paper.PairedPaperTests.test_draft_and_path_escape_are_rejected_before_collection"
+    },
+    {
+      "elapsed_seconds": 1.2179999999934807,
+      "status": "passed",
+      "test_id": "test_paired_paper.PairedPaperTests.test_failed_account_checkpoint_rolls_back_risk_but_replays_committed_fill"
+    },
+    {
+      "elapsed_seconds": 0.5470000000204891,
+      "status": "passed",
+      "test_id": "test_paired_paper.PairedPaperTests.test_failed_packet_commit_rolls_back_prebatch_halt"
+    },
+    {
+      "elapsed_seconds": 1.109000000054948,
+      "status": "passed",
+      "test_id": "test_paired_paper.PairedPaperTests.test_fractional_goal_values_are_losslessly_bound_before_processing"
+    },
+    {
+      "elapsed_seconds": 1.937999999965541,
+      "status": "passed",
+      "test_id": "test_paired_paper.PairedPaperTests.test_known_cost_measurement_failure_does_not_starve_later_accounts"
+    },
+    {
+      "elapsed_seconds": 2.312000000034459,
+      "status": "passed",
+      "test_id": "test_paired_paper.PairedPaperTests.test_late_final_valuation_breach_is_settled_before_observation"
+    },
+    {
+      "elapsed_seconds": 2.015999999945052,
+      "status": "passed",
+      "test_id": "test_paired_paper.PairedPaperTests.test_liquidation_restart_is_idempotent_and_missing_bid_never_fabricates_fill"
+    },
+    {
+      "elapsed_seconds": 0.0940000000409782,
+      "status": "passed",
+      "test_id": "test_paired_paper.PairedPaperTests.test_maker_baseline_is_rejected_before_common_collection"
+    },
+    {
+      "elapsed_seconds": 2.015999999945052,
+      "status": "passed",
+      "test_id": "test_paired_paper.PairedPaperTests.test_malformed_cost_json_is_frozen_and_protective_exits_continue"
+    },
+    {
+      "elapsed_seconds": 2.75,
+      "status": "passed",
+      "test_id": "test_paired_paper.PairedPaperTests.test_nonprimary_drawdown_halts_pair_liquidates_and_remains_latched"
+    },
+    {
+      "elapsed_seconds": 1.047000000020489,
+      "status": "passed",
+      "test_id": "test_paired_paper.PairedPaperTests.test_one_collection_eight_isolated_accounts_and_shared_packet"
+    },
+    {
+      "elapsed_seconds": 1.1099999999860302,
+      "status": "passed",
+      "test_id": "test_paired_paper.PairedPaperTests.test_one_supervisor_cost_source_is_frozen_for_all_adaptive_wallets"
+    },
+    {
+      "elapsed_seconds": 1.187000000034459,
+      "status": "passed",
+      "test_id": "test_paired_paper.PairedPaperTests.test_pending_batch_replays_original_supervisor_source_without_refresh"
+    },
+    {
+      "elapsed_seconds": 1.1559999999590218,
+      "status": "passed",
+      "test_id": "test_paired_paper.PairedPaperTests.test_pending_fractional_goal_replay_rejects_changed_value"
+    },
+    {
+      "elapsed_seconds": 1.2349999999860302,
+      "status": "passed",
+      "test_id": "test_paired_paper.PairedPaperTests.test_post_entry_cost_breach_closes_earlier_accounts_in_same_batch"
+    },
+    {
+      "elapsed_seconds": 1.8900000000139698,
+      "status": "passed",
+      "test_id": "test_paired_paper.PairedPaperTests.test_primary_archives_are_available_before_all_adaptive_budgets"
+    },
+    {
+      "elapsed_seconds": 2.172000000020489,
+      "status": "passed",
+      "test_id": "test_paired_paper.PairedPaperTests.test_primary_drawdown_liquidates_all_accounts_and_blocks_steering"
+    },
+    {
+      "elapsed_seconds": 1.4689999999245629,
+      "status": "passed",
+      "test_id": "test_paired_paper.PairedPaperTests.test_publication_after_candle_close_does_not_apply_retroactively"
+    },
+    {
+      "elapsed_seconds": 1.187000000034459,
+      "status": "passed",
+      "test_id": "test_paired_paper.PairedPaperTests.test_restart_reuses_committed_packet_and_strategy_without_recollecting"
+    },
+    {
+      "elapsed_seconds": 1.937999999965541,
+      "status": "passed",
+      "test_id": "test_paired_paper.PairedPaperTests.test_settled_journal_append_failure_replays_one_observation_and_close"
+    },
+    {
+      "elapsed_seconds": 0.0,
+      "status": "passed",
+      "test_id": "test_paired_risk.PairedRiskTests.test_exact_threshold_stops_pair_and_recovery_never_resumes"
+    },
+    {
+      "elapsed_seconds": 0.0,
+      "status": "passed",
+      "test_id": "test_paired_risk.PairedRiskTests.test_no_false_breach_below_boundary_and_nonfinite_rejected"
+    },
+    {
+      "elapsed_seconds": 0.0,
+      "status": "passed",
+      "test_id": "test_paired_risk.PairedRiskTests.test_running_peak_primary_global_and_unknown_never_reset_state"
+    },
+    {
+      "elapsed_seconds": 4.85999999998603,
+      "status": "passed",
+      "test_id": "test_archive_protective_worker.ProtectiveWorkerTests.test_actual_worker_outage_closes_all_eight_once_and_reconnect_ack_does_not_collect"
+    },
+    {
+      "elapsed_seconds": 2.609000000054948,
+      "status": "passed",
+      "test_id": "test_archive_protective_worker.ProtectiveWorkerTests.test_authentication_error_is_not_protective_transport_outage"
+    },
+    {
+      "elapsed_seconds": 3.0,
+      "status": "passed",
+      "test_id": "test_archive_protective_worker.ProtectiveWorkerTests.test_healthy_admission_keeps_final_original_slot_reserved"
+    },
+    {
+      "elapsed_seconds": 4.609000000054948,
+      "status": "passed",
+      "test_id": "test_archive_protective_worker.ProtectiveWorkerTests.test_lost_normal_completion_reply_uses_bounded_original_plus_protective_suffix"
+    },
+    {
+      "elapsed_seconds": 1.125,
+      "status": "passed",
+      "test_id": "test_archive_protective_worker.ProtectiveWorkerTests.test_lost_unfrozen_reserve_reply_does_not_collect_or_borrow_credit"
+    },
+    {
+      "elapsed_seconds": 0.7029999999795109,
+      "status": "passed",
+      "test_id": "test_archive_protective_worker.ProtectiveWorkerTests.test_missing_adapter_or_unavailable_startup_receiver_never_collects"
+    },
+    {
+      "elapsed_seconds": 2.875,
+      "status": "passed",
+      "test_id": "test_archive_protective_worker.ProtectiveWorkerTests.test_original_deadline_prevents_new_outage_quotes"
+    },
+    {
+      "elapsed_seconds": 4.625,
+      "status": "passed",
+      "test_id": "test_archive_protective_worker.ProtectiveWorkerTests.test_original_partial_ordinary_packet_replays_without_a_new_quote"
+    },
+    {
+      "elapsed_seconds": 7.0,
+      "status": "passed",
+      "test_id": "test_archive_protective_worker.ProtectiveWorkerTests.test_partial_original_protection_restarts_without_recollecting"
+    },
+    {
+      "elapsed_seconds": 5.452999999979511,
+      "status": "passed",
+      "test_id": "test_archive_protective_worker.ProtectiveWorkerTests.test_stale_outage_quote_leaves_positions_pending_without_claiming_exits"
+    },
+    {
+      "elapsed_seconds": 10.828000000095926,
+      "status": "passed",
+      "test_id": "test_paper_release_transition.ClosedCopyTransitionTests.test_active_native_worker_cycle_review_or_importer_refuses_apply"
+    },
+    {
+      "elapsed_seconds": 6.468999999924563,
+      "status": "passed",
+      "test_id": "test_paper_release_transition.ClosedCopyTransitionTests.test_changed_preplan_economics_are_refused_against_native_original_bindings"
+    },
+    {
+      "elapsed_seconds": 16.90700000000652,
+      "status": "passed",
+      "test_id": "test_paper_release_transition.ClosedCopyTransitionTests.test_checked_rollback_restores_bindings_without_rewinding_new_history"
+    },
+    {
+      "elapsed_seconds": 7.297000000020489,
+      "status": "passed",
+      "test_id": "test_paper_release_transition.ClosedCopyTransitionTests.test_cli_defaults_to_inspection_and_bounded_reads_do_not_write"
+    },
+    {
+      "elapsed_seconds": 9.484000000054948,
+      "status": "passed",
+      "test_id": "test_paper_release_transition.ClosedCopyTransitionTests.test_commit_before_receipt_requires_reconciliation_and_resumes_exactly"
+    },
+    {
+      "elapsed_seconds": 8.01500000001397,
+      "status": "passed",
+      "test_id": "test_paper_release_transition.ClosedCopyTransitionTests.test_exact_apply_and_retry_preserve_opening_history_limits_and_counters"
+    },
+    {
+      "elapsed_seconds": 4.202999999979511,
+      "status": "passed",
+      "test_id": "test_paper_release_transition.ClosedCopyTransitionTests.test_existing_wal_is_refused_without_ignoring_or_deleting_it"
+    },
+    {
+      "elapsed_seconds": 5.858999999938533,
+      "status": "passed",
+      "test_id": "test_paper_release_transition.ClosedCopyTransitionTests.test_extended_native_importer_tables_are_refused_before_plan"
+    },
+    {
+      "elapsed_seconds": 133.1720000000205,
+      "status": "passed",
+      "test_id": "test_paper_release_transition.ClosedCopyTransitionTests.test_interruption_at_every_component_commit_and_receipt_is_reconciled"
+    },
+    {
+      "elapsed_seconds": 4.765999999945052,
+      "status": "passed",
+      "test_id": "test_paper_release_transition.ClosedCopyTransitionTests.test_pending_batch_publication_review_and_delivery_are_not_cleared"
+    },
+    {
+      "elapsed_seconds": 5.469000000040978,
+      "status": "passed",
+      "test_id": "test_paper_release_transition.ClosedCopyTransitionTests.test_plan_inspection_and_default_apply_do_not_change_inputs"
+    },
+    {
+      "elapsed_seconds": 7.202999999979511,
+      "status": "passed",
+      "test_id": "test_paper_release_transition.ClosedCopyTransitionTests.test_preplan_launcher_identity_and_primary_limits_are_checked"
+    },
+    {
+      "elapsed_seconds": 36.79700000002049,
+      "status": "passed",
+      "test_id": "test_paper_release_transition.ClosedCopyTransitionTests.test_reconcile_and_rollback_preflight_all_states_and_receipts"
+    },
+    {
+      "elapsed_seconds": 5.047000000020489,
+      "status": "passed",
+      "test_id": "test_paper_release_transition.ClosedCopyTransitionTests.test_rehashed_plan_cannot_expand_paths_kind_or_non_release_fields"
+    },
+    {
+      "elapsed_seconds": 3.937000000034459,
+      "status": "passed",
+      "test_id": "test_paper_release_transition.ClosedCopyTransitionTests.test_unexpected_importer_trigger_cannot_modify_preserved_history"
+    },
+    {
+      "elapsed_seconds": 5.781000000075437,
+      "status": "passed",
+      "test_id": "test_paper_release_transition.ClosedCopyTransitionTests.test_wrong_identity_economics_or_plan_edit_is_rejected_before_any_write"
+    },
+    {
+      "elapsed_seconds": 0.030999999959021807,
+      "status": "passed",
+      "test_id": "test_paper_release_transition.ReleasePlanValidationTests.test_only_snapshot_runtime_digest_may_change"
+    },
+    {
+      "elapsed_seconds": 0.01600000006146729,
+      "status": "passed",
+      "test_id": "test_paper_release_transition.ReleasePlanValidationTests.test_other_runtime_watcher_launcher_keys_and_noop_are_rejected"
+    },
+    {
+      "elapsed_seconds": 0.030999999959021807,
+      "status": "passed",
+      "test_id": "test_paper_release_transition.ReleasePlanValidationTests.test_source_commits_target_and_malformed_digests_fail_closed"
+    }
+  ],
+  "python_version": "3.11.9 (tags/v3.11.9:de54cf5, Apr  2 2024, 10:12:12) [MSC v.1938 64 bit (AMD64)]",
+  "raw_http_denials": [],
+  "raw_transport_guards_active": true,
+  "release_map": {
+    "native_launcher_sha256": "d1426320536bd8c369163d8fd6221f151fcb4f01e76ceb3033d945b8f96bd073",
+    "new_runtime_map": "61c0cd1055148b6261b6a828bbf04f97ce7d9496a529b81c157f0bb44df6748e",
+    "new_supervisor_release": "aa06920c43908fddea535a337cd91f43cd7866ce91e40bb01e5f9eff4d13418d",
+    "old_runtime_map": "2577bc1ce7c64adccd92a211cf60e25cce6f1e392bb63cfdb516802c1df17fcc",
+    "old_supervisor_release": "f5cae59278c4e99fc3fa3a33da4bf55890276b29370a28260e9cf3400729edfd",
+    "release_plan_sha256": "a71cb8210718b6c43eeb38c9f824f002cb30a3b1946274989da8c0fc2d35e132",
+    "release_plan_validated": true,
+    "runtime_delta": [
+      "notifications.py",
+      "paired_paper.py",
+      "paired_worker.py",
+      "paper_boot.py"
+    ],
+    "runtime_keyset_unchanged": true,
+    "runtime_modules": 129,
+    "source_commit": "8f315b35cf6a40267cc07be1bac2c9be126006c7",
+    "unchanged_runtime_modules": 125,
+    "watcher_and_native_launcher_unchanged": true,
+    "watcher_sha256": "118d3170daa2bd816c205a66ec12cbaa829aceae01d456e1aa9f8d842f4e36e2"
+  },
+  "resource_warning_count": 0,
+  "restarted": false,
+  "result": "passed",
+  "skip_details": [],
+  "skips": 0,
+  "source_commit": "8f315b35cf6a40267cc07be1bac2c9be126006c7",
+  "synthetic_only": true,
+  "sys_path_first_two": [
+    "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-discord-reporting-v1\\release-upload-8f315b3-v2\\tests",
+    "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-discord-reporting-v1\\release-upload-8f315b3-v2"
+  ],
+  "test_elapsed_seconds": 416.844000000041,
+  "tests_run": 161,
+  "total_elapsed_seconds": 419.14099999994505,
+  "unexpected_successes": 0,
+  "warnings": []
+}

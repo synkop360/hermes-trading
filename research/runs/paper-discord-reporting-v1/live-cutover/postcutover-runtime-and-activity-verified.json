@@ -1,0 +1,91 @@
+{
+  "observed_at": "2026-10-25T12:26:21.818070+00:00",
+  "source_candidate": "ed439e897a4dd388fdcf6425e7e8b6171d5a88a9",
+  "runtime_files_verified": 129,
+  "original_opening_hash": "50fd92318969675f72e7450148e77e5bb1d4f60d9d1963ec90cab3061e27c349",
+  "original_manifest_sha256": "43ec91c55d05f6f04f7a227dd9adc23a2283dd0d788a2255903cb63ee60cbb64",
+  "accounts": {
+    "adaptive_100": {
+      "orders": 0,
+      "positions": 0,
+      "account_hash_matches": true,
+      "strategy_unchanged": true,
+      "cost_t0_unchanged": true
+    },
+    "adaptive_150": {
+      "orders": 0,
+      "positions": 0,
+      "account_hash_matches": true,
+      "strategy_unchanged": true,
+      "cost_t0_unchanged": true
+    },
+    "adaptive_200": {
+      "orders": 0,
+      "positions": 0,
+      "account_hash_matches": true,
+      "strategy_unchanged": true,
+      "cost_t0_unchanged": true
+    },
+    "adaptive_50": {
+      "orders": 0,
+      "positions": 0,
+      "account_hash_matches": true,
+      "strategy_unchanged": true,
+      "cost_t0_unchanged": true
+    },
+    "control_100": {
+      "orders": 0,
+      "positions": 0,
+      "account_hash_matches": true,
+      "strategy_unchanged": true,
+      "cost_t0_unchanged": true
+    },
+    "control_150": {
+      "orders": 0,
+      "positions": 0,
+      "account_hash_matches": true,
+      "strategy_unchanged": true,
+      "cost_t0_unchanged": true
+    },
+    "control_200": {
+      "orders": 0,
+      "positions": 0,
+      "account_hash_matches": true,
+      "strategy_unchanged": true,
+      "cost_t0_unchanged": true
+    },
+    "control_50": {
+      "orders": 0,
+      "positions": 0,
+      "account_hash_matches": true,
+      "strategy_unchanged": true,
+      "cost_t0_unchanged": true
+    }
+  },
+  "batch_counts": {
+    "complete": 1750
+  },
+  "mode": "paper",
+  "execution": "simulated",
+  "existing_supervisor_halt_retained": true,
+  "known_processes": [
+    {
+      "modules": [
+        "hermes_trading.paper_boot"
+      ],
+      "pid": 1
+    }
+  ],
+  "primary_net_equity": "199.6146531729122685185185185",
+  "worker_heartbeat_status": "ok",
+  "model_ready": true,
+  "primary_observed_at": "2026-10-25T12:26:05.843471+00:00",
+  "derived_equity_field_source": "native wallet_metrics.observation.net_equity (initial compact selector corrected; raw native receipt unchanged)",
+  "pc_lifecycle_observed_at": "2026-10-25T12:30:25.831312+00:00",
+  "pc_lifecycle": {
+    "cycles_started": 988,
+    "model_attempts_reserved": 0,
+    "deadline": "2027-04-21T20:13:29.470165+00:00",
+    "status": "running"
+  }
+}

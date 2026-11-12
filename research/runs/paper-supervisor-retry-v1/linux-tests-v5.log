@@ -1,0 +1,25 @@
+{"runtime_files": 129, "runtime_map_hash": "38fe4175e5ea53c72a26923e173374e0d9355e90477dd21d53c0c62607a9c0e2", "python": "3.11.17"}
+{"tests": 16, "skipped": 0, "failures": 0, "errors": 0}
+test_history_failure_retains_quotes_for_eight_operational_exits (test_current_venue_review.ReviewRegressionCases.test_history_failure_retains_quotes_for_eight_operational_exits) ... Executing <Task finished name='Task-2' coro=<ReviewRegressionCases.test_history_failure_retains_quotes_for_eight_operational_exits() done, defined at /workspace/tests/test_current_venue_review.py:72> result=None created at /usr/local/lib/python3.11/asyncio/runners.py:100> took 1.170 seconds
+ok
+test_native_price_adapter_retains_received_ticker_only_when_opted_in (test_current_venue_review.ReviewRegressionCases.test_native_price_adapter_retains_received_ticker_only_when_opted_in) ... ok
+test_real_authorized_adaptation_preserves_activation_and_snapshot_audit (test_current_venue_review.ReviewRegressionCases.test_real_authorized_adaptation_preserves_activation_and_snapshot_audit) ... Executing <Task finished name='Task-18' coro=<ReviewRegressionCases.test_real_authorized_adaptation_preserves_activation_and_snapshot_audit() done, defined at /workspace/tests/test_current_venue_review.py:18> result=None created at /usr/local/lib/python3.11/asyncio/runners.py:100> took 3.738 seconds
+ok
+test_active_wrong_protocol_changed_strategy_and_enabled_build_are_rejected_before_writes (test_primary_candidate.PrimaryCandidateTests.test_active_wrong_protocol_changed_strategy_and_enabled_build_are_rejected_before_writes) ... ok
+test_disabled_successor_binds_selection_release_and_launcher_preserving_all_economic_files (test_primary_candidate.PrimaryCandidateTests.test_disabled_successor_binds_selection_release_and_launcher_preserving_all_economic_files) ... ok
+test_activation_receipt_binds_all_strategies_accounts_goals_and_original_time (test_venue_candidate.VenueCandidateTests.test_activation_receipt_binds_all_strategies_accounts_goals_and_original_time) ... ok
+test_corrected_inception_binds_venue_receipt_and_recovers_original_clock (test_venue_candidate.VenueCandidateTests.test_corrected_inception_binds_venue_receipt_and_recovers_original_clock) ... ok
+test_enabled_existing_partial_or_active_source_rejected_before_target_creation (test_venue_candidate.VenueCandidateTests.test_enabled_existing_partial_or_active_source_rejected_before_target_creation) ... ok
+test_exact_eight_disabled_drafts_correct_24_minima_and_preserve_originals (test_venue_candidate.VenueCandidateTests.test_exact_eight_disabled_drafts_correct_24_minima_and_preserve_originals) ... ok
+test_new_protocol_profile_loading_requires_bound_activation_evidence (test_venue_candidate.VenueCandidateTests.test_new_protocol_profile_loading_requires_bound_activation_evidence) ... ok
+test_saved_research_facts_do_not_authorize_later_activation (test_venue_candidate.VenueCandidateTests.test_saved_research_facts_do_not_authorize_later_activation) ... ok
+test_added_symlink_or_reparse_storage_blocks_before_stage (test_archive_capacity.CapacityTests.test_added_symlink_or_reparse_storage_blocks_before_stage) ... ok
+test_fifo_at_object_or_manifest_is_rejected_without_blocking (test_archive_store.ArchiveTests.test_fifo_at_object_or_manifest_is_rejected_without_blocking) ... ok
+test_source_or_destination_symlink_not_followed (test_archive_store.ArchiveTests.test_source_or_destination_symlink_not_followed) ... ok
+test_volume_symlink_is_not_followed_and_reports_unknown (test_paper_safety.PaperSafetyTests.test_volume_symlink_is_not_followed_and_reports_unknown) ... ok
+test_trailing_dot_guard_remains_on_filesystems_that_preserve_it (test_snapshot_plus_names.SnapshotPlusNameTests.test_trailing_dot_guard_remains_on_filesystems_that_preserve_it) ... ok
+
+----------------------------------------------------------------------
+Ran 16 tests in 8.317s
+
+OK

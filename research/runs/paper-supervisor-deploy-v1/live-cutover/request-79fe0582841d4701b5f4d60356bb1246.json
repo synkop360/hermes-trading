@@ -1,0 +1,53 @@
+{
+  "approval_ref": "owner_20261028_resume_and_make_worker_not_halted",
+  "bindings": {
+    "account_hashes": {
+      "adaptive_100": "ab01234ad2feb966dda08ae4d7334835a08d838cba55bb5ff515723c3f6e7c4d",
+      "adaptive_150": "114e0c50abc0237b326b8b8be92e01cee16ff58dbf549f2dee037028c5aa2ff4",
+      "adaptive_200": "8537e0f7f17abc8a092f2ca8e39ad8b1d290f8ee222296fbdc834fe00bb488f3",
+      "adaptive_50": "c6cb98dfffbfefb519cd7dc6cfe213cc61f2bfc741d13bc7d23f18e652f2cb72",
+      "control_100": "d2bf582f19519c6ea828762c53115a20009668676338fbdba9b7712b8fd0aec3",
+      "control_150": "33aead4b07aeddd677babf6b1f344df77f3c0ab2a71932ec3f086d0847468527",
+      "control_200": "25288c8ffd776d40ef0a1cac47b63f1b033e7093a5b01bd551734d62eac589bc",
+      "control_50": "164833f1175f88b92747e404a0d963fec6344debbe4a07d2f8548df3b7544268"
+    },
+    "batch_id": "7ede4c35-61ff-43ea-b23a-fed7f896a13a",
+    "configuration_hash": "9f36b244769bb14def435d5c0a236d0ed8b6b450525f9e4a4315b5f0337d2154",
+    "experiment_id": "paper-beta-v1-20261021-6c9d520",
+    "manifest_hash": "ea5d54c0e67d6286f770a6a3362f491a702875d15b5518987f93b1b2ea634b0d",
+    "opening_hash": "50fd92318969675f72e7450148e77e5bb1d4f60d9d1963ec90cab3061e27c349",
+    "owner_hash": "db684ab9780a550de2cbaa22d586dfe706154cea47dfd6bef8ed247ff56d1577",
+    "pc_evidence_hash": "122fa878d32a2bd1a4f99d1f4c5bdb680834acd0007f89f7fab7559d46e7d154",
+    "primary_wallet_eur": 200,
+    "runtime_hash": "ffe95446f146d79441862a3eae14228865fd7bf460fc7c7311f5ead3510834eb",
+    "safety_policy_hash": "336515ea18e6f45e514deb0947765017b9069fa3d099d9ccfd3c3c8918837925",
+    "selection_hash": "34cb2c43f0e5805e1fbb07f731da8028e258b4b74250e8e54d3b2ceb557f4c90",
+    "settlement_hash": "0b48cdc4018bf6db9ce7f77b1353cfdb277fb75f6f95b3b0980e589681cc9e77",
+    "supervisor_release_hash": "d8289ff44d543bebca1df87a566335f05366607ffc767d05eb00b75c6eddcf04",
+    "worker_limits_hash": "65213dd899f412885e623e7b12169863f630a5cd3596dfb7f40486a7decab17f"
+  },
+  "experiment_id": "paper-beta-v1-20261021-6c9d520",
+  "pc_evidence": {
+    "account_hash": "8537e0f7f17abc8a092f2ca8e39ad8b1d290f8ee222296fbdc834fe00bb488f3",
+    "experiment_id": "paper-beta-v1-20261021-6c9d520",
+    "launch_hash": "8c69f59e1b1dd937e40142a4d4db063c49841110e44cd2667c8ea08c83a2dbd7",
+    "lifecycle_hash": "531edd3b8a3b63e31b76231b2789de647fef14112efa2752beeb6d6373246c22",
+    "limits_hash": "82e7730a295e7d5924109ec6e267a307431a80edaf7df888a35cd64a8d00dec6",
+    "observed_at": "2026-10-28T13:26:14.711815+00:00",
+    "policy_hash": "db684ab9780a550de2cbaa22d586dfe706154cea47dfd6bef8ed247ff56d1577",
+    "primary_selection_sha256": "34cb2c43f0e5805e1fbb07f731da8028e258b4b74250e8e54d3b2ceb557f4c90",
+    "primary_wallet_eur": 200,
+    "release_hash": "d8289ff44d543bebca1df87a566335f05366607ffc767d05eb00b75c6eddcf04",
+    "runtime_hash": "ffe95446f146d79441862a3eae14228865fd7bf460fc7c7311f5ead3510834eb",
+    "schema_version": 1,
+    "wrapper_hash": "d1426320536bd8c369163d8fd6221f151fcb4f01e76ceb3033d945b8f96bd073"
+  },
+  "prepared_at": "2026-10-28T13:26:16.659548+00:00",
+  "purpose": "paper_supervisor_recovery_v1",
+  "request_id": "79fe0582841d4701b5f4d60356bb1246",
+  "schema_version": 1,
+  "state_hash": "f5f220eefede5a3cd313dbee8e5e06ba1f5b1adcb31e091934ae6fca5674472a",
+  "supervisor_event_id": "54395589bdfa4f939101a0422718b39c",
+  "supervisor_observed_at": "2026-10-28T13:25:55.215727+00:00",
+  "valid_until": "2026-10-28T13:28:16.659548+00:00"
+}

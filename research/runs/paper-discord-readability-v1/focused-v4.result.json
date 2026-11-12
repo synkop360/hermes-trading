@@ -1,0 +1,20 @@
+{
+  "exit_code": 0,
+  "elapsed_seconds": 18.172,
+  "arguments": [
+    "-m",
+    "unittest",
+    "tests.test_paper_notifications",
+    "tests.test_notifications"
+  ],
+  "log": "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-paper-operational-corrections\\research\\runs\\paper-discord-readability-v1\\focused-v4.log",
+  "source_sha256": {
+    "hermes_trading/notifications.py": "4219c40a1a0ac649badc724eaf5eb323b8118b332be1964b82bd4dad97fae18d",
+    "tests/test_paper_notifications.py": "c0ed24083cb3d92359363e49e782a496bb799fe7c433cf142da0a292caa7c2c6"
+  },
+  "source_unchanged": true,
+  "result_lines": [
+    "Ran 64 tests in 14.941s",
+    "OK"
+  ]
+}

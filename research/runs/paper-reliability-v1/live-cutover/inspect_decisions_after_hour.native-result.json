@@ -1,0 +1,125 @@
+{
+  "observed_at": "2026-10-29T12:01:31.863285+00:00",
+  "instance": "82344b11-fe45-446c-b7e5-deedce294d0e",
+  "native_exit_code": 0,
+  "result": {
+    "observed_at": "2026-10-29T12:01:31.656098+00:00",
+    "accounts": {
+      "adaptive_200": {
+        "latest_decisions": [
+          {
+            "asset": "BTC/EUR",
+            "action": "no_trade",
+            "reason": "entry_condition_not_met",
+            "decided_at": "2026-10-29T12:00:41.600327+00:00"
+          },
+          {
+            "asset": "XRP/EUR",
+            "action": "no_trade",
+            "reason": "entry_condition_not_met",
+            "decided_at": "2026-10-29T12:00:41.600327+00:00"
+          },
+          {
+            "asset": "ETH/EUR",
+            "action": "no_trade",
+            "reason": "entry_condition_not_met",
+            "decided_at": "2026-10-29T12:00:41.600327+00:00"
+          },
+          {
+            "asset": "BTC/EUR",
+            "action": "no_trade",
+            "reason": "entry_condition_not_met",
+            "decided_at": "2026-10-29T11:00:14.764405+00:00"
+          },
+          {
+            "asset": "XRP/EUR",
+            "action": "no_trade",
+            "reason": "entry_condition_not_met",
+            "decided_at": "2026-10-29T11:00:14.764405+00:00"
+          },
+          {
+            "asset": "ETH/EUR",
+            "action": "no_trade",
+            "reason": "wallet_measurement_incomplete",
+            "decided_at": "2026-10-29T11:00:14.764405+00:00"
+          }
+        ],
+        "latest_candles": [
+          {
+            "asset": "BTC/EUR",
+            "close_timestamp": "2026-10-29T12:00:00+00:00",
+            "processed_at": "2026-10-29T12:00:42.400849+00:00"
+          },
+          {
+            "asset": "XRP/EUR",
+            "close_timestamp": "2026-10-29T12:00:00+00:00",
+            "processed_at": "2026-10-29T12:00:42.372838+00:00"
+          },
+          {
+            "asset": "ETH/EUR",
+            "close_timestamp": "2026-10-29T12:00:00+00:00",
+            "processed_at": "2026-10-29T12:00:42.320102+00:00"
+          }
+        ]
+      },
+      "control_200": {
+        "latest_decisions": [
+          {
+            "asset": "BTC/EUR",
+            "action": "no_trade",
+            "reason": "entry_condition_not_met",
+            "decided_at": "2026-10-29T12:00:41.600327+00:00"
+          },
+          {
+            "asset": "XRP/EUR",
+            "action": "no_trade",
+            "reason": "entry_condition_not_met",
+            "decided_at": "2026-10-29T12:00:41.600327+00:00"
+          },
+          {
+            "asset": "ETH/EUR",
+            "action": "no_trade",
+            "reason": "entry_condition_not_met",
+            "decided_at": "2026-10-29T12:00:41.600327+00:00"
+          },
+          {
+            "asset": "BTC/EUR",
+            "action": "no_trade",
+            "reason": "entry_condition_not_met",
+            "decided_at": "2026-10-29T11:00:14.764405+00:00"
+          },
+          {
+            "asset": "XRP/EUR",
+            "action": "no_trade",
+            "reason": "entry_condition_not_met",
+            "decided_at": "2026-10-29T11:00:14.764405+00:00"
+          },
+          {
+            "asset": "ETH/EUR",
+            "action": "no_trade",
+            "reason": "wallet_measurement_incomplete",
+            "decided_at": "2026-10-29T11:00:14.764405+00:00"
+          }
+        ],
+        "latest_candles": [
+          {
+            "asset": "BTC/EUR",
+            "close_timestamp": "2026-10-29T12:00:00+00:00",
+            "processed_at": "2026-10-29T12:00:42.958434+00:00"
+          },
+          {
+            "asset": "XRP/EUR",
+            "close_timestamp": "2026-10-29T12:00:00+00:00",
+            "processed_at": "2026-10-29T12:00:42.892919+00:00"
+          },
+          {
+            "asset": "ETH/EUR",
+            "close_timestamp": "2026-10-29T12:00:00+00:00",
+            "processed_at": "2026-10-29T12:00:42.851473+00:00"
+          }
+        ]
+      }
+    }
+  },
+  "stderr_bytes": 98
+}

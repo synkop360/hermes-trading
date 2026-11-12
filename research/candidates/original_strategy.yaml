@@ -1,0 +1,50 @@
+entry:
+  direction: long
+  fee: maker
+  indicator: rsi_recovery
+  max_adx: 40
+  require_ema_rising: true
+  threshold: 26
+  trend_ema_period: 20
+exit:
+  indicator: rsi
+  max_bars: 48
+  partial_close_pct: 0.5
+  stop_atr: 2.5
+  take_profit_atr: 4
+  threshold: 55
+  trailing_atr: 2.0
+position_size_r: 0.5
+simulation:
+  maker_fee_rate: 0.00125
+  max_concurrent_positions: 2
+  minimum_expected_edge_pct: 0
+  risk_per_trade_pct: 0.006
+  slippage_rate: 0.001
+  taker_fee_rate: 0.002
+stop_loss_pct: 0.6
+symbols:
+  BTC/USDT:
+    entry:
+      threshold: 33
+    exit:
+      take_profit_atr: 11.0
+  ETH/USDT:
+    entry:
+      threshold: 33
+    exit:
+      take_profit_atr: 11.0
+  LINK/USDT:
+    entry:
+      threshold: 32
+    exit:
+      take_profit_atr: 11.0
+  SOL/USDT:
+    entry:
+      threshold: 35
+    exit:
+      take_profit_atr: 11.0
+  XRP/USDT:
+    entry:
+      threshold: 32.5
+version: '233'

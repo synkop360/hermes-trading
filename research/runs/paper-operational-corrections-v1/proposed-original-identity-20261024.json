@@ -1,0 +1,16 @@
+{
+  "account_hashes": {
+    "adaptive_100": "ab01234ad2feb966dda08ae4d7334835a08d838cba55bb5ff515723c3f6e7c4d",
+    "adaptive_150": "114e0c50abc0237b326b8b8be92e01cee16ff58dbf549f2dee037028c5aa2ff4",
+    "adaptive_200": "8537e0f7f17abc8a092f2ca8e39ad8b1d290f8ee222296fbdc834fe00bb488f3",
+    "adaptive_50": "c6cb98dfffbfefb519cd7dc6cfe213cc61f2bfc741d13bc7d23f18e652f2cb72",
+    "control_100": "d2bf582f19519c6ea828762c53115a20009668676338fbdba9b7712b8fd0aec3",
+    "control_150": "33aead4b07aeddd677babf6b1f344df77f3c0ab2a71932ec3f086d0847468527",
+    "control_200": "25288c8ffd776d40ef0a1cac47b63f1b033e7093a5b01bd551734d62eac589bc",
+    "control_50": "164833f1175f88b92747e404a0d963fec6344debbe4a07d2f8548df3b7544268"
+  },
+  "experiment_id": "paper-beta-v1-20261021-6c9d520",
+  "manifest_sha256": "43ec91c55d05f6f04f7a227dd9adc23a2283dd0d788a2255903cb63ee60cbb64",
+  "opening_hash": "50fd92318969675f72e7450148e77e5bb1d4f60d9d1963ec90cab3061e27c349",
+  "policy_hash": "db684ab9780a550de2cbaa22d586dfe706154cea47dfd6bef8ed247ff56d1577"
+}

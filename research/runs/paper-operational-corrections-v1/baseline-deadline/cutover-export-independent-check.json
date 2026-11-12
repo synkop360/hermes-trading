@@ -1,0 +1,10 @@
+{
+  "export_pin_files": 522,
+  "pin_mismatches": [],
+  "new_runtime_map_matches_export": true,
+  "release_plan_raw_hash_matches_summary": true,
+  "raw_pins_hash_matches_summary": true,
+  "actual_runtime_delta": [
+    "archive_snapshot.py"
+  ]
+}

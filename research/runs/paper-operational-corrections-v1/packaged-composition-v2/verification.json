@@ -1,0 +1,19 @@
+{
+  "candidate_commit": "49c851315b98bb33b1eb78180fb789afe2a49f3d",
+  "captured_receipts": {
+    "apply": 3,
+    "daily": 3,
+    "prepare": 3,
+    "pull": 1
+  },
+  "elapsed_seconds": 26.43799999996554,
+  "errors": [],
+  "failures": [],
+  "passed": 2,
+  "raw_source_files": 522,
+  "raw_source_pins_unchanged": true,
+  "resource_warnings": [],
+  "scope": "two native synthetic composition cases on proposed byte-preserving export; no live state/network",
+  "skipped": [],
+  "tests": 2
+}

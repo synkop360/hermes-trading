@@ -1,0 +1,45 @@
+test_real_busy_then_release_returns_a_fully_validated_snapshot (test_supervisor_snapshot_retry.SnapshotRetryTests.test_real_busy_then_release_returns_a_fully_validated_snapshot) ... FAIL
+test_real_busy_then_release_returns_a_fully_validated_snapshot (test_supervisor_snapshot_retry.SnapshotRetryTests.test_real_busy_then_release_returns_a_fully_validated_snapshot) ... ERROR
+
+======================================================================
+ERROR: test_real_busy_then_release_returns_a_fully_validated_snapshot (test_supervisor_snapshot_retry.SnapshotRetryTests.test_real_busy_then_release_returns_a_fully_validated_snapshot)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\shutil.py", line 632, in _rmtree_unsafe
+    os.unlink(fullname)
+PermissionError: [WinError 32] Le processus ne peut pas accéder au fichier car ce fichier est utilisé par un autre processus: 'C:\\Users\\thoma\\AppData\\Local\\Temp\\tmpwmedhbnq\\paper_publications.sqlite'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\tests\test_global_reflection.py", line 71, in tearDown
+    def tearDown(self): self.tmp.cleanup()
+                        ^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\tempfile.py", line 947, in cleanup
+    self._rmtree(self.name, ignore_errors=self._ignore_cleanup_errors)
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\tempfile.py", line 929, in _rmtree
+    _shutil.rmtree(name, onerror=onerror)
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\shutil.py", line 787, in rmtree
+    return _rmtree_unsafe(path, onerror)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\shutil.py", line 634, in _rmtree_unsafe
+    onerror(os.unlink, fullname, sys.exc_info())
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\tempfile.py", line 893, in onerror
+    _os.unlink(path)
+PermissionError: [WinError 32] Le processus ne peut pas accéder au fichier car ce fichier est utilisé par un autre processus: 'C:\\Users\\thoma\\AppData\\Local\\Temp\\tmpwmedhbnq\\paper_publications.sqlite'
+
+======================================================================
+FAIL: test_real_busy_then_release_returns_a_fully_validated_snapshot (test_supervisor_snapshot_retry.SnapshotRetryTests.test_real_busy_then_release_returns_a_fully_validated_snapshot)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\tests\test_supervisor_snapshot_retry.py", line 65, in test_real_busy_then_release_returns_a_fully_validated_snapshot
+    result = self.retry()
+             ^^^^^^^^^^^^
+  File "E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\tests\test_supervisor_snapshot_retry.py", line 43, in retry
+    self.assertTrue(callable(wrapper), 'CLI snapshot collection has no bounded BUSY retry')
+AssertionError: False is not true : CLI snapshot collection has no bounded BUSY retry
+
+----------------------------------------------------------------------
+Ran 1 test in 0.072s
+
+FAILED (failures=1, errors=1)

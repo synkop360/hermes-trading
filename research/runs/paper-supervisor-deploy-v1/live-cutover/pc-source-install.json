@@ -1,0 +1,22 @@
+{
+  "observed_at": "2026-10-28T07:27:07.409631+00:00",
+  "status": "exact_five_file_pc_source_install_verified",
+  "changed": [
+    "hermes_trading/notifications.py",
+    "hermes_trading/paper_safety.py",
+    "hermes_trading/paper_supervisor_health.py",
+    "hermes_trading/supervisor_sync.py",
+    "scripts/paper_release_transition.py"
+  ],
+  "runtime_files": 129,
+  "new_release_hash": "d8289ff44d543bebca1df87a566335f05366607ffc767d05eb00b75c6eddcf04",
+  "watcher_and_native_unchanged": true,
+  "other_125_runtime_files_unchanged": true,
+  "raw_installed_sha256": {
+    "hermes_trading/notifications.py": "1d7f1c51b7dbafe2d1d980f59b3856b19c1930bdebad4607ce8a422ab831543a",
+    "hermes_trading/paper_safety.py": "8ab64545d923724dba29a9f66c201535edb979cb3a95477fb03ddf44a23db451",
+    "hermes_trading/paper_supervisor_health.py": "16083a67d1d34133f73a95bd097ee483ce4ba07690b7e4af99b6c2fd23becd26",
+    "hermes_trading/supervisor_sync.py": "1e5853d49ce118983be20dc97ad6367df016efe42d60d2be2126f1057b5710d1",
+    "scripts/paper_release_transition.py": "898e2f3518257f7beb889d6309b8e6682fb4a1e2e400227714b75541153a5b5b"
+  }
+}

@@ -1,0 +1,8 @@
+test_eight_closes_and_due_five_batch_summary_share_one_four_part_envelope (test_paper_notifications.PaperNotificationTests.test_eight_closes_and_due_five_batch_summary_share_one_four_part_envelope) ... ok
+test_new_envelopes_arriving_during_delivery_keep_their_own_combined_part_bound (test_paper_notifications.PaperNotificationTests.test_new_envelopes_arriving_during_delivery_keep_their_own_combined_part_bound) ... ok
+test_abandoned_combined_envelope_never_falls_back_to_a_second_summary_intent (test_paper_notifications.PaperNotificationTests.test_abandoned_combined_envelope_never_falls_back_to_a_second_summary_intent) ... ok
+
+----------------------------------------------------------------------
+Ran 3 tests in 1.474s
+
+OK

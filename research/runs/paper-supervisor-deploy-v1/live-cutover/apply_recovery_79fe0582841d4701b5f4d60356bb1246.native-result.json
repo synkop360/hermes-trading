@@ -1,0 +1,113 @@
+{
+  "observed_at": "2026-10-28T13:26:33.909782+00:00",
+  "instance": "b295439f-053d-4911-8b55-5db4e01f00cc",
+  "native_exit_code": 0,
+  "result": {
+    "status": "checked_recovery_returned",
+    "receipt": {
+      "schema_version": 1,
+      "request_id": "79fe0582841d4701b5f4d60356bb1246",
+      "request_hash": "964edeb27d7c988eada655e8de56da3aa95f288fa055a345e92466002e242116",
+      "root_hash": "de3c6976537a237bf4fb69fce0bdb452bdd3de910e995dc56e0bc5f2d412b01f",
+      "intent_hash": "1f619355fbce2548c71584b8140e15a38576d1e35d24166fe9c6a5df0f449334",
+      "before_hash": "f5f220eefede5a3cd313dbee8e5e06ba1f5b1adcb31e091934ae6fca5674472a",
+      "after_hash": "a1bb2de67dfbdcba6dc5d5de9498bf736c4ee542f42ae05be6f35b86f126329f",
+      "before": {
+        "experiment_id": "paper-beta-v1-20261021-6c9d520",
+        "policy_sha256": "336515ea18e6f45e514deb0947765017b9069fa3d099d9ccfd3c3c8918837925",
+        "schema_version": 1,
+        "supervisor": {
+          "consecutive_errors": 3,
+          "entry_halt": true,
+          "error_kind": null,
+          "event_id": "54395589bdfa4f939101a0422718b39c",
+          "last_seen": "2026-10-28T13:25:55.215727+00:00",
+          "success": true
+        },
+        "worker": {
+          "consecutive_errors": 0,
+          "entry_halt": false,
+          "error_kind": null,
+          "last_seen": "2026-10-28T13:25:50.537719+00:00",
+          "success": true
+        }
+      },
+      "after": {
+        "experiment_id": "paper-beta-v1-20261021-6c9d520",
+        "policy_sha256": "336515ea18e6f45e514deb0947765017b9069fa3d099d9ccfd3c3c8918837925",
+        "schema_version": 1,
+        "supervisor": {
+          "consecutive_errors": 0,
+          "entry_halt": false,
+          "error_kind": null,
+          "event_id": "54395589bdfa4f939101a0422718b39c",
+          "last_seen": "2026-10-28T13:25:55.215727+00:00",
+          "success": true
+        },
+        "worker": {
+          "consecutive_errors": 0,
+          "entry_halt": false,
+          "error_kind": null,
+          "last_seen": "2026-10-28T13:25:50.537719+00:00",
+          "success": true
+        }
+      },
+      "outcome": "completed",
+      "status": "completed",
+      "current_supervisor_halted": false
+    },
+    "observed_at": "2026-10-28T13:26:33.379957+00:00",
+    "request_id": "79fe0582841d4701b5f4d60356bb1246",
+    "entry_admission": {
+      "enabled": true,
+      "blocked": false,
+      "reasons": [],
+      "volume": {
+        "blocked": false,
+        "reasons": [],
+        "used_bytes": 241415580,
+        "capacity_bytes": 500000000,
+        "threshold_bytes": 350000000
+      },
+      "worker": {
+        "consecutive_errors": 0,
+        "entry_halt": false,
+        "error_kind": null,
+        "last_seen": "2026-10-28T13:25:50.537719+00:00",
+        "success": true
+      },
+      "supervisor": {
+        "consecutive_errors": 0,
+        "entry_halt": false,
+        "error_kind": null,
+        "event_id": "54395589bdfa4f939101a0422718b39c",
+        "last_seen": "2026-10-28T13:25:55.215727+00:00",
+        "success": true
+      }
+    },
+    "safety": {
+      "experiment_id": "paper-beta-v1-20261021-6c9d520",
+      "policy_sha256": "336515ea18e6f45e514deb0947765017b9069fa3d099d9ccfd3c3c8918837925",
+      "schema_version": 1,
+      "supervisor": {
+        "consecutive_errors": 0,
+        "entry_halt": false,
+        "error_kind": null,
+        "event_id": "54395589bdfa4f939101a0422718b39c",
+        "last_seen": "2026-10-28T13:25:55.215727+00:00",
+        "success": true
+      },
+      "worker": {
+        "consecutive_errors": 0,
+        "entry_halt": false,
+        "error_kind": null,
+        "last_seen": "2026-10-28T13:25:50.537719+00:00",
+        "success": true
+      }
+    },
+    "pending": false,
+    "intent_exists": true,
+    "receipt_exists": true
+  },
+  "stderr_bytes": 98
+}

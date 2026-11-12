@@ -1,0 +1,40 @@
+{
+  "observed_at": "2026-10-25T12:04:56.285264+00:00",
+  "status": "pc_intent_prepared_all_bindings_original",
+  "transition_id": "84fa276f399f1e0070e6eaca57cdab923262479d92437cb5ce0c63dfaea93981",
+  "root_binding": "89140edf63d3c87da1736ebb4a9bec371dac26146f9f8b9259abb1d0889e928c",
+  "intent_hash": "3b9fb114d76e043fd9668047594f2a987aff8820b88505d6aa6ee639000bb367",
+  "audit_dir": "C:\\Users\\thoma\\AppData\\Local\\hermes\\cutovers\\paper-discord-ed439e8\\pc-audit",
+  "inspection": {
+    "status": "inspected",
+    "transition_id": "84fa276f399f1e0070e6eaca57cdab923262479d92437cb5ce0c63dfaea93981",
+    "components": [
+      {
+        "name": "worker_renewal",
+        "state": "before"
+      },
+      {
+        "name": "worker_usage",
+        "state": "before"
+      },
+      {
+        "name": "worker_limits",
+        "state": "before"
+      },
+      {
+        "name": "pc_limits",
+        "state": "before"
+      },
+      {
+        "name": "pc_lifecycle",
+        "state": "before"
+      },
+      {
+        "name": "pc_launch",
+        "state": "before"
+      }
+    ],
+    "writer_quiescence": "not_established_until_apply"
+  },
+  "elapsed_seconds": 27.780999999959022
+}

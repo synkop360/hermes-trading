@@ -1,0 +1,71 @@
+{
+  "reviewed_at": "2026-10-25T12:25:40.131137+00:00",
+  "scope": "local_retained_receipts_only_no_runtime_actions",
+  "source_candidate": "ed439e897a4dd388fdcf6425e7e8b6171d5a88a9",
+  "transition_id": "84fa276f399f1e0070e6eaca57cdab923262479d92437cb5ce0c63dfaea93981",
+  "worker_six_guards_after_match_frozen": true,
+  "pc_six_guards_after_match_frozen": true,
+  "per_host_root_bindings_are_distinct": true,
+  "readiness_pins_actual_pc_validation": true,
+  "ready_at": "2026-10-25T12:16:36.052072+00:00",
+  "original_closed_heartbeat_hash_matches_native_inventory": true,
+  "original_closed_common_observation_at": "2026-10-25T11:44:54.660866+00:00",
+  "successor_first_common_observation_at": "2026-10-25T12:16:47.297443+00:00",
+  "recorded_common_observation_gap_seconds": 1912.636577,
+  "original_completed_batches": 1741,
+  "first_successor_completed_batches": 1742,
+  "startup_confirmed": true,
+  "first_confirmed_local_part_ids": [
+    "b75bf7953398b1522c4dfd73:0",
+    "9423c809ea4923f92af1931a:0"
+  ],
+  "remote_message_ids_retained": false,
+  "message_bodies_retained": false,
+  "financial_five_new_batch_acceptance": "pending",
+  "latest_new_batches": 4,
+  "current_cycle_windows": 0,
+  "first_cohort_checks": {
+    "all_eight_account_hashes_match": true,
+    "all_eight_common_observation_time": true,
+    "all_eight_match_latest_settlement": true,
+    "current_journal_matches_heartbeat": true,
+    "heartbeat_stable_during_read": true,
+    "new_completed_since_closed_baseline": 1
+  },
+  "second_cohort_checks": {
+    "all_eight_account_hashes_match": true,
+    "all_eight_common_observation_time": true,
+    "all_eight_match_latest_settlement": false,
+    "current_journal_matches_heartbeat": false,
+    "heartbeat_stable_during_read": true,
+    "new_completed_since_closed_baseline": 4
+  },
+  "second_journal": {
+    "error_type": "OperationalError",
+    "sqlite_errorname": "SQLITE_BUSY",
+    "status": "unavailable"
+  },
+  "second_journal_comparison_interpretation": "unavailable_not_a_proved_mismatch",
+  "retained_supervisor_safety": {
+    "consecutive_errors": 3,
+    "entry_halt": true,
+    "error_kind": "supervisor_exception",
+    "last_seen": "2026-10-25T12:19:36.799320+00:00",
+    "success": false
+  },
+  "reporter_counters": {
+    "coalesced": 0,
+    "delivery_unknown": 0,
+    "dropped": 0,
+    "gaps": 0,
+    "invalid": 0,
+    "omitted_events": 0,
+    "oversized": 0,
+    "repeated_states": 0,
+    "restarts": 0
+  },
+  "current_cost_coverage_claim": "second_snapshot_all8_no_missing_estimated_hosting_ai_tools_actual_funding",
+  "doc": "LIVE_CUTOVER_RESULT.md",
+  "doc_raw_sha256": "e78895af39c7da3dfa1988c664f1f265cb438997363fc1ba9ccd0d5618b8ac82",
+  "network_process_model_or_state_actions": 0
+}

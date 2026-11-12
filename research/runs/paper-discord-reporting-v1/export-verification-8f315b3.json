@@ -1,0 +1,24 @@
+{
+  "deployed": false,
+  "discord_requests": 0,
+  "export": "release-upload-8f315b3-v2",
+  "files": 586,
+  "new_runtime_map": "61c0cd1055148b6261b6a828bbf04f97ce7d9496a529b81c157f0bb44df6748e",
+  "new_supervisor_release": "aa06920c43908fddea535a337cd91f43cd7866ce91e40bb01e5f9eff4d13418d",
+  "observed_at": "2026-10-24T21:34:55.660040+00:00",
+  "old_export_pins_verified": 522,
+  "old_raw_files_preserved": 516,
+  "old_runtime_map": "2577bc1ce7c64adccd92a211cf60e25cce6f1e392bb63cfdb516802c1df17fcc",
+  "old_supervisor_release": "f5cae59278c4e99fc3fa3a33da4bf55890276b29370a28260e9cf3400729edfd",
+  "previous_commit": "49c851315b98bb33b1eb78180fb789afe2a49f3d",
+  "release_plan_sha256": "a71cb8210718b6c43eeb38c9f824f002cb30a3b1946274989da8c0fc2d35e132",
+  "runtime_delta": [
+    "notifications.py",
+    "paired_paper.py",
+    "paired_worker.py",
+    "paper_boot.py"
+  ],
+  "runtime_modules": 129,
+  "source_commit": "8f315b35cf6a40267cc07be1bac2c9be126006c7",
+  "source_newline_equivalence_verified": true
+}

@@ -1,0 +1,33 @@
+{
+  "observed_at": "2026-10-28T07:37:23.020675+00:00",
+  "instance": "b295439f-053d-4911-8b55-5db4e01f00cc",
+  "native_exit_code": 0,
+  "result": {
+    "observed_at": "2026-10-28T07:37:22.810830+00:00",
+    "durable_first_cycle_receipts": {
+      "renewals": [
+        {
+          "at": "2026-10-28T07:31:26.394325+00:00",
+          "receipt": {
+            "imported_at": "2026-10-28T07:31:28.052734+00:00",
+            "status": "renewed",
+            "valid_until": "2026-10-28T07:36:26.394325+00:00",
+            "verified_at": "2026-10-28T07:31:26.394325+00:00"
+          }
+        }
+      ],
+      "snapshots": [
+        {
+          "at": "2026-10-28T07:31:28.370415+00:00",
+          "receipt": {
+            "covered_through": "2026-10-28T07:31:28.370415+00:00",
+            "imported_at": "2026-10-28T07:31:30.056785+00:00",
+            "status": "imported"
+          }
+        }
+      ]
+    },
+    "no_model_or_exporter_invoked": true
+  },
+  "stderr_bytes": 98
+}

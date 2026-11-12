@@ -1,0 +1,22 @@
+{
+  "observed_at": "2026-10-28T07:34:39.522906+00:00",
+  "instance": "b295439f-053d-4911-8b55-5db4e01f00cc",
+  "native_exit_code": 0,
+  "result": {
+    "source_map_verified": true,
+    "runtime_files": 129,
+    "observations": [
+      {
+        "at": "2026-10-28T07:34:37.801824+00:00",
+        "status": "validated",
+        "schema": 2,
+        "elapsed_seconds": 1.1569504756480455
+      }
+    ],
+    "health_receipts_published": false,
+    "model_invoked": false,
+    "raw_messages_retained": false,
+    "elapsed_seconds": 1.156991234049201
+  },
+  "stderr_bytes": 98
+}

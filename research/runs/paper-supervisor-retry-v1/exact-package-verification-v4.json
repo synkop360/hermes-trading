@@ -1,0 +1,19 @@
+{
+  "started_at": "2026-10-26T06:08:00.301533+00:00",
+  "finished_at": "2026-10-26T06:08:30.812834+00:00",
+  "candidate_commit": "20eb6af2a441c934618e124af30d72f411a3938a",
+  "exit_code": 0,
+  "runtime_map_observed_from_package": {
+    "runtime_map_hash": "38fe4175e5ea53c72a26923e173374e0d9355e90477dd21d53c0c62607a9c0e2",
+    "runtime_files": 129
+  },
+  "expected_runtime_map_hash": "38fe4175e5ea53c72a26923e173374e0d9355e90477dd21d53c0c62607a9c0e2",
+  "package_files": 667,
+  "changed_sources": [],
+  "log_sha256": "f186ff9ab048f72d76817b6bcb8d0a3ebde15af9ac20a71ed58bab71c99c8541",
+  "deployed": false,
+  "installed_in_actual_pc_runtime": false,
+  "actual_guards_changed": false,
+  "passed": true,
+  "tests_passed": 20
+}

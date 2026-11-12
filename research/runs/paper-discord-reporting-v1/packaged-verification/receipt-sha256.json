@@ -1,0 +1,15 @@
+{
+  "captured-command.txt": "c736a6157930c136eedde3ef90b1ac5bf8ad157f6a56b7ca6e4f3e5bfafb25fb",
+  "packaged-terminal.txt": "3bb73ab2c6f39f8b73b3f748b5868b939cd946da1127737cb222cb6f54127756",
+  "packaged-verification-results.json": "236fcfb13f73ebd535eacf690add2d1ca1535df3e0b9e3112c43f83831453d5a",
+  "process-50784.json": "a0e4f53c3ec280eeac0f769007e2aced56d9b9200d69d75e79895bcc2b6084a4",
+  "process-54836.json": "2c30f6b48a77b2c5dbd5d572ff613d47e76dd92ced54527e851d119b9503f86f",
+  "process-56356.json": "f051bfff8aa9828f9976a6175334ab13a143526422711562829eb87ce8b01638",
+  "process-57568.json": "14f1d874f9e8a4298ba94323ebe734bd73304374fa49de9987cdd9c4b82536db",
+  "raw-pins-after.json": "4904197bda333e6a2144b5ee44dddefd9b8c0f3bee9f8efd16ccfdaa5860062b",
+  "raw-pins-before.json": "6f4594795838578531b968fbba85a0721ebac0acaa125b4fa7c4026de8d9c578",
+  "receipt.md": "e8b7c3cd187c9f9285f6e980cc02841f95cd2eabc14eb6f39b34b5cfaea204e5",
+  "release-map-verification.json": "4f9a7c5deee8aa4f9c4410ff82153a7ad7c451b44ac0f6abb710a7f0a4d0606e",
+  "run_packaged_verification.py": "9770c6b1aee01d1fe5ec2ad00beb7c34d9b72587c1c94806a45de2d7009b8909",
+  "sitecustomize.py": "9e2c0a62e4756544eb14d671ccbeea29d0ac6a8634ecac3ef33c4790b0084666"
+}

@@ -1,0 +1,23 @@
+{
+  "test_ids": [
+    "test_archive_capacity.CapacityTests.test_added_symlink_or_reparse_storage_blocks_before_stage",
+    "test_archive_store.ArchiveTests.test_fifo_at_object_or_manifest_is_rejected_without_blocking",
+    "test_archive_store.ArchiveTests.test_source_or_destination_symlink_not_followed",
+    "test_paper_safety.PaperSafetyTests.test_volume_symlink_is_not_followed_and_reports_unknown",
+    "test_snapshot_plus_names.SnapshotPlusNameTests.test_trailing_dot_guard_remains_on_filesystems_that_preserve_it"
+  ],
+  "tests": 5,
+  "passed": 5,
+  "failures": [],
+  "errors": [],
+  "skipped": [],
+  "resource_warnings": [],
+  "source_files": 522,
+  "source_pins_unchanged": true,
+  "python": "3.11.17 (main, Oct  6 2026, 02:02:21) [GCC 14.2.0]",
+  "platform": "linux",
+  "uid": 65534,
+  "scope": "Five platform cases only, native Linux tmpfs fixtures; not full Linux release qualification",
+  "exit_code": 0,
+  "observed_at": "2026-10-24T10:25:51.720819+00:00"
+}

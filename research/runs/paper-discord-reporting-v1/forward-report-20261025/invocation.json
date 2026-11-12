@@ -1,0 +1,18 @@
+{
+  "argv_without_format": [
+    "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-trading\\.venv\\Scripts\\python.exe",
+    "-B",
+    "-X",
+    "utf8",
+    "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-trading\\research\\runs\\paper-operator-report-v1\\operator_report.py",
+    "--offline-snapshot",
+    "--root",
+    "E:\\_OB_VAULTS\\Main Vault\\Projects\\Automatic Trading\\hermes-trading\\backups\\paper-beta-v1\\paper-beta-v1-20261021-6c9d520\\state-2026-10-25-73a6a6a8ab53",
+    "--start",
+    "2026-10-23T20:13:56.622959+00:00",
+    "--end",
+    "2026-10-25T00:00:26.323709+00:00"
+  ],
+  "snapshot_write_allowed": false,
+  "input_receipt": "../daily-copy-verification-20261025.json"
+}

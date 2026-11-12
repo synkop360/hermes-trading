@@ -1,0 +1,135 @@
+{
+  "at": "2026-10-27T07:00:14.996014+00:00",
+  "exit_code": 0,
+  "stderr_bytes": 98,
+  "result": {
+    "source_map_verified": true,
+    "runtime_files": 129,
+    "observations": [
+      {
+        "at": "2026-10-27T07:00:16.584981+00:00",
+        "status": "validated",
+        "schema": 2,
+        "elapsed_seconds": 0.8872763551771641
+      },
+      {
+        "at": "2026-10-27T07:00:19.472406+00:00",
+        "status": "validated",
+        "schema": 2,
+        "elapsed_seconds": 0.0334058552980423
+      },
+      {
+        "at": "2026-10-27T07:00:21.505953+00:00",
+        "status": "validated",
+        "schema": 2,
+        "elapsed_seconds": 0.02719995565712452
+      },
+      {
+        "at": "2026-10-27T07:00:23.533280+00:00",
+        "status": "validated",
+        "schema": 2,
+        "elapsed_seconds": 0.02482391707599163
+      },
+      {
+        "at": "2026-10-27T07:00:25.558244+00:00",
+        "status": "validated",
+        "schema": 2,
+        "elapsed_seconds": 0.02355227991938591
+      },
+      {
+        "at": "2026-10-27T07:00:27.581923+00:00",
+        "status": "validated",
+        "schema": 2,
+        "elapsed_seconds": 0.024254029616713524
+      },
+      {
+        "at": "2026-10-27T07:00:29.606308+00:00",
+        "status": "validated",
+        "schema": 2,
+        "elapsed_seconds": 0.026788393035531044
+      },
+      {
+        "at": "2026-10-27T07:00:31.633239+00:00",
+        "status": "validated",
+        "schema": 2,
+        "elapsed_seconds": 0.027461320161819458
+      },
+      {
+        "at": "2026-10-27T07:00:33.660852+00:00",
+        "status": "validated",
+        "schema": 2,
+        "elapsed_seconds": 0.023173296824097633
+      },
+      {
+        "at": "2026-10-27T07:00:35.684148+00:00",
+        "status": "validated",
+        "schema": 2,
+        "elapsed_seconds": 0.021997898817062378
+      },
+      {
+        "at": "2026-10-27T07:00:37.706304+00:00",
+        "status": "validated",
+        "schema": 2,
+        "elapsed_seconds": 0.0235170628875494
+      },
+      {
+        "at": "2026-10-27T07:00:39.729953+00:00",
+        "status": "validated",
+        "schema": 2,
+        "elapsed_seconds": 0.023175006732344627
+      },
+      {
+        "at": "2026-10-27T07:00:41.753254+00:00",
+        "status": "validated",
+        "schema": 2,
+        "elapsed_seconds": 0.02549070492386818
+      },
+      {
+        "at": "2026-10-27T07:00:43.778912+00:00",
+        "status": "rejected",
+        "chain": [
+          {
+            "type": "ValueError",
+            "frames": [
+              {
+                "source": "hermes_trading/supervisor_sync.py",
+                "line": 193
+              },
+              {
+                "source": "hermes_trading/supervisor_sync.py",
+                "line": 145
+              },
+              {
+                "source": "hermes_trading/paper_publication.py",
+                "line": 191
+              }
+            ]
+          },
+          {
+            "type": "OperationalError",
+            "frames": [
+              {
+                "source": "hermes_trading/paper_publication.py",
+                "line": 169
+              },
+              {
+                "source": "hermes_trading/archive_quote_state.py",
+                "line": 140
+              },
+              {
+                "source": "hermes_trading/archive_quote_state.py",
+                "line": 84
+              }
+            ],
+            "sqlite_code": 5
+          }
+        ],
+        "elapsed_seconds": 0.7034348212182522
+      }
+    ],
+    "health_receipts_published": false,
+    "model_invoked": false,
+    "raw_messages_retained": false,
+    "elapsed_seconds": 27.897406678646803
+  }
+}

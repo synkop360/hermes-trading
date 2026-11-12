@@ -1,0 +1,285 @@
+{
+  "observed_at": "2026-10-25T11:17:14.715769+00:00",
+  "mode": "static_only_no_test_execution",
+  "candidate": "ed439e897a4dd388fdcf6425e7e8b6171d5a88a9",
+  "full_run": "discord-full-windows-v3",
+  "known_status": "terminal_failed_two_class_setup_capacity_deadline_clock_guard_errors",
+  "failed_stage": "two setup retention capacity lease checks; see class-specific terminal fields",
+  "failed_exception": "hermes_trading.archive_capacity.CapacityUnavailable",
+  "cause_unconfirmed": true,
+  "unrun_class_case_count": 13,
+  "unrun_class_case_ids": [
+    "test_quote_checkpoint.QuoteCheckpointTests.test_checkpoint_reserves_metadata_headroom_before_pending_mutation",
+    "test_quote_checkpoint.QuoteCheckpointTests.test_compacted_checkpoint_and_original_retention_retries_never_create_new_controls",
+    "test_quote_checkpoint.QuoteCheckpointTests.test_complete_cohort_rejects_a_gap_in_original_retention_ordinals",
+    "test_quote_checkpoint.QuoteCheckpointTests.test_coordinator_capacity_deadline_and_missing_original_bundle_reject_before_mutation",
+    "test_quote_checkpoint.QuoteCheckpointTests.test_disabled_and_unavailable_archive_cannot_mutate_controls_or_finances",
+    "test_quote_checkpoint.QuoteCheckpointTests.test_empty_detailed_tail_does_not_reuse_compacted_original_ordinal",
+    "test_quote_checkpoint.QuoteCheckpointTests.test_empty_tail_rejects_missing_accounts_control_tables_and_active_floors",
+    "test_quote_checkpoint.QuoteCheckpointTests.test_interrupted_account_commits_and_acknowledgements_resume_all_eight",
+    "test_quote_checkpoint.QuoteCheckpointTests.test_native_protective_exit_after_account_commit_survives_checkpoint_resume",
+    "test_quote_checkpoint.QuoteCheckpointTests.test_native_terminal_capture_purges_closed_floors_and_preserves_replay_protection",
+    "test_quote_checkpoint.QuoteCheckpointTests.test_pending_resume_rejects_changed_original_raw_receipts_and_predecessor",
+    "test_quote_checkpoint.QuoteCheckpointTests.test_terminal_floor_deletion_requires_raw_originals_before_initial_and_resumed_transition",
+    "test_quote_checkpoint.QuoteCheckpointTests.test_two_native_rollovers_preserve_finances_and_original_ordinals"
+  ],
+  "source_comparisons": [
+    {
+      "path": "tests/test_quote_checkpoint.py",
+      "base_candidate_blob_bytes_equal": true,
+      "base_full_pinned_raw_sha256": "35636903f1116f342c221c2aea9caa28a2194e73f10a57aaeba4d38851bb44c7",
+      "candidate_full_pinned_raw_sha256": "35636903f1116f342c221c2aea9caa28a2194e73f10a57aaeba4d38851bb44c7",
+      "base_candidate_full_pinned_raw_equal": true,
+      "working_raw_matches_candidate_full_pin": true,
+      "working_normalized_matches_candidate_blob": true
+    },
+    {
+      "path": "tests/test_paired_primary_archive.py",
+      "base_candidate_blob_bytes_equal": true,
+      "base_full_pinned_raw_sha256": "688deda06b7670b3c07664a79e292b9cdbc0a07f19244461e27bfec72c4bc399",
+      "candidate_full_pinned_raw_sha256": "688deda06b7670b3c07664a79e292b9cdbc0a07f19244461e27bfec72c4bc399",
+      "base_candidate_full_pinned_raw_equal": true,
+      "working_raw_matches_candidate_full_pin": true,
+      "working_normalized_matches_candidate_blob": true
+    },
+    {
+      "path": "tests/test_paired_inception.py",
+      "base_candidate_blob_bytes_equal": true,
+      "base_full_pinned_raw_sha256": "e989d56c0f93deae77384add096cceaea9eaed5895e2a6d30f79032d508697a4",
+      "candidate_full_pinned_raw_sha256": "e989d56c0f93deae77384add096cceaea9eaed5895e2a6d30f79032d508697a4",
+      "base_candidate_full_pinned_raw_equal": true,
+      "working_raw_matches_candidate_full_pin": true,
+      "working_normalized_matches_candidate_blob": true
+    },
+    {
+      "path": "tests/test_paired_worker.py",
+      "base_candidate_blob_bytes_equal": true,
+      "base_full_pinned_raw_sha256": "d79934da923b1d5812cd9e9ae3f827134fd1d6618c6080468f7a86f2510ab455",
+      "candidate_full_pinned_raw_sha256": "d79934da923b1d5812cd9e9ae3f827134fd1d6618c6080468f7a86f2510ab455",
+      "base_candidate_full_pinned_raw_equal": true,
+      "working_raw_matches_candidate_full_pin": true,
+      "working_normalized_matches_candidate_blob": true
+    },
+    {
+      "path": "tests/test_paired_paper.py",
+      "base_candidate_blob_bytes_equal": true,
+      "base_full_pinned_raw_sha256": "833045eeb6884f435dc822be4a3259c5612679e3f4049603d842805475cbc726",
+      "candidate_full_pinned_raw_sha256": "833045eeb6884f435dc822be4a3259c5612679e3f4049603d842805475cbc726",
+      "base_candidate_full_pinned_raw_equal": true,
+      "working_raw_matches_candidate_full_pin": true,
+      "working_normalized_matches_candidate_blob": true
+    },
+    {
+      "path": "hermes_trading/archive_capacity.py",
+      "base_candidate_blob_bytes_equal": true,
+      "base_full_pinned_raw_sha256": "fde649ff839d952a22fab0a9b08ac5b5c5badabc89d0c132868bbeede6a38a00",
+      "candidate_full_pinned_raw_sha256": "fde649ff839d952a22fab0a9b08ac5b5c5badabc89d0c132868bbeede6a38a00",
+      "base_candidate_full_pinned_raw_equal": true,
+      "working_raw_matches_candidate_full_pin": true,
+      "working_normalized_matches_candidate_blob": true
+    },
+    {
+      "path": "hermes_trading/archive_quote_checkpoint.py",
+      "base_candidate_blob_bytes_equal": true,
+      "base_full_pinned_raw_sha256": "0c27fd9854f430ccb16478c4aec8a5f9f3e427fab02779f7d2a8f8b63d05a444",
+      "candidate_full_pinned_raw_sha256": "0c27fd9854f430ccb16478c4aec8a5f9f3e427fab02779f7d2a8f8b63d05a444",
+      "base_candidate_full_pinned_raw_equal": true,
+      "working_raw_matches_candidate_full_pin": true,
+      "working_normalized_matches_candidate_blob": true
+    },
+    {
+      "path": "hermes_trading/archive_quote_retention.py",
+      "base_candidate_blob_bytes_equal": true,
+      "base_full_pinned_raw_sha256": "df286b8215afab93b194899cb0a4404ff52a34707e1e4c4121d3dc80876c59a5",
+      "candidate_full_pinned_raw_sha256": "df286b8215afab93b194899cb0a4404ff52a34707e1e4c4121d3dc80876c59a5",
+      "base_candidate_full_pinned_raw_equal": true,
+      "working_raw_matches_candidate_full_pin": true,
+      "working_normalized_matches_candidate_blob": true
+    },
+    {
+      "path": "hermes_trading/archive_coordinator.py",
+      "base_candidate_blob_bytes_equal": true,
+      "base_full_pinned_raw_sha256": "f36a1d1021ed2b6a76bb04de89702732e89c410e131874131ea6a2753f407c49",
+      "candidate_full_pinned_raw_sha256": "f36a1d1021ed2b6a76bb04de89702732e89c410e131874131ea6a2753f407c49",
+      "base_candidate_full_pinned_raw_equal": true,
+      "working_raw_matches_candidate_full_pin": true,
+      "working_normalized_matches_candidate_blob": true
+    },
+    {
+      "path": "hermes_trading/archive_snapshot.py",
+      "base_candidate_blob_bytes_equal": true,
+      "base_full_pinned_raw_sha256": "56457de68ccedb9b28f0f9e5e2982dcdbc33fa892a767626feaec23d6f15622b",
+      "candidate_full_pinned_raw_sha256": "56457de68ccedb9b28f0f9e5e2982dcdbc33fa892a767626feaec23d6f15622b",
+      "base_candidate_full_pinned_raw_equal": true,
+      "working_raw_matches_candidate_full_pin": true,
+      "working_normalized_matches_candidate_blob": true
+    },
+    {
+      "path": "tests/test_quote_control_segment.py",
+      "base_candidate_blob_bytes_equal": true,
+      "base_full_pinned_raw_sha256": "0351a2a1afb94ee441d9a36c9705c847f2aac702eac83c1b06ac2805d5e00ccd",
+      "candidate_full_pinned_raw_sha256": "0351a2a1afb94ee441d9a36c9705c847f2aac702eac83c1b06ac2805d5e00ccd",
+      "base_candidate_full_pinned_raw_equal": true,
+      "working_raw_matches_candidate_full_pin": true,
+      "working_normalized_matches_candidate_blob": true
+    },
+    {
+      "path": "hermes_trading/archive_quote_segment.py",
+      "base_candidate_blob_bytes_equal": true,
+      "base_full_pinned_raw_sha256": "1df3ae6702f2abf444e9a2e95599d501641b344e6708e0021b60746ddaf76d08",
+      "candidate_full_pinned_raw_sha256": "1df3ae6702f2abf444e9a2e95599d501641b344e6708e0021b60746ddaf76d08",
+      "base_candidate_full_pinned_raw_equal": true,
+      "working_raw_matches_candidate_full_pin": true,
+      "working_normalized_matches_candidate_blob": true
+    }
+  ],
+  "setup_bounds": {
+    "worker_completed_cuts": [
+      5,
+      7,
+      9
+    ],
+    "max_worker_cycles": 12,
+    "capture_count": 3,
+    "capture_timeout_seconds_each": 90,
+    "quote_retention_count": 3,
+    "quote_retention_timeout_seconds_each": 120,
+    "checkpoint_count": 2,
+    "checkpoint_timeout_seconds_each": 120,
+    "storage_ownership_default_timeout_seconds": 10
+  },
+  "reporter_path": {
+    "worker_observer": null,
+    "notification_capture": false,
+    "notification_transport_started": false
+  },
+  "previous_baseline_error": {
+    "scope": "individual_case",
+    "case": "test_quote_checkpoint.QuoteCheckpointTests.test_terminal_floor_deletion_requires_raw_originals_before_initial_and_resumed_transition",
+    "stage": "q4 retain_quote_outcomes final capacity lease check",
+    "exception": "CapacityUnavailable",
+    "not_equivalent_to_current_setup_error": true
+  },
+  "source_or_guard_edits": false,
+  "test_reruns": 0,
+  "process_actions": 0,
+  "unrun_classes": [
+    {
+      "class_id": "test_quote_checkpoint.QuoteCheckpointTests",
+      "unrun_case_count": 13,
+      "unrun_case_ids": [
+        "test_quote_checkpoint.QuoteCheckpointTests.test_checkpoint_reserves_metadata_headroom_before_pending_mutation",
+        "test_quote_checkpoint.QuoteCheckpointTests.test_compacted_checkpoint_and_original_retention_retries_never_create_new_controls",
+        "test_quote_checkpoint.QuoteCheckpointTests.test_complete_cohort_rejects_a_gap_in_original_retention_ordinals",
+        "test_quote_checkpoint.QuoteCheckpointTests.test_coordinator_capacity_deadline_and_missing_original_bundle_reject_before_mutation",
+        "test_quote_checkpoint.QuoteCheckpointTests.test_disabled_and_unavailable_archive_cannot_mutate_controls_or_finances",
+        "test_quote_checkpoint.QuoteCheckpointTests.test_empty_detailed_tail_does_not_reuse_compacted_original_ordinal",
+        "test_quote_checkpoint.QuoteCheckpointTests.test_empty_tail_rejects_missing_accounts_control_tables_and_active_floors",
+        "test_quote_checkpoint.QuoteCheckpointTests.test_interrupted_account_commits_and_acknowledgements_resume_all_eight",
+        "test_quote_checkpoint.QuoteCheckpointTests.test_native_protective_exit_after_account_commit_survives_checkpoint_resume",
+        "test_quote_checkpoint.QuoteCheckpointTests.test_native_terminal_capture_purges_closed_floors_and_preserves_replay_protection",
+        "test_quote_checkpoint.QuoteCheckpointTests.test_pending_resume_rejects_changed_original_raw_receipts_and_predecessor",
+        "test_quote_checkpoint.QuoteCheckpointTests.test_terminal_floor_deletion_requires_raw_originals_before_initial_and_resumed_transition",
+        "test_quote_checkpoint.QuoteCheckpointTests.test_two_native_rollovers_preserve_finances_and_original_ordinals"
+      ],
+      "terminal_trace_pending": false,
+      "terminal": {
+        "class_id": "test_quote_checkpoint.QuoteCheckpointTests",
+        "setup_call": "q3 = retain(a, operation_id=operation_id(_hash(f.manifest), 3))",
+        "test_line": 140,
+        "retention_stage": "_artifact -> _stage -> after_empty_stage",
+        "retention_line": 187,
+        "exception": "hermes_trading.archive_capacity.CapacityUnavailable",
+        "error_classification": "capacity admission deadline/clock unavailable",
+        "guard_path": "lease.check -> archive_capacity._measure -> _Deadline.check",
+        "guard_line": 76,
+        "configured_operation_timeout_seconds": 120
+      }
+    },
+    {
+      "class_id": "test_quote_control_segment.QuoteControlSegmentTests",
+      "unrun_case_count": 17,
+      "unrun_case_ids": [
+        "test_quote_control_segment.QuoteControlSegmentTests.test_aggregate_current_plan_bytes_are_rejected_before_archive_restoration",
+        "test_quote_control_segment.QuoteControlSegmentTests.test_aggregate_eight_account_receipt_bytes_are_rejected_before_archive_restoration",
+        "test_quote_control_segment.QuoteControlSegmentTests.test_archive_outage_cannot_issue_pin_or_change_financial_state",
+        "test_quote_control_segment.QuoteControlSegmentTests.test_competing_worker_lease_blocks_without_source_mutation",
+        "test_quote_control_segment.QuoteControlSegmentTests.test_corrupt_referenced_b_object_is_rejected_without_extra_mutations",
+        "test_quote_control_segment.QuoteControlSegmentTests.test_current_raw_plan_and_progress_whitespace_changes_are_rejected",
+        "test_quote_control_segment.QuoteControlSegmentTests.test_current_raw_zero_target_account_receipt_whitespace_change_is_rejected",
+        "test_quote_control_segment.QuoteControlSegmentTests.test_deadline_expiry_after_reading_recorded_b_manifest_preserves_sources",
+        "test_quote_control_segment.QuoteControlSegmentTests.test_disabled_invalid_ranges_and_tiny_budget_leave_sources_unchanged",
+        "test_quote_control_segment.QuoteControlSegmentTests.test_existing_source_sidecars_are_preserved_and_rejected_before_sqlite_lease",
+        "test_quote_control_segment.QuoteControlSegmentTests.test_later_recorded_cohort_proves_prefix_with_stable_pin_after_newer_floor_updates",
+        "test_quote_control_segment.QuoteControlSegmentTests.test_native_fixture_has_two_completed_retention_chunks_and_advanced_current_floors",
+        "test_quote_control_segment.QuoteControlSegmentTests.test_original_bundle_archive_cannot_prove_control_records_created_later",
+        "test_quote_control_segment.QuoteControlSegmentTests.test_peak_above_domain_capacity_is_rejected_before_sqlite_lease",
+        "test_quote_control_segment.QuoteControlSegmentTests.test_selected_original_control_rowid_change_is_rejected_without_mutation",
+        "test_quote_control_segment.QuoteControlSegmentTests.test_wal_shared_journal_is_rejected_without_changing_its_header",
+        "test_quote_control_segment.QuoteControlSegmentTests.test_wal_worker_owner_is_rejected_without_changing_its_header"
+      ],
+      "terminal_trace_pending": false,
+      "terminal": {
+        "class_id": "test_quote_control_segment.QuoteControlSegmentTests",
+        "setup_call": "q2 = retain_quote_outcomes(...)",
+        "test_line": 140,
+        "retention_stage": "_retire_account -> before_account_commit",
+        "retention_line": 158,
+        "exception": "hermes_trading.archive_capacity.CapacityUnavailable",
+        "error_classification": "capacity admission deadline/clock unavailable",
+        "guard_path": "lease.check -> archive_capacity._measure -> _Deadline.check",
+        "guard_line": 76,
+        "configured_operation_timeout_seconds": 120
+      }
+    }
+  ],
+  "total_unrun_class_case_count": 30,
+  "conditional_expected_executed_case_count_if_no_further_unrun": 1662,
+  "quote_control_segment_setup_bounds": {
+    "worker_completed_cuts": [
+      5,
+      7
+    ],
+    "max_worker_cycles": 8,
+    "capture_count": 2,
+    "capture_timeout_seconds_each": 90,
+    "quote_retention_count": 2,
+    "quote_retention_timeout_seconds_each": 120,
+    "storage_ownership_default_timeout_seconds": 10
+  },
+  "quote_control_segment_baseline_17_cases_passed": true,
+  "terminal_reconciliation": {
+    "catalog_case_count": 1692,
+    "runner_tests_run": 1662,
+    "log_case_counts": {
+      "executed_case_headers": 1662,
+      "unique_executed_case_ids": 1662,
+      "passed": 1657,
+      "skipped": 5,
+      "failures": 0,
+      "errors": 0,
+      "unknown": 0
+    },
+    "class_setup_error_holders": 2,
+    "unrun_catalog_cases": 30,
+    "unrun_ids_absent_from_executed_log": true,
+    "catalog_reconciles": true,
+    "raw_runner_passed": 1655,
+    "independently_counted_passed": 1657,
+    "raw_runner_passed_undercount": 2,
+    "new_cases_passed": 47,
+    "source_files": 374,
+    "source_pins_unchanged": true,
+    "resource_warning_count": 0,
+    "test_elapsed_seconds": 4695.41,
+    "receipt_elapsed_seconds": 4702.984000000055,
+    "full_status": "failed",
+    "full_green": false,
+    "receipt_sha256": "16f941375a4bb9e53d85637f996258bf94f8dd1acb61a99076912b13135691dc",
+    "log_sha256": "2611087f421686c4e6d6fa6e571cde4bf2c5c185a888cf84183a44a7f153538c",
+    "receipt_log_sha_matches": true,
+    "parser_handles_multiline_docstring_descriptions": true,
+    "parser_stops_at_first_case_terminal_before_later_setup_errors": true
+  },
+  "limits": "The guard failures are proved; elapsed measurements at each guard, environmental cause, and a timing-equivalence claim for changed default-off worker code are not established. Archive runtime activation remains disabled; no product/source/test/guard edits or reruns were performed."
+}

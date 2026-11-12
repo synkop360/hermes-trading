@@ -1,0 +1,8 @@
+{"closed": {"adaptive_100": "closed", "adaptive_150": "closed", "adaptive_200": "closed", "adaptive_50": "closed", "control_100": "closed", "control_150": "closed", "control_200": "closed", "control_50": "closed"}, "completed_batches": 2, "offers": [{"close_count": 0, "completed_batches": 0, "error": "worker_starting", "kind": "operational"}, {"close_count": 0, "completed_batches": 1, "error": null, "kind": "settled"}, {"close_count": 8, "completed_batches": 2, "error": "archive_acknowledgement_pending", "kind": "settled"}], "status": "waiting_for_archive"}
+test_archive_protection_has_settled_close_observation (__main__.archive_probe.<locals>.ArchiveProbe.test_archive_protection_has_settled_close_observation) ... Executing <Task finished name='Task-2' coro=<archive_probe.<locals>.ArchiveProbe.test_archive_protection_has_settled_close_observation() done, defined at E:\_OB_VAULTS\Main Vault\Projects\Automatic Trading\hermes-paper-operational-corrections\research\runs\paper-discord-reporting-v1\independent-review-repro.py:25> result=None created at C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\runners.py:100> took 3.375 seconds
+ok
+
+----------------------------------------------------------------------
+Ran 1 test in 3.963s
+
+OK

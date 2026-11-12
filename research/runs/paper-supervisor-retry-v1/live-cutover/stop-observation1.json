@@ -1,0 +1,143 @@
+{
+  "observed_at": "2026-10-26T07:05:25.863168+00:00",
+  "services": [
+    {
+      "service_id": "8b94cbc9-293e-4222-a8a7-698b656985f7",
+      "latest": {
+        "canRedeploy": true,
+        "createdAt": "2026-10-25T11:49:05.634Z",
+        "deploymentStopped": false,
+        "id": "3cf55164-902f-4493-9a8a-6c97d394c0b8",
+        "instances": [
+          {
+            "id": "b45705e2-e89a-49fe-89c5-f2f81bbac862",
+            "status": "RUNNING"
+          }
+        ],
+        "meta": {
+          "buildOnly": false,
+          "cliAgentSessionId": "01a09727-8167-7631-9a25-5537e49a6028",
+          "cliCaller": "codex",
+          "cliMessage": "Owner-approved ed439e8 paper Discord reporting; original experiment and supervisor halt retained",
+          "fileServiceManifest": {},
+          "imageDigest": "sha256:9944a4543936f24984549edcc0091fbd71a7e27a4f8fc638e8a49a84001d8fd8",
+          "logsV2": true,
+          "nixpacksProviders": [],
+          "propertyFileMapping": {},
+          "reason": "deploy",
+          "rootDirectory": null,
+          "runtime": "V2",
+          "serviceManifest": {
+            "build": {
+              "buildCommand": null,
+              "buildEnvironment": "V3",
+              "builder": "DOCKERFILE",
+              "dockerfilePath": "/Dockerfile",
+              "nixpacksConfigPath": null,
+              "nixpacksPlan": null,
+              "watchPatterns": []
+            },
+            "deploy": {
+              "cronSchedule": null,
+              "drainingSeconds": null,
+              "healthcheckPath": null,
+              "healthcheckTimeout": null,
+              "ipv6EgressEnabled": false,
+              "limitOverride": null,
+              "multiRegionConfig": {
+                "europe-west4-drams3a": {
+                  "numReplicas": 1
+                }
+              },
+              "numReplicas": 1,
+              "overlapSeconds": null,
+              "preDeployCommand": null,
+              "preDeployTimeoutSeconds": null,
+              "region": null,
+              "registryCredentials": null,
+              "requiredMountPath": null,
+              "restartPolicyMaxRetries": 10,
+              "restartPolicyType": "ON_FAILURE",
+              "runtime": "V2",
+              "sleepApplication": false,
+              "startCommand": "/bin/sh -c 'set -eu\ndeadline=$(($(date +%s) + 1800))\nuntil [ -f /app/state/.paper-ready-discord-ed439e8 ]; do\n    if [ \"$(date +%s)\" -ge \"$deadline\" ]; then\n        echo paper_preparation_expired >&2\n        exit 78\n    fi\n    sleep 2\ndone\nexec /app/.venv/bin/python -m hermes_trading.paper_boot --root /app/state\n'",
+              "useLegacyStacker": false
+            }
+          },
+          "volumeMounts": [
+            "/app/state"
+          ]
+        },
+        "status": "SUCCESS"
+      },
+      "active": [
+        {
+          "createdAt": "2026-10-25T11:49:05.634Z",
+          "deploymentStopped": false,
+          "id": "3cf55164-902f-4493-9a8a-6c97d394c0b8",
+          "instances": [
+            {
+              "id": "b45705e2-e89a-49fe-89c5-f2f81bbac862",
+              "status": "RUNNING"
+            }
+          ],
+          "meta": {
+            "buildOnly": false,
+            "cliAgentSessionId": "01a09727-8167-7631-9a25-5537e49a6028",
+            "cliCaller": "codex",
+            "cliMessage": "Owner-approved ed439e8 paper Discord reporting; original experiment and supervisor halt retained",
+            "fileServiceManifest": {},
+            "imageDigest": "sha256:9944a4543936f24984549edcc0091fbd71a7e27a4f8fc638e8a49a84001d8fd8",
+            "logsV2": true,
+            "nixpacksProviders": [],
+            "propertyFileMapping": {},
+            "reason": "deploy",
+            "rootDirectory": null,
+            "runtime": "V2",
+            "serviceManifest": {
+              "build": {
+                "buildCommand": null,
+                "buildEnvironment": "V3",
+                "builder": "DOCKERFILE",
+                "dockerfilePath": "/Dockerfile",
+                "nixpacksConfigPath": null,
+                "nixpacksPlan": null,
+                "watchPatterns": []
+              },
+              "deploy": {
+                "cronSchedule": null,
+                "drainingSeconds": null,
+                "healthcheckPath": null,
+                "healthcheckTimeout": null,
+                "ipv6EgressEnabled": false,
+                "limitOverride": null,
+                "multiRegionConfig": {
+                  "europe-west4-drams3a": {
+                    "numReplicas": 1
+                  }
+                },
+                "numReplicas": 1,
+                "overlapSeconds": null,
+                "preDeployCommand": null,
+                "preDeployTimeoutSeconds": null,
+                "region": null,
+                "registryCredentials": null,
+                "requiredMountPath": null,
+                "restartPolicyMaxRetries": 10,
+                "restartPolicyType": "ON_FAILURE",
+                "runtime": "V2",
+                "sleepApplication": false,
+                "startCommand": "/bin/sh -c 'set -eu\ndeadline=$(($(date +%s) + 1800))\nuntil [ -f /app/state/.paper-ready-discord-ed439e8 ]; do\n    if [ \"$(date +%s)\" -ge \"$deadline\" ]; then\n        echo paper_preparation_expired >&2\n        exit 78\n    fi\n    sleep 2\ndone\nexec /app/.venv/bin/python -m hermes_trading.paper_boot --root /app/state\n'",
+                "useLegacyStacker": false
+              }
+            },
+            "volumeMounts": [
+              "/app/state"
+            ]
+          },
+          "status": "SUCCESS"
+        }
+      ]
+    }
+  ]
+}

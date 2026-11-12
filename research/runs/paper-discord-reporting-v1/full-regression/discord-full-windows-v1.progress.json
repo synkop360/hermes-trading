@@ -1,0 +1,8 @@
+{
+  "current": "test_every_precommit_crash_rolls_back_receipt_and_retirement (test_archive_journal.ArchiveJournalTests.test_every_precommit_crash_rolls_back_receipt_and_retirement)",
+  "errors": 0,
+  "failures": 0,
+  "observed_at": "2026-10-24T21:29:29.894402+00:00",
+  "status": "running",
+  "tests": 75
+}

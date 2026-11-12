@@ -1,0 +1,31 @@
+{
+  "started_at": "2026-10-26T06:00:14.157998+00:00",
+  "finished_at": "2026-10-26T06:00:46.387944+00:00",
+  "candidate_commit": "20eb6af2a441c934618e124af30d72f411a3938a",
+  "exit_code": 0,
+  "image": "hermes-paired-cost-reserve:20261015",
+  "cached_image_id": "sha256:13054ce2ae8c23123504f8e7219187a8e3e436ceec15f2a004edf997374ad889",
+  "network": "none",
+  "source_mount": "read_only",
+  "user": "65534:65534",
+  "child_pythonpath": "/workspace:/workspace/tests",
+  "fifo_subprocess_timeout_seconds": 2,
+  "log_sha256": "b3550db40e7a76ce62aa8558486d45b3ce6a46fca32037fcadd7f1e2e189615b",
+  "structured_stdout": [
+    {
+      "runtime_files": 129,
+      "runtime_map_hash": "38fe4175e5ea53c72a26923e173374e0d9355e90477dd21d53c0c62607a9c0e2",
+      "python": "3.11.17"
+    },
+    {
+      "tests": 16,
+      "skipped": 0,
+      "failures": 0,
+      "errors": 0
+    }
+  ],
+  "changed_package_files": [],
+  "product_or_host_state_installed": false,
+  "paid_calls": 0,
+  "passed": true
+}
