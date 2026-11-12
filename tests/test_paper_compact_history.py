@@ -8,7 +8,10 @@ class CompactHistoryTests(unittest.TestCase):
     def legacy_database(self):
         from hermes_trading.paper_publication import _release_hashes
         from hermes_trading.reflection_supervision import _hash
-        self.assertEqual(_hash(_release_hashes()),'082042439d5dadd8247b788fe6b29de5c7449f165f339a2e155761bf55c525de')
+        predecessor=json.loads((Path(__file__).resolve().parents[1]/'scripts/cloud_release_plan.json').read_text())['new']['runtime']
+        self.assertEqual(_hash(predecessor),'082042439d5dadd8247b788fe6b29de5c7449f165f339a2e155761bf55c525de')
+        source=patch('hermes_trading.paper_publication._release_hashes',return_value=predecessor)
+        source.start();self.addCleanup(source.stop)
         names=[f'{arm}_{wallet}' for arm in ('adaptive','control') for wallet in (50,100,150,200)]
         (self.root/'manifest.json').write_text(json.dumps({'experiment_id':'retained-test','status':'paper_ready',
             'execution_enabled':True,'profiles':[{'directory':name} for name in names]}))

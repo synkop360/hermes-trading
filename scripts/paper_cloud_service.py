@@ -48,7 +48,17 @@ class Relay:
 
 def install_default(project):
     scripts=project/'scripts'
-    return install(project,json.loads((scripts/'cloud_release_plan.json').read_bytes()),
+    plan=json.loads((scripts/'cloud_release_plan.json').read_bytes())
+    from scripts.hermes_watch import _supervisor_release
+    release=_supervisor_release()
+    if release!=plan['new']:
+        successor=json.loads((scripts/'discord_format_release_plan.json').read_bytes())
+        if successor['old']!=plan['new'] or successor['new']!=release:
+            raise ValueError('notification correction source map differs')
+        from scripts.paper_cloud_update import update_installed
+        print(json.dumps(update_installed(project,successor)),flush=True)
+        plan=successor
+    return install(project,plan,
         entry_plan=json.loads((scripts/'entry_history_release_plan.json').read_bytes()),
         observer=lambda phase:print(json.dumps({'kind':'paper_cloud_install_phase','phase':phase}),flush=True))
 

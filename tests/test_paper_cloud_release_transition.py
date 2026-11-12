@@ -19,7 +19,9 @@ class CloudReleaseTransitionTests(unittest.TestCase):
         plan=self.plan();transition.validate_release_plan(plan)
         self.assertEqual(transition._purpose(plan),'paper_cloud_supervision_release_transition_v1')
         from scripts.hermes_watch import _supervisor_release
-        self.assertEqual(_supervisor_release(),plan['new'])
+        successor=json.loads((Path(__file__).resolve().parents[1]/'scripts/discord_format_release_plan.json').read_text())
+        self.assertEqual(successor['old'],plan['new'])
+        self.assertEqual(_supervisor_release(),successor['new'])
 
     def test_runtime_launchers_predecessor_and_inventory_are_pinned(self):
         for case in ['base','old','runtime','watcher','launcher','inventory','missing']:

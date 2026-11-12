@@ -172,6 +172,8 @@ class NativeCloudInstallTests(unittest.IsolatedAsyncioTestCase):
         from test_paper_cloud_release_transition import CloudReleaseTransitionTests
         from hermes_trading.reflection_supervision import _hash
         plan=CloudReleaseTransitionTests().plan();plan['target']['experiment_id']='paired-test'
+        source=patch('scripts.hermes_watch._supervisor_release',return_value=plan['new'])
+        source.start();self.addCleanup(source.stop)
         with patch.object(fixtures,'OLD_COMMIT',plan['old_commit']), \
                 patch.object(fixtures.NativeTransitionFixture,'_releases',return_value=(plan['old'],plan['new'])):
             f=await fixtures.NativeTransitionFixture.create(self)

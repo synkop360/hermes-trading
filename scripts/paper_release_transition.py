@@ -47,6 +47,7 @@ ENTRY_HISTORY_BASE_RUNTIME = '22799e23c53716cae16ca6a40d5eed820d9520881ccbf6b19e
 CLOUD_BASE_COMMIT = '37e1be8672371d0d6acc14fb708049bc849e4a90'
 CLOUD_BASE_RELEASE = '35de7eb4d483b9a277e5f2203cb67b51a3a36e40bdb20fdc0f79677701be1292'
 CLOUD_TARGET_RELEASE = 'e55a303b2fa9e50aef8b4ac0287a62da84be649e0134b030487441f31f3cd606'
+DISCORD_FORMAT_BASE_COMMIT = 'd045e989ced5e089c10099c69ef04acf2ed63160'
 TARGET = dict(project='f78f42d9-20ec-44f6-ae3f-f8bb79ee7000',
               service='8b94cbc9-293e-4222-a8a7-698b656985f7',
               environment='fdcc71a3-00a9-410c-8d6f-59af9bc98d36')
@@ -71,7 +72,7 @@ _VOLUME_AUX = ContextVar('paper_volume_auxiliary', default=None)
 
 
 @contextmanager
-def volume_cutover_layout(worker_root):
+def volume_cutover_layout(worker_root, *, live_supervisor=False):
     """Admit only the bootstrap-owned metadata namespace on one volume.
 
     Bootstrap creates this previously absent directory exclusively. Ordinary
@@ -87,7 +88,12 @@ def volume_cutover_layout(worker_root):
         account_hash=_hash(_read(root/'adaptive_200/wallet_account.json')))
     if owner!=expected or type(owner.get('schema_version')) is not int:
         raise ValueError('volume auxiliary owner differs')
-    token=_VOLUME_AUX.set(dict(root=root,auxiliary=auxiliary,owner_hash=_hash(owner)))
+    if type(live_supervisor) is not bool:raise ValueError('literal live layout choice required')
+    experiment=_read(root/'adaptive_200/reflection_owner.json')['experiment_id']
+    supervisor=root/'paired-supervisor'/experiment/'adaptive_200' if live_supervisor else auxiliary/'supervisor'
+    launch=root/'cloud-supervisor-launch.json' if live_supervisor else auxiliary/'launch.json'
+    token=_VOLUME_AUX.set(dict(root=root,auxiliary=auxiliary,owner_hash=_hash(owner),
+        supervisor=supervisor,launch=launch,live=live_supervisor))
     try:yield auxiliary
     finally:_VOLUME_AUX.reset(token)
 
@@ -149,8 +155,8 @@ def _layout(worker_root, supervisor_root, launch_file, audit_dir=None):
     volume=_VOLUME_AUX.get()
     if volume is not None:
         auxiliary=volume['auxiliary']
-        if (result['worker']!=volume['root'] or result['supervisor']!=auxiliary/'supervisor' or
-                result['launch']!=auxiliary/'launch.json' or _hash(_read(auxiliary/'owner.json'))!=volume['owner_hash']):
+        if (result['worker']!=volume['root'] or result['supervisor']!=volume['supervisor'] or
+                result['launch']!=volume['launch'] or _hash(_read(auxiliary/'owner.json'))!=volume['owner_hash']):
             raise ValueError('volume cutover paths or ownership differ')
     if any(not root.is_dir() for root in roots) or not result['launch'].is_file():
         raise ValueError('existing closed worker/supervisor copies and launch required')
@@ -160,7 +166,8 @@ def _layout(worker_root, supervisor_root, launch_file, audit_dir=None):
         raise ValueError('launch must remain separate from state copies')
     if audit_dir is not None:
         result['audit'] = _safe_root(Path(audit_dir).absolute())
-        if volume is not None and result['audit'] not in {volume['auxiliary']/'entry-history',volume['auxiliary']/'cloud-source'}:
+        allowed_audits=({'discord-format'} if volume is not None and volume['live'] else {'entry-history','cloud-source'})
+        if volume is not None and result['audit'] not in {volume['auxiliary']/name for name in allowed_audits}:
             raise ValueError('volume audit namespace differs')
         if volume is None and any(result['audit'] == root or result['audit'].is_relative_to(root) or
                root.is_relative_to(result['audit']) for root in (*roots, result['launch'])):
@@ -195,6 +202,7 @@ def _members(layout):
         for path in root.rglob('*'):
             _check()
             if owned and path.is_relative_to(volume['auxiliary']):continue
+            if owned and volume['live'] and (path==volume['launch'] or path==volume['supervisor'] or path.is_relative_to(volume['supervisor'])):continue
             path = _safe_root(path)
             if len(result) >= 8192: raise ValueError('transition file budget exceeded')
             name = role+'/'+path.relative_to(root).as_posix()
@@ -838,6 +846,8 @@ def _digest(value, length=64):
 
 
 def _purpose(plan):
+    if plan['old_commit'] == DISCORD_FORMAT_BASE_COMMIT:
+        return 'paper_discord_format_release_transition_v1'
     if plan['old_commit'] == CLOUD_BASE_COMMIT:
         return CLOUD_PURPOSE
     if plan['old_commit'] == ENTRY_HISTORY_BASE_COMMIT:
@@ -854,7 +864,7 @@ def _purpose(plan):
 def validate_release_plan(plan):
     if not isinstance(plan, dict) or set(plan) != {'old_commit', 'new_commit', 'target', 'old', 'new'}:
         raise ValueError('exact correction release plan required')
-    if plan['old_commit'] not in {BASE_COMMIT,REPORTING_BASE_COMMIT,SNAPSHOT_BASE_COMMIT,RECOVERY_BASE_COMMIT,RELIABILITY_BASE_COMMIT,ENTRY_HISTORY_BASE_COMMIT,CLOUD_BASE_COMMIT}:
+    if plan['old_commit'] not in {BASE_COMMIT,REPORTING_BASE_COMMIT,SNAPSHOT_BASE_COMMIT,RECOVERY_BASE_COMMIT,RELIABILITY_BASE_COMMIT,ENTRY_HISTORY_BASE_COMMIT,CLOUD_BASE_COMMIT,DISCORD_FORMAT_BASE_COMMIT}:
         raise ValueError('correction must retain approved base commit')
     _digest(plan['new_commit'], 40)
     if plan['new_commit'] == plan['old_commit']:
@@ -890,6 +900,10 @@ def validate_release_plan(plan):
         # The complete successor is pinned above. Its other Python files only
         # change from Windows checkout line endings to the canonical Git bytes.
         return
+    elif plan['old_commit'] == DISCORD_FORMAT_BASE_COMMIT:
+        if _hash(old)!=CLOUD_TARGET_RELEASE:
+            raise ValueError('Discord format predecessor differs from installed cloud release')
+        allowed = {'notifications.py'}
     elif plan['old_commit'] == ENTRY_HISTORY_BASE_COMMIT:
         if _hash(old) != ENTRY_HISTORY_BASE_RELEASE or _hash(old['runtime']) != ENTRY_HISTORY_BASE_RUNTIME:
             raise ValueError('entry history correction predecessor differs from deployed release')
