@@ -21,7 +21,9 @@ class CloudReleaseTransitionTests(unittest.TestCase):
         from scripts.hermes_watch import _supervisor_release
         successor=json.loads((Path(__file__).resolve().parents[1]/'scripts/discord_format_release_plan.json').read_text())
         self.assertEqual(successor['old'],plan['new'])
-        self.assertEqual(_supervisor_release(),successor['new'])
+        pilot=json.loads((Path(__file__).resolve().parents[1]/'scripts/pilot_release_plan.json').read_text())
+        self.assertEqual(pilot['old'],successor['new'])
+        self.assertEqual(_supervisor_release(),pilot['new'])
 
     def test_runtime_launchers_predecessor_and_inventory_are_pinned(self):
         for case in ['base','old','runtime','watcher','launcher','inventory','missing']:

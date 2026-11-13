@@ -53,6 +53,7 @@ docs/
   HERMES.md
   KRAKEN.md
   OPERATIONS.md
+  PAPER_PILOT.md
   SAFETY.md
   STATE_FILES.md
   TROUBLESHOOTING.md
@@ -87,6 +88,31 @@ uv run python -m unittest discover -s tests
 Get-Content .\state\heartbeat.json
 Get-Content .\state\decisions.jsonl -Tail 20
 ```
+
+## Pilote paper reproductible (huit comptes)
+
+Le parcours principal utilise des prix Kraken publics sans authentification et
+huit comptes simulés : adaptive/control × 50/100/150/200 EUR. Depuis la racine :
+
+```bash
+uv sync --python 3.11 --locked
+uv run --python 3.11 python -m hermes_trading.pilot_paper \
+  --root .test-tmp-lat28-repro/public --init-only --experiment-id lat28-public
+uv run --python 3.11 python -m hermes_trading.pilot_paper \
+  --root .test-tmp-lat28-repro/public --run --experiment-id lat28-public \
+  --max-cycles 1 --max-runtime-seconds 120 --interval-seconds 60
+```
+
+Choisir une racine neuve à chaque session. Le fallback adaptive est local et
+automatique ; les control restent fixes. Aucun ordre réel ni appel LLM.
+Une observation peut finir sans trade et reste alors inconclusive.
+Voir [la procédure complète](docs/PAPER_PILOT.md) pour l'installation séparée,
+le rejeu hors ligne du paquet public exact, les huit sorties et les limites de
+valorisation. La [preuve LAT-34](docs/LAT34_PUBLIC_PROOF_RESULTS.md) rapporte
+six entrées/six clôtures en rejeu historique (~10 min), pas en temps réel ;
+les deux comptes 50 EUR restent sans trade et les frais sont nuls.
+L'ancien `paper_offline` utilise une fixture synthétique et ne constitue pas
+cette preuve publique.
 
 ## Reflexion
 

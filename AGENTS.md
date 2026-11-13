@@ -23,6 +23,13 @@ Ces règles s'appliquent à tout agent de l'équipe Paperclip (Keola et son équ
 - Reporter dans la pull request la ligne `Ran N tests` et `OK` ou `FAILED`.
 - Messages au format Conventional Commits (`feat:`, `fix:`, `test:`, `docs:`). Corps de la pull request : le ticket, le poste, les fichiers touchés, les tests lancés avec leur résultat, et ce qui reste à faire.
 
+### Décisions du lot 1 (acceptées par Thomas le 2026-11-13)
+
+- Les pull requests du lot visent `integration`. Keola fusionne en squash après le verdict « accepter » de Stella, la CI et la suite complète vertes ; jamais vers `master`.
+- Suite complète avant fusion : `uv run python -m unittest discover -s tests`, au premier plan, découpée en parties de moins de dix minutes si nécessaire avec couverture équivalente documentée.
+- Défaut connu, hors périmètre : `test_quote_checkpoint` (`CapacityUnavailable`). Ne pas le corriger sans ticket dédié ; s'il se reproduit, la suite n'est pas verte.
+- La branche `wip/paper-update-codex` est une source à évaluer, pas une base à fusionner.
+
 ## graphify
 
 ## Owner deployment preference
