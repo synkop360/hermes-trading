@@ -26,3 +26,27 @@ class MaintenanceTests(unittest.IsolatedAsyncioTestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root=Path(tmp).resolve();maintenance.marker(root,enabled=True);maintenance.marker(root,enabled=False)
             self.assertFalse((root/'watcher_maintenance.json').exists())
+
+    def test_second_pause_recovery_is_bound_to_the_installed_runtime_and_a_new_tag(self):
+        import hashlib
+        runtime=json.loads((Path(__file__).resolve().parents[1]/'scripts/discord_format_release_plan.json').read_text())['new']['runtime']
+        self.assertEqual(hashlib.sha256(json.dumps(runtime,sort_keys=True,separators=(',',':')).encode()).hexdigest(),
+                         maintenance.CURRENT_RUNTIME)
+        self.assertNotEqual(maintenance.RECOVERY_TAG,'after-legacy-archive')
+
+    def test_maintenance_never_replays_the_pinned_legacy_database_step(self):
+        from unittest.mock import MagicMock
+        with tempfile.TemporaryDirectory() as tmp:
+            project=Path(tmp).resolve();(project/'state').mkdir()
+            (project/'state/storage_limits.json').write_text('{}')
+            lease=MagicMock();lease.__enter__.return_value.execute.return_value.fetchone.return_value=('{"storage_stop":false}',)
+            ready={'status':'ready','reason':None,'state_bytes':1,'free_bytes':2}
+            with patch.object(maintenance,'install_default'),patch.object(maintenance,'compact_history',return_value={}) as compact, \
+                    patch.object(maintenance,'repack_archives',return_value={}),patch.object(maintenance,'inspect_storage',return_value=ready), \
+                    patch.object(maintenance,'recover_storage',return_value={}) as recover,patch.object(maintenance,'ownership',return_value=lease), \
+                    redirect_stdout(io.StringIO()):
+                result=maintenance.maintain_storage(project)
+            self.assertEqual(result['status'],'completed')
+            compact.assert_called_once_with(project/'state',enabled=True,retire_originals=True)
+            recover.assert_called_once_with(project/'state',approval_ref=maintenance.RECOVERY_APPROVAL,
+                expected_runtime=maintenance.CURRENT_RUNTIME,recovery_tag=maintenance.RECOVERY_TAG)

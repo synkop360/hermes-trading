@@ -11,7 +11,10 @@ from hermes_trading.archive_snapshot import _safe_root,ownership
 from hermes_trading.paper_publication import _temporary,_sync_dir
 
 LEGACY_LOGS=('cost_events.jsonl','decisions.jsonl','fills.jsonl','hypotheses.jsonl',
-             'orders.jsonl','positions.jsonl','trades.jsonl')
+             'orders.jsonl','positions.jsonl','trades.jsonl',
+             # Byte-exact backup left by scripts/repair_hypothesis_log.py on
+             # 2026-10-09; obsolete, never read by the paired runtime.
+             'hypotheses.jsonl.pre-repair-39815ad526bbbdcec784fdf079f59738f9a88db48fc9f58c27e7f017097781a9')
 MAX_ORIGINAL=256*1024*1024
 MAX_ARCHIVE=64*1024*1024
 MIN_FREE=16*1024*1024

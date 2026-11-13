@@ -92,6 +92,17 @@ class CompactHistoryTests(unittest.TestCase):
         self.assertEqual((self.root/'adaptive_200/decisions.jsonl').read_bytes(),b'current account journal')
         self.assertEqual(self.compact()['bytes_reclaimed'],0)
 
+    def test_existing_archives_are_kept_when_the_obsolete_repair_backup_is_added(self):
+        first=self.compact()
+        backup=self.root/'hypotheses.jsonl.pre-repair-39815ad526bbbdcec784fdf079f59738f9a88db48fc9f58c27e7f017097781a9'
+        original=b'{"hypothesis":"retained before repair"}\n'*20000;backup.write_bytes(original)
+        second=self.compact()
+        self.assertGreater(first['bytes_reclaimed'],0)
+        self.assertEqual(second['files_compacted'],1);self.assertGreater(second['bytes_reclaimed'],len(original)//2)
+        self.assertFalse(backup.exists())
+        self.assertEqual(gzip.decompress((self.root/'.legacy-history-compact'/(backup.name+'.gz')).read_bytes()),original)
+        self.assertEqual(gzip.decompress((self.root/'.legacy-history-compact/decisions.jsonl.gz').read_bytes()),self.original)
+
     def test_restart_after_receipt_reuses_verified_archive(self):
         def interrupt(stage):
             if stage=='receipt':raise RuntimeError('interrupted')
