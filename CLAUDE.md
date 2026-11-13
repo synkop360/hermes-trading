@@ -1,5 +1,7 @@
 # CLAUDE.md
 
+> Agents de l'équipe Paperclip : les règles prioritaires en tête d'`AGENTS.md` s'appliquent (aucun déploiement, aucune commande Railway, pas de graphify).
+
 Instructions pour Claude Code dans ce dépôt. Converti depuis `AGENTS.md` (instructions Codex) et complété avec les informations vérifiables du dépôt (`README.md`, `docs/`, `pyproject.toml`). Aucun `CLAUDE.md` préexistant n'a été trouvé à la racine — ce fichier est une création, pas une fusion.
 
 ## Project Overview
@@ -30,7 +32,7 @@ Vérification de préparation live (sans démarrer un cycle complet) :
 uv run python scripts\check_live_readiness.py
 ```
 
-Il n'y a pas de pipeline CI configuré (`.github/workflows` absent) : les tests doivent être lancés manuellement avant tout commit ou déploiement. Déploiement via `Dockerfile` (`python:3.11-slim`, `uv sync`, `CMD uv run python -m hermes_trading.colocated`) sur Railway ; voir `docs/DEPLOYMENT.md` et `docs/COMMANDS.md` pour les commandes Railway (`railway status`, `railway logs`, `railway up`, `railway variables`).
+Une CI GitHub (`.github/workflows/paper-cloud.yml`) lance sur chaque pull request un sous-ensemble ciblé de tests (supervision cloud, service paper, notifications) en mode paper ; la suite complète reste à lancer manuellement avant tout commit. Déploiement via `Dockerfile` (`CMD` : `scripts.paper_cloud_service`, avec `HERMES_TRADING_MODE=paper` et `HERMES_TRADING_ALLOW_REAL_ORDERS=false` forcés) sur Railway, qui suit la branche `master` : tout ce qui arrive sur `master` est déployé ; voir `docs/DEPLOYMENT.md` et `docs/COMMANDS.md` pour les commandes Railway (`railway status`, `railway logs`, `railway up`, `railway variables`).
 
 ## Project Structure
 
@@ -77,7 +79,7 @@ Certains tests écrivent des fichiers temporaires (SQLite, JSON) sous des réper
 
 ## Git / PR Workflow
 
-Aucune règle de PR/commit écrite n'existe dans le dépôt. L'historique observé suit toutefois le format Conventional Commits (`feat:`, `fix:`, `docs:`, `test:`) — respecte ce format pour rester cohérent avec l'historique existant. Pas de CI ni de hooks de pre-commit configurés ; lancer la suite de tests manuellement avant de committer.
+Aucune règle de PR/commit écrite n'existe dans le dépôt. L'historique observé suit toutefois le format Conventional Commits (`feat:`, `fix:`, `docs:`, `test:`) — respecte ce format pour rester cohérent avec l'historique existant. CI ciblée sur les pull requests (voir plus haut), pas de hook de pre-commit ; lancer la suite de tests manuellement avant de committer.
 
 ## Safety — trading réel
 
@@ -101,7 +103,7 @@ Ce projet manipule potentiellement de l'argent réel via Kraken. Avant toute mod
   - Un `graphify-out/` « sale » (modifié par des hooks ou mises à jour incrémentales) est normal et n'est pas une raison d'ignorer graphify. Ne l'ignorer que si la tâche porte explicitement sur un graphe obsolète/incorrect, ou si l'utilisateur le demande.
   - Après toute modification de code, lancer `graphify update .` pour garder le graphe à jour (analyse AST uniquement, sans coût d'API).
   - Le hook Codex `.codex/hooks.json` invoque `graphify.EXE hook-check` avant chaque commande Bash sur la configuration Windows locale de l'utilisateur ; ce hook est spécifique à Codex CLI et n'a pas d'équivalent direct ici — traiter les instructions `graphify` ci-dessus comme une pratique à suivre manuellement plutôt que comme un hook automatique.
-- Points d'entrée : `hermes_trading.run` lance uniquement la boucle de trading (pratique pour un test local rapide). `hermes_trading.colocated` réutilise `run.ensure_state_files` et `loop.run_loop`, puis ajoute l'API de contrôle locale (si `HERMES_CONTROL_HMAC_SECRET` est défini) et le bot Discord (si les variables `HERMES_DISCORD_*` sont définies) ; c'est ce module que lance le `Dockerfile` en production. Pour reproduire le comportement Railway en local, lancer `colocated` plutôt que `run`.
+- Points d'entrée : `hermes_trading.run` lance uniquement la boucle de trading (pratique pour un test local rapide). `hermes_trading.colocated` réutilise `run.ensure_state_files` et `loop.run_loop`, puis ajoute l'API de contrôle locale (si `HERMES_CONTROL_HMAC_SECRET` est défini) et le bot Discord (si les variables `HERMES_DISCORD_*` sont définies) ; en production, le `Dockerfile` lance désormais `scripts.paper_cloud_service` (service paper supervisé).
 - `.gitignore` ignore `.test-tmp*/` (tous les répertoires de test temporaires, pas seulement `.test-tmp/`) : ne pas committer de nouveaux répertoires de ce type, et vérifier que le pattern reste `.test-tmp*/` s'il est modifié.
 - L'état local (`state/`) peut être en retard par rapport au volume Railway `/app/state`, qui fait foi pour le service déployé.
 - Aucun Python ≥3.11 ni accès réseau PyPI/GitHub n'est disponible dans certains environnements d'exécution sandboxés : `uv run` peut échouer à télécharger le toolchain. Dans ce cas, une vérification statique (`python3 -m py_compile` sur les fichiers du dépôt) reste possible mais ne remplace pas `uv run python -m unittest discover -s tests`.

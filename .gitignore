@@ -43,3 +43,6 @@ graphify-out/
 research/runs/
 .test-results*.txt
 /*.log
+
+# Réglages Claude Code propres au poste de Thomas (hooks graphify sous Windows)
+.claude/settings.local.json
