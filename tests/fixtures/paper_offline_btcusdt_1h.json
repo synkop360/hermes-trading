@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "asset": "BTC/USDT",
+  "timeframe": "1h",
+  "source": "synthetic_offline_fixture",
+  "description": "Deterministic 1-hour candles for an offline paper session. Cycle 0 is engineered to produce an RSI entry; cycle 1 is engineered to hit the take-profit target and close the position.",
+  "base_closes": [
+    "100", "99", "98", "97", "96", "95", "94", "93", "92", "91",
+    "90", "89", "88", "87", "86"
+  ],
+  "strategy": {
+    "version": "01",
+    "entry": {"indicator": "rsi", "threshold": 30, "direction": "long"},
+    "exit": {"take_profit_pct": "3.0"},
+    "stop_loss_pct": "2.0",
+    "position_size_r": "0.5",
+    "simulation": {
+      "quote_notional": "5",
+      "taker_fee_rate": "0.008",
+      "maker_fee_rate": "0.004",
+      "slippage_rate": "0.001",
+      "minimum_expected_edge_pct": "0.2",
+      "risk_per_trade_pct": "0.0025"
+    }
+  },
+  "cycles": [
+    {"open": "80", "high": "80", "low": "80", "close": "80", "volume": "1"},
+    {"open": "102", "high": "102", "low": "102", "close": "102", "volume": "1"},
+    {"open": "101", "high": "101", "low": "101", "close": "101", "volume": "1"},
+    {"open": "100", "high": "100", "low": "100", "close": "100", "volume": "1"},
+    {"open": "99", "high": "99", "low": "99", "close": "99", "volume": "1"},
+    {"open": "98", "high": "98", "low": "98", "close": "98", "volume": "1"}
+  ]
+}

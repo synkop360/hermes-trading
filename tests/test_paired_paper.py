@@ -316,7 +316,7 @@ class PairedPaperTests(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(all(self.positions(profile['directory'])[0].status.value=='closed' for profile in self.manifest['profiles']))
 
     async def test_primary_archives_are_available_before_all_adaptive_budgets(self):
-        await run_paired_cycle(self.root,self.market)
+        await run_paired_cycle(self.root,self.market,now=self.now)
         path=self.root/'adaptive_100';before_bytes=(path/'strategy.yaml').read_bytes();before=yaml.safe_load(before_bytes)
         (path/'history/v0001.yaml').write_bytes(before_bytes)
         newer=json.loads(json.dumps(before));newer['version']='2';newer['entry']['threshold']='29';(path/'strategy.yaml').write_text(yaml.safe_dump(newer))
