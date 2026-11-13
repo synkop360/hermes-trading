@@ -58,3 +58,6 @@ research/runs/venue-refresh-2026-10-17/asset-pairs.raw.json -text whitespace=bla
 research/runs/venue-refresh-2026-10-17/verification.json -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
 research/runs/paper-supervisor-retry-v1/historical-fixture-inventory.json -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
 research/runs/paper-supervisor-retry-v1/candidate-package-v4.raw-sha256.json -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+
+# Raw SHA-256 pins in the disabled candidate must survive Windows checkouts.
+/config/paper-beta-v1/** text eol=lf
