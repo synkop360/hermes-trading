@@ -1,5 +1,7 @@
 # CLAUDE.md
 
+> Agents de l'équipe Paperclip : les règles prioritaires en tête d'`AGENTS.md` s'appliquent (aucun déploiement, aucune commande Railway, pas de graphify).
+
 Instructions pour Claude Code dans ce dépôt. Converti depuis `AGENTS.md` (instructions Codex) et complété avec les informations vérifiables du dépôt (`README.md`, `docs/`, `pyproject.toml`). Aucun `CLAUDE.md` préexistant n'a été trouvé à la racine — ce fichier est une création, pas une fusion.
 
 ## Project Overview
