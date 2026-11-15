@@ -74,6 +74,16 @@ COMPONENTS = (
     ('pc_lifecycle', 'supervisor', 'supervisor_lifecycle.json', 'binding'),
     ('pc_launch', 'launch', '', 'release_hash'),
 )
+# Append-only operational history inside the two binding databases. Their
+# rows grow whenever the worker renews access or reports usage, so a
+# completed-transition replay must tolerate new rows there while still
+# refusing every other non-binding mutation.
+_HISTORY_TABLES = {
+    'worker/adaptive_200/model_access_refresh.sqlite': ('renewals',),
+    'worker/adaptive_200/supervisor_usage_feed.sqlite': ('events', 'snapshots'),
+}
+_RENEWAL_DB = 'worker/adaptive_200/model_access_refresh.sqlite'
+_RENEWED_ACCESS = 'worker/adaptive_200/model_access.json'
 _DEADLINE = ContextVar('paper_transition_deadline', default=None)
 _VOLUME_AUX = ContextVar('paper_volume_auxiliary', default=None)
 
@@ -642,6 +652,48 @@ def _verify_rollback(plan, layout):
         raise ValueError('original consistent rollback evidence changed')
 
 
+def _history_appends(plan, layout, current):
+    """Accept a completed-transition replay after append-only history growth.
+
+    The frozen rollback preimages are the reference: the schema and every
+    non-history table must stay identical, and the known history tables
+    ('renewals', 'events', 'snapshots') may only gain rows, never lose or
+    rewrite one. The renewed access document may only move forward to the
+    exact access recorded by the newest appended renewal, with its original
+    provenance intact. Any other difference is a real non-binding mutation.
+    """
+    message = 'non-binding state changed after transition'
+    if set(current) != set(plan['protected']): raise ValueError(message)
+    names = {name for name in current if current[name] != plan['protected'][name]}
+    if not names <= set(_HISTORY_TABLES) | {_RENEWED_ACCESS}: raise ValueError(message)
+    if _RENEWED_ACCESS in names and _RENEWAL_DB not in names: raise ValueError(message)
+    appended = None
+    for name in sorted(names & set(_HISTORY_TABLES)):
+        role, relative = name.split('/', 1)
+        path = _path(layout, dict(role=role, path=relative))
+        copied = layout['audit']/'rollback'/role/relative
+        with _database(path) as live, _database(copied) as before:
+            schema = list(live.execute('SELECT type,name,tbl_name,sql FROM sqlite_master ORDER BY type,name'))
+            if schema != list(before.execute('SELECT type,name,tbl_name,sql FROM sqlite_master ORDER BY type,name')):
+                raise ValueError(message)
+            for table in [row[1] for row in schema if row[0] == 'table']:
+                if table == 'binding': continue
+                live_rows = [list(row) for row in live.execute('SELECT * FROM '+_quote(table)+' ORDER BY rowid')]
+                before_rows = [list(row) for row in before.execute('SELECT * FROM '+_quote(table)+' ORDER BY rowid')]
+                if table in _HISTORY_TABLES[name]:
+                    if len(live_rows) < len(before_rows) or live_rows[:len(before_rows)] != before_rows:
+                        raise ValueError(message)
+                elif live_rows != before_rows: raise ValueError(message)
+                if name == _RENEWAL_DB and table == 'renewals' and len(live_rows) > len(before_rows):
+                    appended = live_rows[len(before_rows):]
+    if _RENEWED_ACCESS in names:
+        role, relative = _RENEWED_ACCESS.split('/', 1)
+        access = _read(_path(layout, dict(role=role, path=relative)))
+        original = _read(layout['audit']/'rollback'/role/relative)
+        if access.get('provenance_ref') != original.get('provenance_ref'): raise ValueError(message)
+        if not appended or _hash(access) != appended[-1][1]: raise ValueError(message)
+
+
 def _change(layout, component, connections, *, reverse=False):
     _check()
     source, target = ('after','before') if reverse else ('before','after')
@@ -744,8 +796,8 @@ def apply_transition(plan, *, worker_root, supervisor_root, launch_file, audit_d
         complete = layout['audit']/'receipt.json'
         if complete.exists():
             _verify_rollback(plan,layout)
-            if _protected(layout)!=plan['protected']:
-                raise ValueError('non-binding state changed after transition')
+            current = _protected(layout)
+            if current != plan['protected']: _history_appends(plan,layout,current)
             _preflight(plan,layout)
             receipt = _read(complete)
             if receipt.get('transition_id') != plan['transition_id'] or receipt.get('status') != 'completed':
