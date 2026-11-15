@@ -55,7 +55,9 @@ class DiscordFormatUpdateTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual((root/'adaptive_200/wallet_account.json').read_bytes(),account)
         self.assertEqual(worker_state(),before)
         from scripts.paper_cloud_install import install
-        with patch.dict(update.os.environ,env):
+        # The checkout now carries the chained pilot successor; this step is
+        # checked against its own frozen successor release.
+        with patch.dict(update.os.environ,env),patch('scripts.hermes_watch._supervisor_release',return_value=plan['new']):
             self.assertEqual(install(f.project_root,plan,env=env,experiment_id='paired-test')['status'],'already_installed')
         life=root/'paired-supervisor/paired-test/adaptive_200/supervisor_lifecycle.json'
         body=json.loads(life.read_bytes());body['test_new_observation']=True;life.write_text(json.dumps(body))

@@ -1194,6 +1194,7 @@ def run_fallback_reflection(state_dir: Path) -> dict[str, Any]:
         {
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "mode": "fallback",
+            "strategy_version": updated["version"],
             "score": current_score,
             "changed": variable,
             "before": before,

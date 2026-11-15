@@ -130,3 +130,28 @@ def recover_storage(root,*,approval_ref,expected_runtime=PREDECESSOR,recovery_ta
                 raise ValueError('retained original storage halt differs')
             _save(completed,dict(schema_version=1,event_id=intent['event_id'],status='recovered',intent_hash=intent['intent_hash']))
     return {'kind':'paper_storage_recovery','status':'recovered'}
+
+
+def recovery_status(root,*,approval_ref,source_runtime,recovery_tag):
+    """Read-only status of one named recovery bound to an earlier runtime.
+
+    Returns 'absent' or 'completed'. A pending or inconsistent recovery is
+    refused: it can only be reconciled under the runtime it is bound to.
+    """
+    root=_safe_root(Path(root).absolute())
+    audit=_safe_root(root/('.paper-storage-recovery-'+recovery_tag))
+    if not audit.exists():return 'absent'
+    intent_path=_safe_root(audit/'intent.json');completed=_safe_root(audit/'receipt.json');retired=_safe_root(audit/'retired-halt.json')
+    if not completed.exists():raise ValueError('predecessor recovery requires reconciliation under its runtime')
+    intent=_read(intent_path);receipt=_read(completed)
+    with ownership(root,role='worker',enabled=True) as db:
+        state=json.loads(db.execute('SELECT state FROM lifecycle WHERE id=1').fetchone()[0])
+    if (intent.get('intent_hash')!=_hash({k:v for k,v in intent.items() if k!='intent_hash'}) or
+            intent.get('root')!=str(root) or intent.get('source')!=source_runtime or
+            intent.get('approval_ref')!=approval_ref or intent.get('configuration_hash')!=state.get('configuration_hash') or
+            receipt.get('status')!='recovered' or
+            receipt.get('intent_hash')!=intent.get('intent_hash') or receipt.get('event_id')!=intent.get('event_id') or
+            state.get('storage_recovery')!=intent.get('event_id') or
+            not retired.is_file() or hashlib.sha256(retired.read_bytes()).hexdigest()!=intent.get('halt_sha256')):
+        raise ValueError('completed recovery evidence differs')
+    return 'completed'

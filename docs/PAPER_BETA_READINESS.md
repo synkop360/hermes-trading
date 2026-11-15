@@ -6,6 +6,10 @@ The active goal is a safe paper launch as soon as the six gates below are met. A
 
 The [verified local release](../research/runs/paper-launch-gate-v1/release-final-verification.json) covers **145 modules,1,618 checks:1,614 passes,4 Windows/platform skips and0 failures/errors/ResourceWarnings**. It composes the completed frozen suite with eight new standalone operator checks, preserving the exact standard-discovery catalog and rechecking all 364 source/config/build hashes. The corrected Docker assertion and slow module were rerun; earlier failed/timed-out attempts remain preserved. Worker/supervisor integration, entry halts, retained protective exits after restart and daily copies during storage monitoring are locally verified. Installed/off-host behavior remains unverified. Paper remains0 days; overall progress is a 55% judgment.
 
+## Offline preparation check
+
+Run `uv run --no-sync --python 3.11 python -m scripts.check_paper_candidate` from a clean, installed checkout to check the disabled bundle before cutover. The [command and byte-identity notes](PAPER_CANDIDATE_CHECK.md) explain its JSON report, Windows LF checkout policy and corrected goal pins. A passing report is preparation evidence only: it never authorizes activation or replaces fresh release, model, cost, venue or installed-runtime checks.
+
 ## Current six launch gates
 
 | Gate | Status and remaining work |

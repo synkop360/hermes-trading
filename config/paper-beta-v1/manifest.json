@@ -75,56 +75,56 @@
     {
       "arm": "adaptive",
       "directory": "adaptive_50",
-      "goal_sha256": "1ae46687ad02b2e80fa2134325cf841e38503dfad0c77a384969ed82c866b520",
+      "goal_sha256": "2847b90ccab0fd17fa83e9bc03ccda5b1b52170f8ef2d127b9dcc7ba48b6469c",
       "strategy_sha256": "4122e49676b1918738cd9e8a6ff45d221b8be6067c7235d36089515210a5ae99",
       "wallet_eur": 50
     },
     {
       "arm": "adaptive",
       "directory": "adaptive_100",
-      "goal_sha256": "1ae46687ad02b2e80fa2134325cf841e38503dfad0c77a384969ed82c866b520",
+      "goal_sha256": "2847b90ccab0fd17fa83e9bc03ccda5b1b52170f8ef2d127b9dcc7ba48b6469c",
       "strategy_sha256": "4122e49676b1918738cd9e8a6ff45d221b8be6067c7235d36089515210a5ae99",
       "wallet_eur": 100
     },
     {
       "arm": "adaptive",
       "directory": "adaptive_150",
-      "goal_sha256": "1ae46687ad02b2e80fa2134325cf841e38503dfad0c77a384969ed82c866b520",
+      "goal_sha256": "2847b90ccab0fd17fa83e9bc03ccda5b1b52170f8ef2d127b9dcc7ba48b6469c",
       "strategy_sha256": "4122e49676b1918738cd9e8a6ff45d221b8be6067c7235d36089515210a5ae99",
       "wallet_eur": 150
     },
     {
       "arm": "adaptive",
       "directory": "adaptive_200",
-      "goal_sha256": "1ae46687ad02b2e80fa2134325cf841e38503dfad0c77a384969ed82c866b520",
+      "goal_sha256": "2847b90ccab0fd17fa83e9bc03ccda5b1b52170f8ef2d127b9dcc7ba48b6469c",
       "strategy_sha256": "4122e49676b1918738cd9e8a6ff45d221b8be6067c7235d36089515210a5ae99",
       "wallet_eur": 200
     },
     {
       "arm": "control",
       "directory": "control_50",
-      "goal_sha256": "1ae46687ad02b2e80fa2134325cf841e38503dfad0c77a384969ed82c866b520",
+      "goal_sha256": "2847b90ccab0fd17fa83e9bc03ccda5b1b52170f8ef2d127b9dcc7ba48b6469c",
       "strategy_sha256": "759dfae2b67e3dc93469665fb113af523d8d494954384e87efda42160ac44624",
       "wallet_eur": 50
     },
     {
       "arm": "control",
       "directory": "control_100",
-      "goal_sha256": "1ae46687ad02b2e80fa2134325cf841e38503dfad0c77a384969ed82c866b520",
+      "goal_sha256": "2847b90ccab0fd17fa83e9bc03ccda5b1b52170f8ef2d127b9dcc7ba48b6469c",
       "strategy_sha256": "759dfae2b67e3dc93469665fb113af523d8d494954384e87efda42160ac44624",
       "wallet_eur": 100
     },
     {
       "arm": "control",
       "directory": "control_150",
-      "goal_sha256": "1ae46687ad02b2e80fa2134325cf841e38503dfad0c77a384969ed82c866b520",
+      "goal_sha256": "2847b90ccab0fd17fa83e9bc03ccda5b1b52170f8ef2d127b9dcc7ba48b6469c",
       "strategy_sha256": "759dfae2b67e3dc93469665fb113af523d8d494954384e87efda42160ac44624",
       "wallet_eur": 150
     },
     {
       "arm": "control",
       "directory": "control_200",
-      "goal_sha256": "1ae46687ad02b2e80fa2134325cf841e38503dfad0c77a384969ed82c866b520",
+      "goal_sha256": "2847b90ccab0fd17fa83e9bc03ccda5b1b52170f8ef2d127b9dcc7ba48b6469c",
       "strategy_sha256": "759dfae2b67e3dc93469665fb113af523d8d494954384e87efda42160ac44624",
       "wallet_eur": 200
     }

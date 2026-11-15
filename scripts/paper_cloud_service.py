@@ -53,11 +53,16 @@ def install_default(project):
     release=_supervisor_release()
     if release!=plan['new']:
         successor=json.loads((scripts/'discord_format_release_plan.json').read_bytes())
-        if successor['old']!=plan['new'] or successor['new']!=release:
+        pilot=json.loads((scripts/'pilot_release_plan.json').read_bytes())
+        if successor['old']!=plan['new']:
             raise ValueError('notification correction source map differs')
+        if pilot['old']!=successor['new'] or pilot['new']!=release:
+            raise ValueError('pilot source map differs')
         from scripts.paper_cloud_update import update_installed
-        print(json.dumps(update_installed(project,successor)),flush=True)
-        plan=successor
+        # Exact chain: notification correction, then the paper pilot.
+        print(json.dumps(update_installed(project,successor,successor=pilot)),flush=True)
+        print(json.dumps(update_installed(project,pilot)),flush=True)
+        plan=pilot
     return install(project,plan,
         entry_plan=json.loads((scripts/'entry_history_release_plan.json').read_bytes()),
         observer=lambda phase:print(json.dumps({'kind':'paper_cloud_install_phase','phase':phase}),flush=True))
