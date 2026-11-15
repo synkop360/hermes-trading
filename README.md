@@ -105,7 +105,7 @@ uv run --python 3.11 python -m hermes_trading.pilot_paper \
 
 Choisir une racine neuve à chaque session. Le fallback adaptive est local et
 automatique ; les control restent fixes. Aucun ordre réel ni appel LLM.
-Une observation peut finir sans trade et reste alors inconclusive.
+Une observation peut se terminer sans transaction simulée et reste alors non concluante.
 Voir [la procédure complète](docs/PAPER_PILOT.md) pour l'installation séparée,
 le rejeu hors ligne du paquet public exact, les huit sorties et les limites de
 valorisation. La [preuve LAT-34](docs/LAT34_PUBLIC_PROOF_RESULTS.md) rapporte
