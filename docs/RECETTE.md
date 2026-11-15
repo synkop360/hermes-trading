@@ -37,20 +37,30 @@ fait par Thomas ou Claude après la fusion de ce ticket ; ensuite chaque push su
    même vide. Seuls les noms sont lus et affichés, jamais les valeurs.
 3. **Provenance du volume.**
    - Volume absent ou vide (un `lost+found` vide est toléré) : initialisation
-     des huit comptes dans `/app/state/pilot`, puis écriture du marqueur
+     des huit comptes dans `/app/state/.test-tmp-pilot`, puis écriture du marqueur
      `/app/state/recette_provenance.json`. La racine du volume est un point de
      montage : elle n'est jamais supprimée.
    - Volume non vide : reprise uniquement si le marqueur existe, est lisible, est
      compatible (`schema_version: 1`, `kind: hermes_recette_volume`,
      `service: scripts.recette_service`, `experiment_id: pilot-paper-recette`,
-     `pilot_root: pilot`) et si `pilot/manifest.json` existe. Sinon : refus, le
+     `pilot_root: .test-tmp-pilot`) et si `.test-tmp-pilot/manifest.json` existe.
+     Sinon : refus, le
      volume n'est pas touché.
    - Le marqueur est écrit après le bootstrap : un arrêt brutal entre les deux
      laisse un volume sans marqueur, refusé au redémarrage (jamais à moitié
      reconnu). Il faut alors vider le volume, ce qui relève de Thomas.
 
-Hors recette (`HERMES_RECETTE` absent), la racine doit rester sous un
-répertoire `.test-tmp*`, comme pour `pilot_paper`.
+Hors recette (`HERMES_RECETTE` absent), la racine du volume doit elle-même
+rester sous un répertoire `.test-tmp*` : un lancement local ne peut pas
+initialiser un pilote à côté d'un état réel.
+
+Le pilote est placé dans `.test-tmp-pilot` pour que `hermes_trading.pilot_paper`
+l'accepte **sans modification** : son confinement `.test-tmp*` est conservé tel
+quel. Le paquet `hermes_trading` est épinglé par empreinte dans les releases
+(`paper_publication._release_hashes`, `CURRENT_RUNTIME`, cartes de sources) ;
+le modifier imposerait de ré-épingler l'identité du runtime de production, hors
+périmètre de ce ticket. Le service de recette vit donc entièrement dans
+`scripts/`.
 
 Le marqueur porte aussi `code_version` (version du paquet installé) et
 `created_at` (UTC). `code_version` est informatif : il n'est pas vérifié à la
@@ -79,7 +89,7 @@ sorties), `recette_service_stop`.
 
 ## Arrêt et codes de sortie
 
-- Fichier `/app/state/pilot/STOP` : arrêt propre avant la passe suivante ou
+- Fichier `/app/state/.test-tmp-pilot/STOP` : arrêt propre avant la passe suivante ou
   pendant une session, code 0. Le retirer pour reprendre.
 - Refus (posture, variable interdite, volume inconnu, bornes invalides) ou
   session terminée hors de ses bornes (`collection_unavailable`,

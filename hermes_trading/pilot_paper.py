@@ -56,18 +56,12 @@ BASE_STRATEGY = {
 }
 
 
-def _validate_root(root: Path, *, allow_recette_root: bool = False) -> Path:
+def _validate_root(root: Path) -> Path:
     """A pilot root must be new and live under a .test-tmp* tree.
 
     The supplied path and every parent are checked for symlinks before any
     resolution, so a dangling or redirecting link is refused instead of being
     followed; confinement is then checked on the resolved path.
-
-    ``allow_recette_root`` is the recette-service opt-in (LAT-117): the
-    deployed ``hermes-recette`` volume lives at ``/app/state``, outside any
-    ``.test-tmp*`` tree. It only relaxes the tree check; the root must still
-    be new and link-free, and the provenance marker stays owned by
-    ``scripts.recette_service``.
     """
     raw = Path(root).absolute()
     for candidate in (raw, *raw.parents):
@@ -78,9 +72,7 @@ def _validate_root(root: Path, *, allow_recette_root: bool = False) -> Path:
     resolved = raw.resolve()
     if resolved.exists():
         raise ValueError(f"root already exists: {resolved}")
-    if not allow_recette_root and not any(
-        part.startswith(".test-tmp") for part in resolved.parts
-    ):
+    if not any(part.startswith(".test-tmp") for part in resolved.parts):
         raise ValueError("root must be inside a .test-tmp* directory")
     return resolved
 
@@ -139,7 +131,6 @@ def init_pilot_accounts(
     *,
     now: datetime | None = None,
     experiment_id: str = DEFAULT_EXPERIMENT_ID,
-    allow_recette_root: bool = False,
 ) -> dict:
     """Create the eight fresh EUR accounts and return the bootstrap receipt.
 
@@ -147,7 +138,7 @@ def init_pilot_accounts(
     (``execution_enabled`` is false and the status is not ``paper_ready``),
     so this bootstrap alone can never feed the collector or the worker.
     """
-    root = _validate_root(root, allow_recette_root=allow_recette_root)
+    root = _validate_root(root)
     if not isinstance(experiment_id, str) or not experiment_id.strip():
         raise ValueError("an explicit experiment identity is required")
     at = now or datetime.now(timezone.utc)
@@ -224,15 +215,12 @@ class PilotCollectionUnavailable(RuntimeError):
     """The public collector exhausted its finite attempts without a sample."""
 
 
-def _validate_session_root(root: Path, *, allow_recette_root: bool = False) -> Path:
+def _validate_session_root(root: Path) -> Path:
     """An existing bootstrap under .test-tmp*, whose report path follows no link.
 
     The supplied root, its parents and ``pilot_session.json`` are checked for
     symlinks (dangling ones included) before any resolution or write, so the
     session report can never be redirected outside the pilot root.
-
-    ``allow_recette_root`` mirrors :func:`_validate_root`: only the recette
-    service opt-in relaxes the ``.test-tmp*`` tree check.
     """
     raw = Path(root).absolute()
     for candidate in (raw / SESSION_REPORT, raw, *raw.parents):
@@ -242,9 +230,7 @@ def _validate_session_root(root: Path, *, allow_recette_root: bool = False) -> P
     report = root / SESSION_REPORT
     if report.is_symlink() or (report.exists() and not report.is_file()):
         raise ValueError(f"session report is not a regular file: {report}")
-    if not allow_recette_root and not any(
-        part.startswith(".test-tmp") for part in root.parts
-    ):
+    if not any(part.startswith(".test-tmp") for part in root.parts):
         raise ValueError("root must be inside a .test-tmp* directory")
     if not (root / "manifest.json").is_file():
         raise ValueError(f"no pilot bootstrap in {root}; run --init-only first")
@@ -589,7 +575,6 @@ async def run_pilot_session(
     environ=None,
     collector_options: dict | None = None,
     replay=None,
-    allow_recette_root: bool = False,
 ) -> dict:
     """Run at most ``max_cycles`` shared paper cycles within ``max_runtime_seconds``.
 
@@ -619,7 +604,7 @@ async def run_pilot_session(
         collector_options = dict(collector_options or {}, max_attempts=1, retry_delay_seconds=0)
     _refuse_non_paper_mode(environ)
     refuse_credentials(environ)
-    root = _validate_session_root(root, allow_recette_root=allow_recette_root)
+    root = _validate_session_root(root)
     clock = clock or (lambda: datetime.now(timezone.utc))
     sleep = sleep or asyncio.sleep
     if (root / STOP_FILE).exists():

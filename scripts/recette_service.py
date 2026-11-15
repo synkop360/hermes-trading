@@ -9,18 +9,19 @@ Deployed on the Railway ``recette`` environment as
 * forces the paper posture (paper mode, real orders refused if set, no
   notification delivery) without ever defining or modifying the four risk
   guardrail variables;
-* initializes the eight-account ``pilot_paper`` bootstrap in ``<volume>/pilot``
+* initializes the eight-account ``pilot_paper`` bootstrap in
+  ``<volume>/.test-tmp-pilot``
   when the volume is empty and stamps the volume with a provenance/version
   marker, so a restart resumes only from a volume the recette service itself
   identified (the volume root is a mount point: it is never removed);
 * serves bounded paper sessions in a loop: shared public-market samples,
   deterministic ``reflect --fallback`` reflection without any model, no
   credentials and no private network, separated by one interval. A ``STOP``
-  file in ``<volume>/pilot`` ends the service cleanly.
+  file in ``<volume>/.test-tmp-pilot`` ends the service cleanly.
 
-Local development keeps the ``pilot_paper`` ``.test-tmp*`` confinement: the
-volume-tree relaxation only applies when ``HERMES_RECETTE=true`` is set, which
-is the deployment's own opt-in.
+Without ``HERMES_RECETTE=true`` (the deployment's own opt-in) the volume itself
+must lie under a ``.test-tmp*`` tree, so a local run can never initialize a
+pilot beside real state. ``hermes_trading.pilot_paper`` is used unchanged.
 """
 from __future__ import annotations
 
@@ -40,7 +41,10 @@ MARKER_NAME = "recette_provenance.json"
 MARKER_SCHEMA_VERSION = 1
 RECETTE_KIND = "hermes_recette_volume"
 SERVICE_NAME = "scripts.recette_service"
-PILOT_DIRNAME = "pilot"
+# The pilot lives in a ``.test-tmp*`` directory of the volume so the unchanged
+# ``pilot_paper`` confinement accepts it: ``hermes_trading`` is release-pinned
+# (``paper_publication._release_hashes``) and stays untouched by the recette.
+PILOT_DIRNAME = ".test-tmp-pilot"
 # A fresh ext4 volume may carry an empty lost+found directory: it is tolerated.
 TOLERATED_EMPTY_ENTRIES = frozenset({"lost+found"})
 FORBIDDEN_ENV_PREFIXES = ("EXCHANGE_", "HERMES_CLOUD_CHECKPOINT_", "HERMES_DISCORD_")
@@ -216,7 +220,6 @@ def initialize_recette_volume(
     try:
         receipt = pilot_paper.init_pilot_accounts(
             pilot_root(root), experiment_id=RECETTE_EXPERIMENT_ID, now=at,
-            allow_recette_root=recette,
         )
     except ValueError as error:
         raise RecetteError(str(error)) from error
@@ -292,10 +295,8 @@ def resolve_bounds(
     return bounds
 
 
-def _default_runner(root, *, environ, bounds, allow_recette_root):
-    return pilot_paper.run_pilot_session(
-        root, environ=environ, allow_recette_root=allow_recette_root, **bounds
-    )
+def _default_runner(root, *, environ, bounds):
+    return pilot_paper.run_pilot_session(root, environ=environ, **bounds)
 
 
 def _emit(stream, record: dict) -> None:
@@ -322,7 +323,6 @@ async def serve(
     sleep = sleep or asyncio.sleep
     prepared = prepare_recette_volume(root, environ=environ)
     root = Path(root).absolute().resolve()
-    recette = is_recette_deployment(environ)
     bounds = resolve_bounds(
         environ,
         max_cycles=max_cycles,
@@ -352,9 +352,7 @@ async def serve(
         assert_identified_root(root)
         if (summary := stopped()) is not None:
             return summary
-        report = await runner(
-            pilot, environ=environ, bounds=bounds, allow_recette_root=recette
-        )
+        report = await runner(pilot, environ=environ, bounds=bounds)
         if report.get("stop_reason") not in CLEAN_STOP_REASONS:
             raise RecetteError(
                 "recette session ended outside its bounds: "

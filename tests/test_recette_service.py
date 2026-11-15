@@ -84,7 +84,7 @@ class RecetteServiceTests(unittest.TestCase):
         environ = dict(self.environ, HERMES_RECETTE="true")
         prepared = self.prepare(root=outside / "state", environ=environ)
         self.assertEqual(prepared["status"], "initialized")
-        self.assertTrue((outside / "state" / "pilot" / "manifest.json").is_file())
+        self.assertTrue((outside / "state" / service.PILOT_DIRNAME / "manifest.json").is_file())
 
     def test_paper_posture_is_enforced_before_any_volume_write(self) -> None:
         cases = (
@@ -112,7 +112,7 @@ class RecetteServiceTests(unittest.TestCase):
         self.assertIsInstance(marker["code_version"], str)
         self.assertEqual(sorted(p.name for p in self.root.iterdir()),
                          sorted([service.MARKER_NAME, service.PILOT_DIRNAME]))
-        manifest = json.loads((self.root / "pilot" / "manifest.json").read_text(encoding="utf-8"))
+        manifest = json.loads((self.root / service.PILOT_DIRNAME / "manifest.json").read_text(encoding="utf-8"))
         self.assertEqual(manifest["status"], "pilot_bootstrap")
         self.assertEqual(manifest["experiment_id"], service.RECETTE_EXPERIMENT_ID)
         self.assertEqual(len(manifest["profiles"]), 8)
@@ -133,7 +133,7 @@ class RecetteServiceTests(unittest.TestCase):
         prepared = self.prepare()
         self.assertEqual(prepared["status"], "initialized")
         self.assertEqual(self.root.stat().st_ino, inode)
-        self.assertTrue((self.root / "pilot" / "manifest.json").is_file())
+        self.assertTrue((self.root / service.PILOT_DIRNAME / "manifest.json").is_file())
         self.assertEqual(self.prepare()["status"], "recognized")
 
     def test_non_empty_lost_and_found_is_not_tolerated(self) -> None:
@@ -145,7 +145,7 @@ class RecetteServiceTests(unittest.TestCase):
 
     def test_marker_without_pilot_bootstrap_is_refused(self) -> None:
         self.prepare()
-        shutil.rmtree(self.root / "pilot")
+        shutil.rmtree(self.root / service.PILOT_DIRNAME)
         with self.assertRaises(service.RecetteError):
             self.prepare()
 
@@ -221,10 +221,9 @@ class RecetteServeTests(unittest.TestCase):
     def runner(self, reports=None, error=None):
         reports = reports if reports is not None else [dict(CLEAN_REPORT)]
 
-        async def fake(root, *, environ, bounds, allow_recette_root):
+        async def fake(root, *, environ, bounds):
             self.calls.append({"root": root, "environ": dict(environ),
-                               "bounds": dict(bounds),
-                               "allow_recette_root": allow_recette_root})
+                               "bounds": dict(bounds)})
             if error is not None:
                 raise error
             index = min(len(self.calls) - 1, len(reports) - 1)
@@ -252,31 +251,30 @@ class RecetteServeTests(unittest.TestCase):
         first, second = self.calls
         self.assertEqual(first["root"], second["root"])
         self.assertEqual(first["bounds"]["max_cycles"], 2)
-        self.assertFalse(first["allow_recette_root"])
         self.assertEqual(first["environ"].get("HERMES_TRADING_MODE"), "paper")
         self.assertEqual([r["kind"] for r in records],
                          ["recette_service_start", "recette_pass", "recette_pass",
                           "recette_service_stop"])
         self.assertEqual(records[1]["stop_reason"], "max_cycles_reached")
-        self.assertEqual(Path(first["root"]), self.root.resolve() / "pilot")
+        self.assertEqual(Path(first["root"]), self.root.resolve() / service.PILOT_DIRNAME)
         self.assertEqual(self.sleeps, [60])
         self.assertTrue((self.root / service.MARKER_NAME).is_file())
-        self.assertTrue((self.root / "pilot" / "manifest.json").is_file())
+        self.assertTrue((self.root / service.PILOT_DIRNAME / "manifest.json").is_file())
 
     def test_serving_twice_resumes_the_identified_volume(self) -> None:
         _, first = self.serve(self.runner())
-        (self.root / "pilot" / pilot_paper.STOP_FILE).unlink()
+        (self.root / service.PILOT_DIRNAME / pilot_paper.STOP_FILE).unlink()
         calls_after_first = len(self.calls)
         _, second = self.serve(self.runner())
         self.assertEqual(len(self.calls), calls_after_first + 1)
         self.assertEqual(first[0]["volume"], "initialized")
         self.assertEqual(second[0]["volume"], "recognized")
         self.assertTrue((self.root / service.MARKER_NAME).is_file())
-        self.assertTrue((self.root / "pilot" / "manifest.json").is_file())
+        self.assertTrue((self.root / service.PILOT_DIRNAME / "manifest.json").is_file())
 
     def test_stop_file_ends_the_service_without_a_session(self) -> None:
         service.prepare_recette_volume(self.root, environ=self.environ, now=AT)
-        (self.root / "pilot" / pilot_paper.STOP_FILE).write_text("stop")
+        (self.root / service.PILOT_DIRNAME / pilot_paper.STOP_FILE).write_text("stop")
         summary, records = self.serve(self.runner())
         self.assertEqual(summary["stop_reason"], "stop_requested")
         self.assertEqual(self.calls, [])
@@ -308,7 +306,8 @@ class RecetteServeTests(unittest.TestCase):
         summary, _ = self.serve(self.runner(),
                                 environ=dict(self.environ, HERMES_RECETTE="true"))
         self.assertEqual(summary["stop_reason"], "stop_requested")
-        self.assertTrue(self.calls[0]["allow_recette_root"])
+        self.assertEqual(Path(self.calls[0]["root"]),
+                         self.root.resolve() / service.PILOT_DIRNAME)
 
 
 class RecetteRealSessionTests(unittest.TestCase):
@@ -334,11 +333,11 @@ class RecetteRealSessionTests(unittest.TestCase):
         self.reports = []
 
     def runner(self, stop_after):
-        async def run(root, *, environ, bounds, allow_recette_root):
+        async def run(root, *, environ, bounds):
             report = await pilot_paper.run_pilot_session(
                 root, collector=self.double, clock=self.clock, sleep=self.clock.sleep,
                 environ=environ, collector_options={"retry_delay_seconds": 0},
-                allow_recette_root=allow_recette_root, **bounds)
+                **bounds)
             self.reports.append(report)
             if len(self.reports) >= stop_after:
                 (Path(root) / pilot_paper.STOP_FILE).write_text("stop")
@@ -360,7 +359,7 @@ class RecetteRealSessionTests(unittest.TestCase):
         self.assertEqual(records[0]["volume"], "initialized")
         self.assertEqual([r["stop_reason"] for r in self.reports],
                          ["max_cycles_reached", "max_cycles_reached"])
-        manifest = json.loads((self.root / "pilot" / "manifest.json").read_text(encoding="utf-8"))
+        manifest = json.loads((self.root / service.PILOT_DIRNAME / "manifest.json").read_text(encoding="utf-8"))
         self.assertEqual(manifest["status"], "paper_ready")
         self.assertEqual(manifest["experiment_id"], service.RECETTE_EXPERIMENT_ID)
         for report in self.reports:
@@ -368,11 +367,24 @@ class RecetteRealSessionTests(unittest.TestCase):
             self.assertEqual([c["reflection"]["status"] for c in report["cycles"]],
                              ["published"])
             self.assertEqual(report["public_proof"], "not_eligible_injected_collector")
-        (self.root / "pilot" / pilot_paper.STOP_FILE).unlink()
+        (self.root / service.PILOT_DIRNAME / pilot_paper.STOP_FILE).unlink()
         summary, records = self.serve(stop_after=3)
         self.assertEqual(records[0]["volume"], "recognized")
         self.assertEqual(len(self.reports), 3)
         self.assertEqual(self.double.closed, 3)
+
+    def test_deployed_volume_outside_test_tmp_runs_the_unchanged_pilot(self) -> None:
+        # Like /app/state: no .test-tmp* ancestor, HERMES_RECETTE=true opt-in.
+        outside = Path(tempfile.mkdtemp(prefix="recette-deployed-"))
+        self.addCleanup(shutil.rmtree, outside, ignore_errors=True)
+        self.root = outside / "state"
+        self.assertFalse(any(p.startswith(".test-tmp") for p in self.root.resolve().parts))
+        self.environ = dict(self.environ, HERMES_RECETTE="true")
+        summary, records = self.serve(stop_after=1)
+        self.assertEqual(summary["stop_reason"], "stop_requested")
+        self.assertEqual(records[0]["volume"], "initialized")
+        self.assertEqual(self.reports[0]["stop_reason"], "max_cycles_reached")
+        self.assertTrue((self.root / service.PILOT_DIRNAME / "manifest.json").is_file())
 
 
 class RecetteCliTests(unittest.TestCase):
@@ -386,7 +398,7 @@ class RecetteCliTests(unittest.TestCase):
         self.calls = []
 
     def runner(self):
-        async def fake(root, *, environ, bounds, allow_recette_root):
+        async def fake(root, *, environ, bounds):
             self.calls.append(root)
             (Path(root) / pilot_paper.STOP_FILE).write_text("stop")
             return dict(CLEAN_REPORT)
@@ -411,7 +423,7 @@ class RecetteCliTests(unittest.TestCase):
         self.assertEqual(
             json.loads((self.root / service.MARKER_NAME).read_text(encoding="utf-8"))["kind"],
             service.RECETTE_KIND)
-        self.assertEqual(Path(self.calls[0]), self.root.resolve() / "pilot")
+        self.assertEqual(Path(self.calls[0]), self.root.resolve() / service.PILOT_DIRNAME)
 
     def test_cli_refuses_an_unknown_volume_with_exit_code_2(self) -> None:
         self.root.mkdir(parents=True)
