@@ -143,6 +143,25 @@ class RecetteServiceTests(unittest.TestCase):
             self.prepare()
         self.assertFalse((self.root / service.MARKER_NAME).exists())
 
+    def test_unreadable_lost_and_found_is_not_treated_as_empty(self) -> None:
+        lost = self.root / "lost+found"
+        lost.mkdir(parents=True)
+        (lost / "unknown").write_bytes(b"x")
+        real_iterdir = Path.iterdir
+
+        def iterdir(path):
+            if Path(path) == lost:
+                raise PermissionError(13, "Permission denied", str(path))
+            return real_iterdir(path)
+
+        with patch.object(Path, "iterdir", iterdir):
+            self.assertFalse(service.volume_is_empty(self.root))
+            with self.assertRaises(service.RecetteError):
+                self.prepare()
+        self.assertEqual(sorted(p.name for p in self.root.iterdir()), ["lost+found"])
+        self.assertFalse((self.root / service.MARKER_NAME).exists())
+        self.assertFalse((self.root / service.PILOT_DIRNAME).exists())
+
     def test_marker_without_pilot_bootstrap_is_refused(self) -> None:
         self.prepare()
         shutil.rmtree(self.root / service.PILOT_DIRNAME)
@@ -243,6 +262,23 @@ class RecetteServeTests(unittest.TestCase):
         summary = asyncio.run(service.serve(self.root, session_runner=runner, **options))
         records = [json.loads(line) for line in output.getvalue().splitlines()]
         return summary, records
+
+    def test_invalid_bounds_are_refused_before_any_write(self) -> None:
+        self.root.mkdir(parents=True)
+        cases = ({"max_cycles": 0}, {"max_runtime_seconds": 0},
+                 {"interval_seconds": 0}, {"reflect_every": -1})
+        for bad in cases:
+            with self.subTest(**bad):
+                with self.assertRaises(service.RecetteError):
+                    self.serve(self.runner(), **bad)
+                self.assertEqual(list(self.root.iterdir()), [])
+        environ = dict(self.environ, **{service.ENV_MAX_CYCLES: "0"})
+        with self.assertRaises(service.RecetteError):
+            asyncio.run(service.serve(self.root, environ=environ,
+                                      session_runner=self.runner(),
+                                      stream=io.StringIO(), sleep=self.fake_sleep))
+        self.assertEqual(list(self.root.iterdir()), [])
+        self.assertEqual(self.calls, [])
 
     def test_local_start_initializes_an_empty_root_and_serves_bounded_passes(self) -> None:
         summary, records = self.serve(self.runner([dict(CLEAN_REPORT), dict(CLEAN_REPORT)]))

@@ -1,9 +1,9 @@
 # Recette — service `scripts.recette_service`
 
 Point d'entrée de l'environnement Railway `recette` (service `hermes-recette`),
-livré par LAT-117 (lot 1, ticket 2). Il initialise le pilote paper huit comptes
-(`pilot_paper`, voir `docs/PAPER_PILOT.md`) sur un volume vide, puis le sert en
-boucle par sessions bornées. Paper uniquement : aucun secret, aucun modèle,
+livré par LAT-117 (lot 1, ticket 2). Il initialise le pilote paper à huit comptes
+(`pilot_paper`, voir `docs/PAPER_PILOT.md`) sur un volume vide, puis le fait
+fonctionner en boucle par sessions bornées. Paper uniquement : aucun secret, aucun modèle,
 aucun Discord, aucun checkpoint cloud, seulement le marché public Kraken non
 authentifié.
 

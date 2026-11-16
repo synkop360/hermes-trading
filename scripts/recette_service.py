@@ -139,9 +139,10 @@ def volume_is_empty(volume: Path) -> bool:
             try:
                 if not any(entry.iterdir()):
                     continue
-            except PermissionError:
-                # root-owned lost+found cannot be listed: never ours, never data.
-                continue
+            except OSError:
+                # An unreadable lost+found may hold unknown data: its emptiness
+                # cannot be proven, so the volume is not treated as empty.
+                return False
         return False
     return True
 
@@ -203,7 +204,7 @@ def initialize_recette_volume(
     """Create the pilot bootstrap in an empty/absent volume, then stamp it.
 
     The volume root may be a mount point, so it is created if absent but never
-    removed; the pilot lives in ``<volume>/pilot``. The marker is written after
+    removed; the pilot lives in ``<volume>/.test-tmp-pilot``. The marker is written after
     the bootstrap: a crash between the two leaves an unidentified volume that a
     restart refuses, never half-trusts.
     """
@@ -321,8 +322,7 @@ async def serve(
     stream = sys.stdout if stream is None else stream
     emit = (lambda record: _emit(stream, record)) if emit is None else emit
     sleep = sleep or asyncio.sleep
-    prepared = prepare_recette_volume(root, environ=environ)
-    root = Path(root).absolute().resolve()
+    # Validate every bound before anything is written to the volume.
     bounds = resolve_bounds(
         environ,
         max_cycles=max_cycles,
@@ -330,6 +330,8 @@ async def serve(
         interval_seconds=interval_seconds,
         reflect_every=reflect_every,
     )
+    prepared = prepare_recette_volume(root, environ=environ)
+    root = Path(root).absolute().resolve()
     runner = session_runner or _default_runner
     pilot = pilot_root(root)
     emit({"kind": "recette_service_start", "root": str(root), "pilot_root": str(pilot),
