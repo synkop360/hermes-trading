@@ -32,6 +32,8 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any, Iterable
 
+from hermes_trading import paper_history_retention as retention
+
 SCHEMA_VERSION = 1
 REPORT_KIND = "hermes_recette_status"
 REPORT_NAME = "recette_status.json"
@@ -46,7 +48,7 @@ MAX_RECENT_ERRORS = 10
 # Recette default storage budget: the whole volume, with a reserve of at least
 # two maximum packets (``paired_storage_admission`` rule) or a tenth of it.
 DEFAULT_RESERVE_FRACTION = 10
-PENDING_TICKET_5 = "pending_lat_120_daily_summary"
+PENDING_TICKET_5 = "pending_lat_120_growth_projection"
 
 
 class RecetteReportError(RuntimeError):
@@ -350,6 +352,38 @@ def _recent_errors(session: dict, accounts: dict, service_errors: Iterable[dict]
     return errors[:MAX_RECENT_ERRORS]
 
 
+def _daily_summary(pilot: Path) -> dict:
+    """Permanent daily summaries for every account, surviving detail archival."""
+    # A FIFO or missing manifest would block or fail inside ``daily_summaries``,
+    # so the report reads it only when it is a regular file.
+    if not (pilot / "manifest.json").is_file():
+        return {"status": "unavailable", "reason": "manifest_unavailable"}
+    try:
+        summaries = retention.daily_summaries(pilot)
+    except Exception as error:  # noqa: BLE001 - reported as a code only
+        return {"status": "unavailable", "reason": error_code(error)}
+    accounts: dict[str, dict] = {}
+    total_decisions = 0
+    for name, rows in sorted(summaries.items()):
+        if not rows:
+            accounts[name] = {
+                "days": 0, "decisions": 0, "last_date": None,
+                "last_balance": None, "last_costs": None,
+            }
+            continue
+        decisions = sum(row["decisions"] for row in rows)
+        total_decisions += decisions
+        last = rows[-1]
+        accounts[name] = {
+            "days": len(rows),
+            "decisions": decisions,
+            "last_date": last["date"],
+            "last_balance": _decimal_text(last["balance"]),
+            "last_costs": _decimal_text(last["costs"]),
+        }
+    return {"status": "ready", "accounts": accounts, "total_decisions": total_decisions}
+
+
 def build_recette_report(
     volume: Path | str,
     pilot: Path | str,
@@ -392,7 +426,7 @@ def build_recette_report(
         "entry_admission": _entry_admission(pilot, experiment_id),
         "storage": _storage(pilot, experiment_id, storage_limits),
         "growth_and_projection": {"status": "unavailable", "reason": PENDING_TICKET_5},
-        "daily_summary": {"status": "unavailable", "reason": PENDING_TICKET_5},
+        "daily_summary": _daily_summary(pilot),
         "locks": _locks(pilot, session),
         "recent_errors": _recent_errors(session, accounts, service_errors),
         "accounts": accounts,

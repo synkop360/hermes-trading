@@ -141,9 +141,15 @@ Clés de premier niveau, toutes toujours présentes :
   maximaux, 1/10 du volume)), `state_bytes`, `free_bytes`, `reserve_bytes`,
   `max_state_bytes`, `files` — mesure `paired_storage_admission.inspect_storage`
   sur le pilote ;
-- `growth_and_projection` et `daily_summary` : `{"status": "unavailable",
-  "reason": "pending_lat_120_daily_summary"}` jusqu'au ticket 5 (LAT-120), qui
-  les remplira sans changer les autres clés ;
+- `growth_and_projection` : `{"status": "unavailable",
+  "reason": "pending_lat_120_growth_projection"}` jusqu'à la fin du ticket 5
+  (LAT-120) ;
+- `daily_summary` : résumés quotidiens permanents lus dans
+  `hermes_trading.paper_history_retention.daily_summaries(pilot)` —
+  `status` (`ready`/`unavailable`), `accounts` par compte
+  `<bras>_<portefeuille>` (`days`, `decisions`, `last_date`, `last_balance`,
+  `last_costs`) et `total_decisions` (compteur de cycles préservé après
+  archivage) ;
 - `locks` : `active` (liste triée) et booléens `stop_requested`,
   `worker_entry_halt`, `supervisor_entry_halt`, `supervisor_recovery_pending`,
   `engine_halted` ;
