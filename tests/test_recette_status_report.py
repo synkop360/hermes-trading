@@ -164,6 +164,54 @@ class ReportContentTests(ReportFixture):
         for row in report["recent_errors"]:
             self.assertEqual(row["code"], report_module.UNRECOGNIZED_CODE)
 
+    def test_free_text_fields_are_validated_not_truncated(self) -> None:
+        sentinel = "SYNTHETIC_PRIVATE_SENTINEL"
+        for value in (sentinel, f"2026-11-15T10:00:00+00:00 {sentinel}",
+                      f"2026-11-15T10:00:00{sentinel}", "2026-11-15T10:00:00", 1731664800,
+                      "x" * 41):
+            with self.subTest(value=value):
+                self.assertIsNone(report_module._timestamp(value))
+        self.assertEqual(report_module._timestamp("2026-11-15T11:00:00+01:00"),
+                         "2026-11-15T10:00:00+00:00")
+        manifest_path = self.pilot / "manifest.json"
+        manifest = json.loads(manifest_path.read_text())
+        manifest_path.write_text(json.dumps(dict(manifest, status=sentinel)))
+        account_path = self.pilot / "control_100" / "wallet_account.json"
+        account = json.loads(account_path.read_text())
+        account_path.write_text(json.dumps(dict(account, currency=sentinel[:8])))
+        (self.pilot / pilot_paper.SESSION_REPORT).write_text(json.dumps({
+            "started_at": sentinel, "finished_at": f"2026-11-15T10:00:00+00:00{sentinel}",
+            "stop_reason": "error", "error": "ValueError", "completed_cycles": -1}))
+        (self.pilot / "control_100" / "wallet_metrics.json").write_text(json.dumps({
+            "status": "measurement_blocked", "observed_at": sentinel, "error": "OSError"}))
+        report = self.build(event="error", service={"code_version": sentinel, "pass": -3},
+                            service_errors=[{"at": sentinel, "source": "recette_service",
+                                             "code": "RuntimeError"}])
+        raw = report_module.encode_report(report).decode()
+        self.assertNotIn(sentinel, raw)
+        self.assertNotIn(sentinel[:8], raw)
+        self.assertEqual(report["manifest_status"], report_module.UNRECOGNIZED_CODE)
+        self.assertEqual(report["experiment_id"], "pilot-paper-recette")
+        self.assertIsNone(report["session"]["started_at"])
+        self.assertIsNone(report["session"]["finished_at"])
+        self.assertIsNone(report["session"]["completed_cycles"])
+        self.assertIsNone(report["heartbeat"]["code_version"])
+        self.assertIsNone(report["heartbeat"]["pass"])
+        control = report["accounts"]["accounts"]["control_100"]
+        self.assertIsNone(control["currency"])
+        self.assertIsNone(control["observed_at"])
+        self.assertEqual(len(report["recent_errors"]), 3)
+        for row in report["recent_errors"]:
+            self.assertIsNone(row["at"])
+
+    def test_malformed_experiment_id_is_not_published(self) -> None:
+        manifest_path = self.pilot / "manifest.json"
+        manifest = json.loads(manifest_path.read_text())
+        manifest_path.write_text(json.dumps(dict(manifest, experiment_id="Private Name/x")))
+        report = self.build()
+        self.assertIsNone(report["experiment_id"])
+        self.assertNotIn("Private Name", report_module.encode_report(report).decode())
+
     def test_recent_errors_are_bounded(self) -> None:
         errors = [{"at": (AT + timedelta(minutes=i)).isoformat(), "source": "recette_service",
                    "code": "engine_halted"} for i in range(30)]

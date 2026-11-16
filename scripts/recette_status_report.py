@@ -21,6 +21,7 @@ from __future__ import annotations
 import builtins
 import json
 import os
+import re
 import shutil
 import stat
 import threading
@@ -157,8 +158,47 @@ def _decimal_text(value: Any) -> str | None:
     return str(number) if number.is_finite() else None
 
 
-def _text(value: Any, limit: int = 64) -> str | None:
-    return value[:limit] if isinstance(value, str) else None
+# Free text never reaches the report: every string field is either a code
+# (``error_code``), a normalized timestamp, or matched against a strict pattern
+# or list. A value that does not qualify is dropped (``None``) or, for a status,
+# becomes ``UNRECOGNIZED_CODE``; it is never truncated and copied.
+MAX_TIMESTAMP_CHARS = 40
+EXPERIMENT_ID_PATTERN = re.compile(r"[a-z0-9][a-z0-9_-]{1,63}")
+CURRENCY_PATTERN = re.compile(r"[A-Z]{3}")
+CODE_VERSION_PATTERN = re.compile(
+    r"unknown|[0-9]{1,6}(\.[0-9]{1,6}){0,3}((a|b|rc|\.post|\.dev)[0-9]{1,6}){0,3}")
+KNOWN_MANIFEST_STATUSES = frozenset({"pilot_bootstrap", "paper_ready"})
+
+
+def _timestamp(value: Any) -> str | None:
+    """An aware ISO 8601 time, normalized to UTC; anything else is ``None``."""
+    if not isinstance(value, str) or len(value) > MAX_TIMESTAMP_CHARS:
+        return None
+    try:
+        parsed = datetime.fromisoformat(value)
+    except ValueError:
+        return None
+    if parsed.tzinfo is None or parsed.utcoffset() is None:
+        return None
+    try:
+        return parsed.astimezone(timezone.utc).isoformat()
+    except (OverflowError, ValueError):
+        return None
+
+
+def _matching(value: Any, pattern: re.Pattern) -> str | None:
+    return value if isinstance(value, str) and pattern.fullmatch(value) else None
+
+
+def _count(value: Any) -> int | None:
+    return value if type(value) is int and value >= 0 else None
+
+
+def _manifest_status(manifest: dict | None) -> str:
+    if manifest is None:
+        return "missing"
+    status = manifest.get("status")
+    return status if status in KNOWN_MANIFEST_STATUSES else UNRECOGNIZED_CODE
 
 
 def _manifest(pilot: Path) -> dict | None:
@@ -175,14 +215,14 @@ def _session(pilot: Path) -> dict:
         return {"status": "none"}
     return {
         "status": "finished",
-        "started_at": _text(report.get("started_at")),
-        "finished_at": _text(report.get("finished_at")),
+        "started_at": _timestamp(report.get("started_at")),
+        "finished_at": _timestamp(report.get("finished_at")),
         "stop_reason": error_code(report.get("stop_reason")),
         "error_code": error_code(report.get("error")),
-        "completed_cycles": report.get("completed_cycles") if type(report.get("completed_cycles")) is int else None,
-        "samples": report.get("samples") if type(report.get("samples")) is int else None,
-        "entries": report.get("entries") if type(report.get("entries")) is int else None,
-        "exits": report.get("exits") if type(report.get("exits")) is int else None,
+        "completed_cycles": _count(report.get("completed_cycles")),
+        "samples": _count(report.get("samples")),
+        "entries": _count(report.get("entries")),
+        "exits": _count(report.get("exits")),
         "public_proof": error_code(report.get("public_proof")),
     }
 
@@ -241,11 +281,11 @@ def _storage(volume: Path, experiment_id: str | None, limits: dict | None) -> di
         "status": "ready" if report.get("status") == "ready" else "blocked",
         "reason": reason,
         "limits_source": source,
-        "state_bytes": report.get("state_bytes"),
-        "free_bytes": report.get("free_bytes"),
-        "reserve_bytes": limits.get("reserve_bytes"),
-        "max_state_bytes": limits.get("max_state_bytes"),
-        "files": report.get("files"),
+        "state_bytes": _count(report.get("state_bytes")),
+        "free_bytes": _count(report.get("free_bytes")),
+        "reserve_bytes": _count(limits.get("reserve_bytes")),
+        "max_state_bytes": _count(limits.get("max_state_bytes")),
+        "files": _count(report.get("files")),
     }
 
 
@@ -284,11 +324,11 @@ def _accounts(pilot: Path, manifest: dict | None) -> dict:
         accounts[directory] = {
             "arm": arm,
             "wallet_eur": wallet,
-            "currency": _text(account.get("currency"), 8),
+            "currency": _matching(account.get("currency"), CURRENCY_PATTERN),
             "starting_balance": _decimal_text(account.get("starting_balance")),
             "status": error_code(metrics.get("status")) if metrics else "not_observed",
             "net_equity": _decimal_text(observation.get("net_equity")),
-            "observed_at": _text(metrics.get("observed_at")),
+            "observed_at": _timestamp(metrics.get("observed_at")),
             "error_code": error_code(metrics.get("error")),
         }
     return {"count": len(accounts), "expected": 8, "accounts": dict(sorted(accounts.items()))}
@@ -296,7 +336,7 @@ def _accounts(pilot: Path, manifest: dict | None) -> dict:
 
 def _recent_errors(session: dict, accounts: dict, service_errors: Iterable[dict]) -> list[dict]:
     errors = [
-        {"at": _text(row.get("at")), "source": error_code(row.get("source")), "code": error_code(row.get("code"))}
+        {"at": _timestamp(row.get("at")), "source": error_code(row.get("source")), "code": error_code(row.get("code"))}
         for row in service_errors if isinstance(row, dict)
     ]
     if session.get("error_code"):
@@ -327,7 +367,9 @@ def build_recette_report(
     at = _utc(now)
     volume, pilot = Path(volume), Path(pilot)
     manifest = _manifest(pilot)
-    experiment_id = _text(manifest.get("experiment_id")) if manifest else None
+    # Raw identity for the admission/storage checks; only a well-formed one is published.
+    experiment_id = manifest.get("experiment_id") if manifest else None
+    experiment_id = experiment_id if isinstance(experiment_id, str) else None
     session = _session(pilot)
     accounts = _accounts(pilot, manifest)
     service = dict(service or {})
@@ -340,12 +382,12 @@ def build_recette_report(
             "event": event,
             "interval_seconds": float(interval_seconds),
             "stale_after": (at + timedelta(seconds=float(interval_seconds) + STALE_GRACE_SECONDS)).isoformat(),
-            "pass": service.get("pass") if type(service.get("pass")) is int else None,
-            "cycle": service.get("cycle") if type(service.get("cycle")) is int else None,
-            "code_version": _text(service.get("code_version")),
+            "pass": _count(service.get("pass")),
+            "cycle": _count(service.get("cycle")),
+            "code_version": _matching(service.get("code_version"), CODE_VERSION_PATTERN),
         },
-        "experiment_id": experiment_id,
-        "manifest_status": _text(manifest.get("status")) if manifest else "missing",
+        "experiment_id": _matching(experiment_id, EXPERIMENT_ID_PATTERN),
+        "manifest_status": _manifest_status(manifest),
         "session": session,
         "entry_admission": _entry_admission(pilot, experiment_id),
         "storage": _storage(pilot, experiment_id, storage_limits),

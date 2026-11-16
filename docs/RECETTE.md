@@ -129,7 +129,7 @@ Clés de premier niveau, toutes toujours présentes :
 - `heartbeat` : `at`, `event`, `interval_seconds`, `stale_after`
   (`at` + intervalle + 900 s), `pass` (numéro de session du processus),
   `cycle` (cycles de la session en cours), `code_version` ;
-- `experiment_id`, `manifest_status` (`pilot_bootstrap`, `paper_ready` ou `missing`) ;
+- `experiment_id`, `manifest_status` (`pilot_bootstrap`, `paper_ready`, `missing` ou `unrecognized`) ;
 - `session` : dernière `pilot_session.json` terminée (`status: none` sinon) —
   `started_at`, `finished_at`, `stop_reason`, `error_code`, `completed_cycles`,
   `samples`, `entries`, `exits`, `public_proof` ;
@@ -159,14 +159,22 @@ dans la liste explicite `KNOWN_CODES` de `scripts/recette_status_report.py` ou
 s'il est un nom de classe d'exception de la liste explicite `KNOWN_ERROR_CLASSES`
 (exceptions standard de Python et classes des chemins pilote, portefeuille,
 stockage et recette), le texte après `:` étant supprimé ; toute autre chaîne,
-même de la forme `QuelqueChoseError`, devient `unrecognized`. Les fichiers lus doivent
+même de la forme `QuelqueChoseError`, devient `unrecognized`. Aucun autre champ
+texte n'est recopié ni tronqué : les horodatages (`started_at`, `finished_at`,
+`observed_at`, `recent_errors[].at`) doivent être des dates ISO 8601 avec fuseau
+et sont normalisés en UTC, sinon `null` ; `experiment_id`
+(`[a-z0-9][a-z0-9_-]{1,63}`), `currency` (trois majuscules) et `code_version`
+(version numérique ou `unknown`) sont publiés seulement s'ils respectent leur
+motif, sinon `null` ; `manifest_status` hors liste devient `unrecognized` ; les
+compteurs et tailles négatifs ou non entiers deviennent `null`. Les fichiers lus doivent
 être réguliers : une FIFO, un périphérique ou un lien est refusé sans attente.
 
 ### Endpoint en lecture seule
 
-Si `PORT` est défini (Railway le fournit au service exposé) ou si
-`--http-port` est fourni, le service écoute sur `0.0.0.0:<port>` ; sinon aucun endpoint (le fichier
-reste produit). Une valeur invalide est refusée avant toute écriture.
+Si `PORT` est défini (Railway le fournit au service exposé) ou si l'option
+`--http-port` est fournie, le service écoute sur `0.0.0.0:<port>`. Sinon, le
+rapport est uniquement disponible dans le fichier local. Une valeur invalide est
+refusée avant toute écriture.
 
 - `GET /recette` / `HEAD /recette` : `200`, le rapport plus `freshness`
   (`served_at`, `age_seconds`, `stale`). `stale` est vrai après `stale_after`,
