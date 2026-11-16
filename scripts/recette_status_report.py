@@ -48,7 +48,6 @@ MAX_RECENT_ERRORS = 10
 # Recette default storage budget: the whole volume, with a reserve of at least
 # two maximum packets (``paired_storage_admission`` rule) or a tenth of it.
 DEFAULT_RESERVE_FRACTION = 10
-PENDING_TICKET_5 = "pending_lat_120_growth_projection"
 
 
 class RecetteReportError(RuntimeError):
@@ -384,6 +383,37 @@ def _daily_summary(pilot: Path) -> dict:
     return {"status": "ready", "accounts": accounts, "total_decisions": total_decisions}
 
 
+def _growth_and_projection(pilot: Path, now: datetime, storage_report: dict) -> dict:
+    """Project days before the storage reserve is reached.
+
+    Uses the same integer inputs already validated by ``_storage``.  If the
+    storage measurement itself is unavailable, the projection is unavailable too.
+    """
+    values = {
+        "state_bytes": storage_report.get("state_bytes"),
+        "free_bytes": storage_report.get("free_bytes"),
+        "reserve_bytes": storage_report.get("reserve_bytes"),
+        "max_state_bytes": storage_report.get("max_state_bytes"),
+    }
+    if None in values.values():
+        return _unavailable_projection("storage_unavailable")
+    try:
+        return retention.storage_projection(
+            pilot, now,
+            state_bytes=values["state_bytes"],
+            free_bytes=values["free_bytes"],
+            reserve_bytes=values["reserve_bytes"],
+            max_state_bytes=values["max_state_bytes"],
+        )
+    except Exception as error:  # noqa: BLE001 - reported as a code only
+        return _unavailable_projection(error_code(error))
+
+
+def _unavailable_projection(reason: str) -> dict:
+    return {"schema_version": retention.PROJECTION_SCHEMA, "status": "unavailable",
+            "bytes_per_day": None, "days_before_reserve": None, "reason": reason}
+
+
 def build_recette_report(
     volume: Path | str,
     pilot: Path | str,
@@ -407,6 +437,7 @@ def build_recette_report(
     session = _session(pilot)
     accounts = _accounts(pilot, manifest)
     service = dict(service or {})
+    storage_report = _storage(pilot, experiment_id, storage_limits)
     return {
         "schema_version": SCHEMA_VERSION,
         "kind": REPORT_KIND,
@@ -424,8 +455,8 @@ def build_recette_report(
         "manifest_status": _manifest_status(manifest),
         "session": session,
         "entry_admission": _entry_admission(pilot, experiment_id),
-        "storage": _storage(pilot, experiment_id, storage_limits),
-        "growth_and_projection": {"status": "unavailable", "reason": PENDING_TICKET_5},
+        "storage": storage_report,
+        "growth_and_projection": _growth_and_projection(pilot, at, storage_report),
         "daily_summary": _daily_summary(pilot),
         "locks": _locks(pilot, session),
         "recent_errors": _recent_errors(session, accounts, service_errors),

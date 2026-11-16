@@ -215,5 +215,81 @@ class PaperHistoryRetentionTests(unittest.TestCase):
         self.assertEqual(self.observation_times("adaptive_100"), [cutoff.isoformat(), NOW.isoformat()])
 
 
+    # --- delivery 3: summaries exact across retention runs, lifetime counter ---
+    def test_day_split_by_the_cutoff_keeps_its_full_decision_count(self):
+        day = (NOW - timedelta(days=30)).replace(hour=0)
+        stamps = [day + timedelta(hours=hour) for hour in (1, 6, 18)] + [NOW]
+        self._write_observations("adaptive_100", stamps)
+        expected = {row["date"]: row["decisions"] for row in retention.daily_summaries(self.root)["adaptive_100"]}
+        for hours in (0, 12, 24):
+            retention.apply_retention(self.root, now=NOW + timedelta(hours=hours), backup_verified=True)
+            got = {row["date"]: row["decisions"] for row in retention.daily_summaries(self.root)["adaptive_100"]}
+            self.assertEqual(got, expected, hours)
+        self.assertEqual(expected[day.date().isoformat()], 3)
+        self.assertEqual(self.observation_times("adaptive_100"), [NOW.isoformat()])
+
+    def test_crash_between_summary_and_deletion_does_not_double_count(self):
+        old = NOW - timedelta(days=31)
+        self._write_observations("adaptive_100", [old, NOW])
+
+        def crash(stage):
+            if stage == "before_detail_delete":
+                raise RuntimeError("synthetic crash")
+        with self.assertRaises(RuntimeError):
+            retention.apply_retention(self.root, now=NOW, backup_verified=True, fault=crash)
+        self.assertEqual(len(self.observation_times("adaptive_100")), 2)
+        before = retention.daily_summaries(self.root)["adaptive_100"]
+        self.assertEqual([row["decisions"] for row in before], [1, 1])
+        retention.apply_retention(self.root, now=NOW + timedelta(hours=1), backup_verified=True)
+        self.assertEqual(retention.daily_summaries(self.root)["adaptive_100"], before)
+        self.assertEqual(self.observation_times("adaptive_100"), [NOW.isoformat()])
+
+    def test_summary_carries_the_last_balance_and_costs_of_the_day(self):
+        old = NOW - timedelta(days=40)
+        self._write_observations("adaptive_100", [old, old + timedelta(hours=1), NOW])
+        retention.apply_retention(self.root, now=NOW, backup_verified=True)
+        first = retention.daily_summaries(self.root)["adaptive_100"][0]
+        self.assertEqual(first, {"date": old.date().isoformat(), "balance": "99.9", "decisions": 2, "costs": "0.1"})
+
+    def test_latest_and_pending_batches_are_never_removed_and_lifetime_count_survives(self):
+        from hermes_trading.paired_worker import _stats
+        stamps = [NOW - timedelta(days=40 - day) for day in range(5)]
+        self._write_batches(stamps)
+        with closing(sqlite3.connect(self.primary_dir / "paper_publications.sqlite")) as db:
+            db.execute("UPDATE paired_batches SET status='pending' WHERE batch_id='batch-0'")
+            db.commit()
+        self.assertEqual(_stats(self.primary_dir)["complete"], 4)
+        result = retention.apply_retention(self.root, now=NOW, backup_verified=True)
+        self.assertEqual(result["publications"]["archived"], 3)
+        with closing(sqlite3.connect(self.primary_dir / "paper_publications.sqlite")) as db:
+            left = db.execute("SELECT batch_id,status FROM paired_batches ORDER BY rowid").fetchall()
+        self.assertEqual(left, [("batch-0", "pending"), ("batch-4", "complete")])
+        stats = _stats(self.primary_dir)
+        self.assertEqual(stats["complete"], 4)
+        self.assertEqual(stats["latest"]["batch_id"], "batch-4")
+        retention.apply_retention(self.root, now=NOW + timedelta(days=1), backup_verified=True)
+        self.assertEqual(_stats(self.primary_dir)["complete"], 4)
+
+    def test_same_day_rerun_with_new_old_rows_writes_a_second_verified_archive(self):
+        cutoff = NOW - timedelta(days=30)
+        self._write_observations("adaptive_100", [cutoff - timedelta(hours=2), cutoff + timedelta(hours=1), NOW])
+        retention.apply_retention(self.root, now=NOW, backup_verified=True)
+        retention.apply_retention(self.root, now=NOW + timedelta(hours=2), backup_verified=True)
+        archives = sorted((self.root / ".history-retention").glob("adaptive_100_wallet_equity_*.jsonl.gz"))
+        self.assertEqual(len(archives), 2)
+        for archive in archives:
+            raw = retention.restore_wallet_archive(archive)
+            self.assertEqual(len(raw.splitlines()), 1)
+        self.assertEqual(self.observation_times("adaptive_100"), [NOW.isoformat()])
+
+    def test_tampered_archive_is_refused_on_restore(self):
+        self._write_observations("adaptive_100", [NOW - timedelta(days=31), NOW])
+        retention.apply_retention(self.root, now=NOW, backup_verified=True)
+        archive = next((self.root / ".history-retention").glob("*.jsonl.gz"))
+        archive.write_bytes(gzip.compress(b"{}\n", mtime=0))
+        with self.assertRaisesRegex(ValueError, "differs"):
+            retention.restore_wallet_archive(archive)
+
+
 if __name__ == "__main__":
     unittest.main()

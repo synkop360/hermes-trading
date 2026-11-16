@@ -111,8 +111,12 @@ class ReportContentTests(ReportFixture):
         for key in ("state_bytes", "free_bytes", "reserve_bytes", "max_state_bytes", "files"):
             self.assertIsInstance(storage[key], int, key)
         self.assertGreaterEqual(storage["reserve_bytes"], 128 * 1024 * 1024)
-        self.assertEqual(report["growth_and_projection"],
-                         {"status": "unavailable", "reason": "pending_lat_120_growth_projection"})
+        growth = report["growth_and_projection"]
+        self.assertEqual(growth["schema_version"], 1)
+        self.assertEqual(growth["status"], "insufficient_data")
+        self.assertIsNone(growth["bytes_per_day"])
+        self.assertIsNone(growth["days_before_reserve"])
+        self.assertIs(type(growth["headroom_bytes"]), int)
         daily_summary = report["daily_summary"]
         self.assertEqual(daily_summary["status"], "ready")
         self.assertEqual(daily_summary["total_decisions"], 0)

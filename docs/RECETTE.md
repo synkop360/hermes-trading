@@ -141,9 +141,15 @@ Clés de premier niveau, toutes toujours présentes :
   maximaux, 1/10 du volume)), `state_bytes`, `free_bytes`, `reserve_bytes`,
   `max_state_bytes`, `files` — mesure `paired_storage_admission.inspect_storage`
   sur le pilote ;
-- `growth_and_projection` : `{"status": "unavailable",
-  "reason": "pending_lat_120_growth_projection"}` jusqu'à la fin du ticket 5
-  (LAT-120) ;
+- `growth_and_projection` : même contrat que `heartbeat['storage_projection']`
+  du worker (`hermes_trading.paper_history_retention.storage_projection`, un
+  échantillon par jour UTC conservé 31 jours sous `.history-retention/`) —
+  `schema_version` 1, `status` (`projected`/`non_positive_growth`/
+  `insufficient_data`/`reserve_reached`/`unavailable`), `bytes_per_day`
+  (entier), `days_before_reserve` = `headroom_bytes // bytes_per_day` avec
+  `headroom_bytes = max(0, min(free_bytes - reserve_bytes, max_state_bytes -
+  reserve_bytes - state_bytes))`, `sample_days` ; sous la réserve,
+  `reserve_reached` et 0 jour ;
 - `daily_summary` : résumés quotidiens permanents lus dans
   `hermes_trading.paper_history_retention.daily_summaries(pilot)` —
   `status` (`ready`/`unavailable`), `accounts` par compte
