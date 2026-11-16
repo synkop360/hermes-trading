@@ -26,8 +26,9 @@ class OperationalScriptTests(unittest.TestCase):
         self.assertIn("ENV HERMES_TRADING_MODE=paper", dockerfile)
         self.assertIn("ENV HERMES_TRADING_ALLOW_REAL_ORDERS=false", dockerfile)
         self.assertIn(
-            'CMD ["uv", "run", "--no-sync", "python", "-m", '
-            '"hermes_trading.paper_boot", "--root", "/app/state"]',
+            'CMD ["/bin/sh", "-c", "export HERMES_TRADING_MODE=paper '
+            'HERMES_TRADING_ALLOW_REAL_ORDERS=false; '
+            'exec /app/.venv/bin/python -u -m scripts.paper_cloud_service"]',
             dockerfile,
         )
         self.assertNotIn("hermes_trading.colocated", dockerfile)

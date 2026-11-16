@@ -364,6 +364,44 @@ class ClosedCopyTransitionTests(unittest.IsolatedAsyncioTestCase):
                                             approval_ref='synthetic-attempt-after-new-row')
         self.assertEqual(self.histories(), after_new_history)
 
+    async def test_compact_volume_replay_after_native_renewal_keeps_provenance_checks(self):
+        """LAT-127: the owned-volume compact audit retains only the six binding
+        components, not model_access.json. A completed replay after a native
+        renewal must still pass, against the provenance frozen in the plan,
+        while tampering with the renewed access document stays refused."""
+        import shutil
+        from datetime import timedelta
+        f = self.fixture; t = self.module
+        aux = f.worker_root/'.paper-cloud-cutover'; aux.mkdir()
+        supervisor = aux/'supervisor'; shutil.copytree(f.supervisor_root, supervisor)
+        launch = aux/'launch.json'; shutil.copyfile(f.launch_file, launch)
+        (aux/'owner.json').write_text(json.dumps(dict(schema_version=1, purpose='paper_cloud_auxiliary_v1',
+            worker_root=str(f.worker_root), policy_hash=_hash(f.policy), account_hash=_hash(f.account))))
+        options = dict(worker_root=f.worker_root, supervisor_root=supervisor, launch_file=launch,
+                       audit_dir=aux/'cloud-source')
+        replay = lambda: t.apply_transition(plan, **options, apply=True, approval_ref='synthetic-compact-replay')
+        with t.volume_cutover_layout(f.worker_root):
+            plan = t.prepare_plan(f.worker_root, supervisor, launch, release_plan=f.release_plan,
+                                  expected_identity=f.expected_identity)
+            receipt = replay()
+        audit = aux/'cloud-source'
+        self.assertEqual(t._read(audit/'intent.json')['rollback_mode'], 'changed_components_v1')
+        self.assertFalse((audit/'rollback/worker/adaptive_200/model_access.json').exists())
+        f.at += timedelta(seconds=1); f.renew_access(f.new_release)
+        access_path = f.primary/'model_access.json'; renewed = access_path.read_bytes()
+        with t.volume_cutover_layout(f.worker_root):
+            self.assertEqual(replay(), receipt)
+        access = json.loads(renewed)
+        for case, body in (('provenance', dict(access, provenance_ref='forged-provenance')),
+                           ('unrecorded', dict(access, synthetic_unrecorded_field=True))):
+            access_path.write_text(json.dumps(body))
+            with self.subTest(case=case), t.volume_cutover_layout(f.worker_root), \
+                    self.assertRaisesRegex(ValueError, 'non-binding state changed after transition'):
+                replay()
+        access_path.write_bytes(renewed)
+        with t.volume_cutover_layout(f.worker_root):
+            self.assertEqual(replay(), receipt)
+
     async def test_interruption_at_every_component_commit_and_receipt_is_reconciled(self):
         from release_transition_fixtures import NativeTransitionFixture
         names = ['worker_renewal','worker_usage','worker_limits','pc_limits','pc_lifecycle','pc_launch']
