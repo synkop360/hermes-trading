@@ -17,7 +17,11 @@ Deployed on the Railway ``recette`` environment as
 * serves bounded paper sessions in a loop: shared public-market samples,
   deterministic ``reflect --fallback`` reflection without any model, no
   credentials and no private network, separated by one interval. A ``STOP``
-  file in ``<volume>/.test-tmp-pilot`` ends the service cleanly.
+  file in ``<volume>/.test-tmp-pilot`` ends the service cleanly;
+* writes the expunged ``schema_version: 1`` report ``<volume>/recette_status.json``
+  at start, after every cycle and every session, and serves it read-only on
+  ``GET /recette`` when a port is given (``PORT``, set by Railway, or
+  ``--http-port``): see ``scripts/recette_status_report.py``.
 
 Without ``HERMES_RECETTE=true`` (the deployment's own opt-in) the volume itself
 must lie under a ``.test-tmp*`` tree, so a local run can never initialize a
@@ -35,6 +39,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from hermes_trading import pilot_paper
+from scripts import recette_status_report as status_report
 
 RECETTE_EXPERIMENT_ID = "pilot-paper-recette"
 MARKER_NAME = "recette_provenance.json"
@@ -57,6 +62,8 @@ ENV_MAX_CYCLES = "HERMES_RECETTE_MAX_CYCLES"
 ENV_MAX_RUNTIME_SECONDS = "HERMES_RECETTE_MAX_RUNTIME_SECONDS"
 ENV_INTERVAL_SECONDS = "HERMES_RECETTE_INTERVAL_SECONDS"
 ENV_REFLECT_EVERY = "HERMES_RECETTE_REFLECT_EVERY"
+ENV_HTTP_PORT = "PORT"
+DEFAULT_HTTP_HOST = "0.0.0.0"
 CLEAN_STOP_REASONS = {"max_cycles_reached", "max_runtime_reached", "stop_requested"}
 
 
@@ -296,8 +303,41 @@ def resolve_bounds(
     return bounds
 
 
-def _default_runner(root, *, environ, bounds):
-    return pilot_paper.run_pilot_session(root, environ=environ, **bounds)
+def resolve_http_port(environ: dict[str, str] | None = None, port: int | None = None) -> int | None:
+    """Port of the read-only report endpoint; ``None`` disables it."""
+    environ = os.environ if environ is None else environ
+    if port is None:
+        raw = environ.get(ENV_HTTP_PORT, "").strip()
+        if not raw:
+            return None
+        try:
+            port = int(raw)
+        except ValueError as error:
+            raise RecetteError(f"{ENV_HTTP_PORT} must be an integer") from error
+    if type(port) is not int or not 0 <= port <= 65535:
+        raise RecetteError("report endpoint port must be within 0..65535")
+    return port
+
+
+def cycle_sleep(sleep, on_cycle):
+    """Wrap a session ``sleep`` so ``on_cycle()`` runs after each cycle.
+
+    ``run_pilot_session`` sleeps between two cycles only; the last cycle of a
+    session is reported by the pass record, so every cycle is reported.
+    """
+    if on_cycle is None:
+        return sleep
+
+    async def wrapped(seconds):
+        on_cycle()
+        return await sleep(seconds)
+
+    return wrapped
+
+
+def _default_runner(root, *, environ, bounds, on_cycle=None):
+    return pilot_paper.run_pilot_session(
+        root, environ=environ, sleep=cycle_sleep(asyncio.sleep, on_cycle), **bounds)
 
 
 def _emit(stream, record: dict) -> None:
@@ -316,6 +356,10 @@ async def serve(
     sleep=None,
     emit=None,
     stream=None,
+    http_port: int | None = None,
+    http_host: str = DEFAULT_HTTP_HOST,
+    report_clock=None,
+    on_server=None,
 ) -> dict:
     """Serve identified recette volumes with repeated bounded paper sessions."""
     environ = os.environ if environ is None else environ
@@ -330,6 +374,7 @@ async def serve(
         interval_seconds=interval_seconds,
         reflect_every=reflect_every,
     )
+    port = resolve_http_port(environ, http_port)
     prepared = prepare_recette_volume(root, environ=environ)
     root = Path(root).absolute().resolve()
     runner = session_runner or _default_runner
@@ -339,6 +384,30 @@ async def serve(
           "marker_code_version": prepared["marker"].get("code_version"),
           "bounds": bounds})
     passes: list[dict] = []
+    clock = report_clock or (lambda: datetime.now(timezone.utc))
+    progress = {"pass": 0, "cycle": 0, "code_version": code_version()}
+    service_errors: list[dict] = []
+
+    def publish(event: str) -> None:
+        """Best effort: a report failure never stops the paper session."""
+        try:
+            status_report.write_recette_report(root, status_report.build_recette_report(
+                root, pilot, event=event, now=clock(),
+                interval_seconds=bounds["interval_seconds"], service=progress,
+                service_errors=service_errors))
+        except Exception as error:  # noqa: BLE001 - reported as a code only
+            emit({"kind": "recette_report_error", "event": event,
+                  "code": status_report.error_code(error)})
+
+    def record_error(code) -> None:
+        service_errors.append({"at": clock().isoformat(), "source": "recette_service",
+                               "code": status_report.error_code(code)})
+        del service_errors[:-status_report.MAX_RECENT_ERRORS]
+        publish("error")
+
+    def on_cycle() -> None:
+        progress["cycle"] += 1
+        publish("cycle")
 
     def stopped() -> dict | None:
         if not (pilot / pilot_paper.STOP_FILE).exists():
@@ -347,15 +416,53 @@ async def serve(
             "kind": "recette_service_stop", "root": str(root),
             "stop_reason": "stop_requested", "passes": passes,
         }
+        publish("stop")
         emit(summary)
         return summary
 
+    server = None
+    if port is not None:
+        try:
+            server = status_report.start_report_server(
+                root / status_report.REPORT_NAME, host=http_host, port=port, clock=report_clock)
+        except OSError as error:
+            raise RecetteError("report endpoint cannot listen: " + type(error).__name__) from error
+        emit({"kind": "recette_report_endpoint", "path": status_report.ENDPOINT_PATH,
+              "port": server.server_address[1]})
+        if on_server is not None:
+            on_server(server)
+    publish("start")
+    try:
+        return await _serve_passes(
+            root, pilot, environ, bounds, runner, sleep, emit, passes, progress,
+            publish, record_error, on_cycle, stopped)
+    finally:
+        if server is not None:
+            server.shutdown()
+            server.server_close()
+
+
+async def _serve_passes(root, pilot, environ, bounds, runner, sleep, emit, passes, progress,
+                        publish, record_error, on_cycle, stopped) -> dict:
     while True:
-        assert_identified_root(root)
+        try:
+            assert_identified_root(root)
+        except RecetteError:
+            record_error("volume_unidentified")
+            raise
         if (summary := stopped()) is not None:
             return summary
-        report = await runner(pilot, environ=environ, bounds=bounds)
+        progress["pass"] += 1
+        progress["cycle"] = 0
+        try:
+            report = await runner(pilot, environ=environ, bounds=bounds, on_cycle=on_cycle)
+        except Exception as error:
+            record_error(error)
+            raise
+        if type(report.get("completed_cycles")) is int:
+            progress["cycle"] = report["completed_cycles"]
         if report.get("stop_reason") not in CLEAN_STOP_REASONS:
+            record_error(report.get("stop_reason"))
             raise RecetteError(
                 "recette session ended outside its bounds: "
                 + str(report.get("stop_reason"))
@@ -368,6 +475,7 @@ async def serve(
         }
         passes.append(record)
         emit(record)
+        publish("pass")
         if (summary := stopped()) is not None:
             return summary
         # The last cycle of a session does not wait: keep one interval between
@@ -382,6 +490,8 @@ def main(argv=None, *, environ=None, session_runner=None) -> int:
     parser.add_argument("--max-runtime-seconds", type=float, default=None)
     parser.add_argument("--interval-seconds", type=float, default=None)
     parser.add_argument("--reflect-every", type=int, default=None)
+    parser.add_argument("--http-port", type=int, default=None,
+                        help="read-only report endpoint port (default: $PORT, else disabled)")
     args = parser.parse_args(argv)
     try:
         summary = asyncio.run(serve(
@@ -390,6 +500,7 @@ def main(argv=None, *, environ=None, session_runner=None) -> int:
             max_runtime_seconds=args.max_runtime_seconds,
             interval_seconds=args.interval_seconds,
             reflect_every=args.reflect_every,
+            http_port=args.http_port,
         ))
     except (RecetteError, ValueError, PermissionError, pilot_paper.PilotSessionError) as error:
         print(f"refused: {error}", file=sys.stderr, flush=True)
