@@ -689,8 +689,20 @@ def _history_appends(plan, layout, current):
     if _RENEWED_ACCESS in names:
         role, relative = _RENEWED_ACCESS.split('/', 1)
         access = _read(_path(layout, dict(role=role, path=relative)))
-        original = _read(layout['audit']/'rollback'/role/relative)
-        if access.get('provenance_ref') != original.get('provenance_ref'): raise ValueError(message)
+        # The original provenance is frozen in the plan: prepare_plan checked
+        # the worker_renewal binding provenance against model_access.json, and
+        # the hashed intent pins the plan. The compact owned-volume audit
+        # (changed_components_v1) keeps only the six binding preimages, so it
+        # has no model_access.json copy; the full audit must still keep one,
+        # and that copy must agree with the frozen provenance.
+        renewal = [c for c in plan['components'] if c['name'] == 'worker_renewal']
+        if len(renewal) != 1: raise ValueError(message)
+        provenance = _decode(renewal[0]['before']).get('provenance')
+        if not isinstance(provenance, str) or not provenance: raise ValueError(message)
+        if _read(layout['audit']/'intent.json').get('rollback_mode') is None:
+            original = _read(layout['audit']/'rollback'/role/relative)
+            if original.get('provenance_ref') != provenance: raise ValueError(message)
+        if access.get('provenance_ref') != provenance: raise ValueError(message)
         if not appended or _hash(access) != appended[-1][1]: raise ValueError(message)
 
 
