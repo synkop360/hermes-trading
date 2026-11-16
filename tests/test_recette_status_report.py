@@ -9,6 +9,8 @@ import http.client
 import json
 import os
 import shutil
+import subprocess
+import sys
 import tempfile
 import unittest
 from datetime import datetime, timedelta, timezone
@@ -113,6 +115,31 @@ class ReportContentTests(ReportFixture):
         self.assertEqual(sorted((row["source"], row["code"]) for row in report["recent_errors"]), [
             ("account_adaptive_50", "ValueError"), ("pilot_session", "PilotSessionError"),
             ("recette_service", "RuntimeError")])
+
+    def test_free_form_messages_without_colon_are_not_published(self) -> None:
+        sentinel = "FAKE_SENTINEL_never_published"
+        for value in (f"request failed token={sentinel}", sentinel, sentinel.lower(),
+                      f"{sentinel}Error", f"token={sentinel}", "a" * 200, 42, ["x"]):
+            with self.subTest(value=value):
+                self.assertEqual(report_module.error_code(value), report_module.UNRECOGNIZED_CODE)
+        self.assertEqual(report_module.error_code("PilotSessionError: " + sentinel),
+                         "PilotSessionError")
+        self.assertEqual(report_module.error_code("engine_halted"), "engine_halted")
+        self.assertEqual(report_module.error_code("measurement_unavailable:OSError"),
+                         "measurement_unavailable")
+        (self.pilot / pilot_paper.SESSION_REPORT).write_text(json.dumps({
+            "finished_at": AT.isoformat(), "stop_reason": f"halted {sentinel}",
+            "error": f"request failed token={sentinel}", "public_proof": sentinel}))
+        (self.pilot / "control_100" / "wallet_metrics.json").write_text(json.dumps({
+            "status": sentinel, "observed_at": AT.isoformat(), "error": sentinel}))
+        report = self.build(event="error", service_errors=[
+            {"at": AT.isoformat(), "source": sentinel, "code": f"oops {sentinel}"}])
+        raw = report_module.encode_report(report).decode()
+        self.assertNotIn(sentinel, raw)
+        self.assertNotIn(sentinel.lower(), raw)
+        self.assertEqual(report["session"]["error_code"], report_module.UNRECOGNIZED_CODE)
+        self.assertEqual(report["accounts"]["accounts"]["control_100"]["status"],
+                         report_module.UNRECOGNIZED_CODE)
 
     def test_recent_errors_are_bounded(self) -> None:
         errors = [{"at": (AT + timedelta(minutes=i)).isoformat(), "source": "recette_service",
@@ -239,6 +266,30 @@ class EndpointTests(ReportFixture):
                 status, _, body = self.request("GET", path)
                 self.assertEqual(status, 404)
                 self.assertNotIn(SECRET.encode(), body)
+
+    def test_fifo_report_or_source_is_refused_without_blocking(self) -> None:
+        if not hasattr(os, "mkfifo"):
+            self.skipTest("no FIFO on this platform")
+        os.mkfifo(self.target)
+        os.unlink(self.pilot / "manifest.json")
+        os.mkfifo(self.pilot / "manifest.json")
+        # A subprocess bounds the check: a blocking open would hang it, not the suite.
+        code = ("import sys, json; from pathlib import Path; "
+                "from scripts import recette_status_report as m; "
+                "from datetime import datetime, timezone; "
+                "assert m.read_recette_report(sys.argv[1]) is None; "
+                "r = m.build_recette_report(Path(sys.argv[2]), Path(sys.argv[3]), event='cycle', "
+                "now=datetime(2026, 11, 16, 12, tzinfo=timezone.utc), interval_seconds=3600); "
+                "assert r['manifest_status'] == 'missing', r['manifest_status']; print('ok')")
+        env = dict(os.environ, PYTHONPATH=os.pathsep.join([str(ROOT), str(ROOT / "tests")]))
+        result = subprocess.run([sys.executable, "-c", code, str(self.target), str(self.volume),
+                                 str(self.pilot)], cwd=ROOT, env=env, capture_output=True,
+                                text=True, timeout=30)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stdout.strip(), "ok")
+        status, _, body = self.request("GET", "/recette")
+        self.assertEqual(status, 503)
+        self.assertTrue(json.loads(body)["freshness"]["stale"])
 
     def test_link_swapped_report_is_not_followed(self) -> None:
         outside = self.base / "outside.json"

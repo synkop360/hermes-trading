@@ -46,7 +46,6 @@ MAX_RECENT_ERRORS = 10
 # two maximum packets (``paired_storage_admission`` rule) or a tenth of it.
 DEFAULT_RESERVE_FRACTION = 10
 PENDING_TICKET_5 = "pending_lat_120_daily_summary"
-_CODE = re.compile(r"[^A-Za-z0-9_.-]+")
 
 
 class RecetteReportError(RuntimeError):
@@ -60,23 +59,61 @@ def _utc(value: datetime | None = None) -> datetime:
     return value.astimezone(timezone.utc)
 
 
+# Publishable codes. Any other string becomes ``UNRECOGNIZED_CODE``: a free-form
+# message, even without a colon or spaces, is never copied into the report.
+KNOWN_CODES = frozenset({
+    # pilot_paper stop reasons and public proof verdicts
+    "max_cycles_reached", "stop_requested", "max_runtime_reached", "engine_halted",
+    "hard_runtime_limit", "interrupted", "error", "collection_unavailable",
+    "not_eligible_injected_collector", "not_eligible_replay_not_public",
+    "not_eligible_no_public_sample", "not_eligible_zero_trade",
+    "candidate_requires_review", "candidate_requires_review_public_replay",
+    # paper_safety entry admission reasons
+    "volume_measurement_unknown", "volume_threshold", "worker_error_halt",
+    "supervisor_error_halt", "supervisor_recovery_pending", "supervisor_health_missing",
+    "supervisor_health_stale", "safety_state_unknown",
+    # paired_storage_admission reasons
+    "state_budget", "filesystem_reserve", "measurement_unavailable", "limits_unavailable",
+    # wallet observation / metrics statuses
+    "observed", "measured", "incomplete", "insolvent", "missing", "current", "blocked",
+    "unavailable", "not_observed", "measurement_blocked",
+    # recette service (error source and codes)
+    "recette_service", "volume_unidentified",
+})
+UNRECOGNIZED_CODE = "unrecognized"
+# Exception class names only: CamelCase identifier with a conventional suffix.
+_CLASS_CODE = re.compile(
+    r"[A-Z][A-Za-z0-9]{0,47}(Error|Exception|Unavailable|Timeout|Interrupt|Exit|Warning)")
+
+
 def error_code(value: Any) -> str | None:
-    """Reduce an error to a bounded code; the free-form message is dropped."""
+    """Reduce an error to a publishable code; any free-form text is dropped.
+
+    Exceptions give their class name; strings are kept only when they are a
+    known code (``KNOWN_CODES``) or an exception class name, possibly followed
+    by ``": message"`` (the message is dropped). Everything else is
+    ``UNRECOGNIZED_CODE``.
+    """
     if value is None:
         return None
     if isinstance(value, BaseException):
-        text = type(value).__name__
-    else:
-        # ``"PilotSessionError: message"`` keeps only the class name.
-        text = str(value).split(":", 1)[0].strip()
-    code = _CODE.sub("_", text)[:64].strip("_")
-    return code or "unknown"
+        name = type(value).__name__
+        return name if _CLASS_CODE.fullmatch(name) else UNRECOGNIZED_CODE
+    if not isinstance(value, str):
+        return UNRECOGNIZED_CODE
+    head = value.split(":", 1)[0].strip()
+    if head in KNOWN_CODES or _CLASS_CODE.fullmatch(head):
+        return head
+    return UNRECOGNIZED_CODE
 
 
 def _read_json(path: Path, *, limit: int = MAX_INPUT_BYTES) -> Any:
     """Bounded read of one regular, link-free JSON file; ``None`` otherwise."""
     try:
-        flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0)
+        # O_NONBLOCK: opening a FIFO (or a device) must not wait for a writer;
+        # ``fstat`` then refuses every non-regular file immediately.
+        flags = (os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0)
+                 | getattr(os, "O_NONBLOCK", 0) | getattr(os, "O_NOCTTY", 0))
         fd = os.open(path, flags)
     except OSError:
         return None
@@ -183,11 +220,13 @@ def _storage(volume: Path, experiment_id: str | None, limits: dict | None) -> di
                 "max_state_bytes": None, "files": None}
     try:
         report = inspect_storage(volume, limits)
+        reason = error_code(report.get("reason"))
     except (OSError, ValueError) as error:
-        report = {"status": "blocked", "reason": "limits_invalid_" + error_code(error)}
+        report = {"status": "blocked"}
+        reason = "limits_invalid_" + error_code(error)
     return {
         "status": "ready" if report.get("status") == "ready" else "blocked",
-        "reason": error_code(report.get("reason")),
+        "reason": reason,
         "limits_source": source,
         "state_bytes": report.get("state_bytes"),
         "free_bytes": report.get("free_bytes"),

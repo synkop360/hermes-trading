@@ -154,13 +154,17 @@ Clés de premier niveau, toutes toujours présentes :
   `observed_at`, `error_code`.
 
 Expurgation : aucun chemin absolu, aucune valeur de variable, aucun message
-d'exception (seulement le nom de classe ou un code de raison connu), aucun
-contenu de stratégie.
+d'exception, aucun contenu de stratégie. Un code n'est publié que s'il figure
+dans la liste explicite `KNOWN_CODES` de `scripts/recette_status_report.py` ou
+s'il est un nom de classe d'exception (`…Error`, `…Exception`, `…Unavailable`,
+`…Timeout`, `…Interrupt`, `…Exit`, `…Warning`), le texte après `:` étant
+supprimé ; toute autre chaîne devient `unrecognized`. Les fichiers lus doivent
+être réguliers : une FIFO, un périphérique ou un lien est refusé sans attente.
 
 ### Endpoint en lecture seule
 
-Si `PORT` est défini (Railway le fournit au service exposé) ou `--http-port`
-donné, le service écoute sur `0.0.0.0:<port>` ; sinon aucun endpoint (le fichier
+Si `PORT` est défini (Railway le fournit au service exposé) ou si
+`--http-port` est fourni, le service écoute sur `0.0.0.0:<port>` ; sinon aucun endpoint (le fichier
 reste produit). Une valeur invalide est refusée avant toute écriture.
 
 - `GET /recette` / `HEAD /recette` : `200`, le rapport plus `freshness`
