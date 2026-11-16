@@ -18,9 +18,9 @@ filesystem, so no arbitrary path can be read, and nothing is ever written.
 """
 from __future__ import annotations
 
+import builtins
 import json
 import os
-import re
 import shutil
 import stat
 import threading
@@ -81,28 +81,41 @@ KNOWN_CODES = frozenset({
     "recette_service", "volume_unidentified",
 })
 UNRECOGNIZED_CODE = "unrecognized"
-# Exception class names only: CamelCase identifier with a conventional suffix.
-_CLASS_CODE = re.compile(
-    r"[A-Z][A-Za-z0-9]{0,47}(Error|Exception|Unavailable|Timeout|Interrupt|Exit|Warning)")
+# Publishable exception class names: an explicit list, never a pattern. The
+# standard exception names of ``builtins`` plus the classes raised on the
+# pilot, wallet, storage and recette paths. A string merely shaped like a class
+# name (``SomethingPrivateError``) is not a code.
+KNOWN_ERROR_CLASSES = frozenset({
+    name for name, value in vars(builtins).items()
+    if isinstance(value, type) and issubclass(value, BaseException)
+}) | frozenset({
+    "PilotSessionError", "PilotCollectionUnavailable", "CapacityUnavailable",
+    "StorageStopReached", "PairedStopReached", "PairedDeadlineReached",
+    "ExecutionSafetyError", "TradingModeError", "NetworkBlockedError",
+    "TransportError", "ExchangePayloadError", "VenueConstraintsError",
+    "SchemaError", "UnsupportedSchemaError", "ReplayArchiveError", "ReplayExhausted",
+    "CaptureSourceChanged", "SnapshotReportHeartbeatMismatch", "RecetteError",
+    "RecetteReportError", "JSONDecodeError",
+})
 
 
 def error_code(value: Any) -> str | None:
     """Reduce an error to a publishable code; any free-form text is dropped.
 
-    Exceptions give their class name; strings are kept only when they are a
-    known code (``KNOWN_CODES``) or an exception class name, possibly followed
-    by ``": message"`` (the message is dropped). Everything else is
-    ``UNRECOGNIZED_CODE``.
+    Exceptions give their class name when it is in ``KNOWN_ERROR_CLASSES``;
+    strings are kept only when their head (before ``":"``, the message being
+    dropped) is in ``KNOWN_CODES`` or ``KNOWN_ERROR_CLASSES``. Everything else
+    is ``UNRECOGNIZED_CODE``.
     """
     if value is None:
         return None
     if isinstance(value, BaseException):
         name = type(value).__name__
-        return name if _CLASS_CODE.fullmatch(name) else UNRECOGNIZED_CODE
+        return name if name in KNOWN_ERROR_CLASSES else UNRECOGNIZED_CODE
     if not isinstance(value, str):
         return UNRECOGNIZED_CODE
     head = value.split(":", 1)[0].strip()
-    if head in KNOWN_CODES or _CLASS_CODE.fullmatch(head):
+    if head in KNOWN_CODES or head in KNOWN_ERROR_CLASSES:
         return head
     return UNRECOGNIZED_CODE
 

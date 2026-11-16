@@ -141,6 +141,29 @@ class ReportContentTests(ReportFixture):
         self.assertEqual(report["accounts"]["accounts"]["control_100"]["status"],
                          report_module.UNRECOGNIZED_CODE)
 
+    def test_class_shaped_strings_are_not_codes_unless_listed(self) -> None:
+        forged = "SyntheticPrivateTokenError"
+        for value in (forged, f"{forged}: detail", "AbcdefPrivateException", "XyzTimeout"):
+            with self.subTest(value=value):
+                self.assertEqual(report_module.error_code(value), report_module.UNRECOGNIZED_CODE)
+        forged_class = type(forged, (RuntimeError,), {})
+        self.assertEqual(report_module.error_code(forged_class("x")), report_module.UNRECOGNIZED_CODE)
+        self.assertEqual(report_module.error_code(OSError("x")), "OSError")
+        self.assertEqual(report_module.error_code("ValueError: detail"), "ValueError")
+        (self.pilot / pilot_paper.SESSION_REPORT).write_text(json.dumps({
+            "finished_at": AT.isoformat(), "stop_reason": "error", "error": forged}))
+        (self.pilot / "control_100" / "wallet_metrics.json").write_text(json.dumps({
+            "status": "measurement_blocked", "observed_at": AT.isoformat(),
+            "error": f"{forged}: x"}))
+        report = self.build(event="error", service_errors=[
+            {"at": AT.isoformat(), "source": "recette_service", "code": forged}])
+        raw = report_module.encode_report(report).decode()
+        self.assertNotIn(forged, raw)
+        self.assertEqual(report["session"]["error_code"], report_module.UNRECOGNIZED_CODE)
+        self.assertTrue(report["recent_errors"])
+        for row in report["recent_errors"]:
+            self.assertEqual(row["code"], report_module.UNRECOGNIZED_CODE)
+
     def test_recent_errors_are_bounded(self) -> None:
         errors = [{"at": (AT + timedelta(minutes=i)).isoformat(), "source": "recette_service",
                    "code": "engine_halted"} for i in range(30)]

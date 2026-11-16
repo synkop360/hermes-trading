@@ -156,9 +156,10 @@ Clés de premier niveau, toutes toujours présentes :
 Expurgation : aucun chemin absolu, aucune valeur de variable, aucun message
 d'exception, aucun contenu de stratégie. Un code n'est publié que s'il figure
 dans la liste explicite `KNOWN_CODES` de `scripts/recette_status_report.py` ou
-s'il est un nom de classe d'exception (`…Error`, `…Exception`, `…Unavailable`,
-`…Timeout`, `…Interrupt`, `…Exit`, `…Warning`), le texte après `:` étant
-supprimé ; toute autre chaîne devient `unrecognized`. Les fichiers lus doivent
+s'il est un nom de classe d'exception de la liste explicite `KNOWN_ERROR_CLASSES`
+(exceptions standard de Python et classes des chemins pilote, portefeuille,
+stockage et recette), le texte après `:` étant supprimé ; toute autre chaîne,
+même de la forme `QuelqueChoseError`, devient `unrecognized`. Les fichiers lus doivent
 être réguliers : une FIFO, un périphérique ou un lien est refusé sans attente.
 
 ### Endpoint en lecture seule
