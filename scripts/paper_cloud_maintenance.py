@@ -18,11 +18,22 @@ RUNTIME='082042439d5dadd8247b788fe6b29de5c7449f165f339a2e155761bf55c525de'
 PREVIOUS_RUNTIME='33f6c6329f1bc5383d12d5cafce8e13255eb68a02a2bf2bba9ec60ccb370114f'
 PREVIOUS_RECOVERY_TAG='after-2026-11-13-reserve'
 PREVIOUS_RECOVERY_APPROVAL='user-2026-11-13-storage-maintenance-option-2'
-# Installed runtime after the chained paper pilot release
-# (scripts/pilot_release_plan.json, new runtime).
-CURRENT_RUNTIME='42cf3f3efe1b931f4f4cec942749b086af2bdb5d82aa4865d4c244c85ba6df7e'
-RECOVERY_TAG='after-2026-11-13-pilot'
-RECOVERY_APPROVAL='user-2026-11-13-lat-116-chained-transition'
+# Runtime of the chained paper pilot release (scripts/pilot_release_plan.json,
+# new runtime). A recovery of the same pause completed under it is verified
+# read-only; it is never replayed under another runtime.
+PILOT_RUNTIME='42cf3f3efe1b931f4f4cec942749b086af2bdb5d82aa4865d4c244c85ba6df7e'
+PILOT_RECOVERY_TAG='after-2026-11-13-pilot'
+PILOT_RECOVERY_APPROVAL='user-2026-11-13-lat-116-chained-transition'
+# Installed runtime after the chained lot 1 release
+# (scripts/lot1_release_plan.json, new runtime; LAT-120, Thomas 2026-11-17).
+CURRENT_RUNTIME='c78341314cdf5d0fe42a44e272802c970c8f384fe60b3ae7e661713e3dd5a028'
+RECOVERY_TAG='after-2026-11-17-lot1'
+RECOVERY_APPROVAL='user-2026-11-17-lat-120-chained-transition'
+# Earlier audits of the same second pause, in release order.
+PREDECESSOR_RECOVERIES=(
+    (PREVIOUS_RUNTIME,PREVIOUS_RECOVERY_TAG,PREVIOUS_RECOVERY_APPROVAL),
+    (PILOT_RUNTIME,PILOT_RECOVERY_TAG,PILOT_RECOVERY_APPROVAL),
+)
 
 
 def marker(root,*,enabled):
@@ -42,10 +53,10 @@ def maintain_storage(project):
     complete and pinned to the predecessor runtime; they are not replayed.
     This phase only condenses one more obsolete root backup losslessly,
     re-verifies the cutover archives, then resolves the second pause once:
-    if its recovery already completed under the Discord format runtime, that
-    evidence is verified read-only and nothing is recovered; otherwise the
-    same approved pause is recovered under a new, separately named audit bound
-    to the pilot runtime. A later, different pause is never recovered here.
+    if its recovery already completed under the Discord format or the pilot
+    runtime, that evidence is verified read-only and nothing is recovered;
+    otherwise the same approved pause is recovered under a new, separately
+    named audit bound to the lot 1 runtime. Two completed audits are refused. A later, different pause is never recovered here.
     It never resets a halt unless the native recovery preconditions all hold.
     """
     root=project/'state'
@@ -55,10 +66,11 @@ def maintain_storage(project):
     storage=inspect_storage(root,json.loads((root/'storage_limits.json').read_bytes()))
     print(json.dumps({'kind':'paper_cloud_storage_probe','status':storage['status'],
         'reason':storage['reason'],'state_bytes':storage['state_bytes'],'free_bytes':storage['free_bytes']}),flush=True)
-    previous=recovery_status(root,approval_ref=PREVIOUS_RECOVERY_APPROVAL,
-        source_runtime=PREVIOUS_RUNTIME,recovery_tag=PREVIOUS_RECOVERY_TAG)
-    if previous=='completed':
-        if (root/('.paper-storage-recovery-'+RECOVERY_TAG)).exists():raise ValueError('second pause recovered twice')
+    completed=[tag for runtime,tag,approval in PREDECESSOR_RECOVERIES
+        if recovery_status(root,approval_ref=approval,source_runtime=runtime,recovery_tag=tag)=='completed']
+    if completed:
+        if len(completed)>1 or (root/('.paper-storage-recovery-'+RECOVERY_TAG)).exists():
+            raise ValueError('second pause recovered twice')
         print(json.dumps({'kind':'paper_storage_recovery','status':'already_recovered_by_predecessor'}),flush=True)
     else:
         print(json.dumps(recover_storage(root,approval_ref=RECOVERY_APPROVAL,

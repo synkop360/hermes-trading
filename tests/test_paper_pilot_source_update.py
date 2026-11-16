@@ -25,8 +25,11 @@ class PilotValidationTests(unittest.TestCase):
         self.assertEqual(pilot['old'],discord['new'])
         self.assertEqual(pilot['target'],discord['target'])
         self.assertEqual(transition._purpose(pilot),'paper_pilot_release_transition_v1')
-        from scripts.hermes_watch import _supervisor_release
-        self.assertEqual(_supervisor_release(),pilot['new'])
+        # The frozen pilot release is now the predecessor of the lot 1 release
+        # (scripts/lot1_release_plan.json), which pins the current tree.
+        lot1=json.loads((SCRIPTS/'lot1_release_plan.json').read_text())
+        self.assertEqual(lot1['old'],pilot['new'])
+        self.assertEqual(lot1['old_commit'],pilot['new_commit'])
         self.assertEqual(set(pilot['new']['runtime'])-set(pilot['old']['runtime']),transition.PILOT_ADDED_MODULES)
 
     def test_exact_added_modules_and_reflect_delta(self):
@@ -48,9 +51,9 @@ class PilotValidationTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError,'inventory'):transition.validate_release_plan(bad)
 
     def test_each_step_has_its_own_audit_and_approval(self):
-        self.assertEqual(set(update.STEPS),{transition.DISCORD_FORMAT_BASE_COMMIT,transition.PILOT_BASE_COMMIT})
-        self.assertEqual(len({name for name,_ in update.STEPS.values()}),2)
-        self.assertEqual(len({ref for _,ref in update.STEPS.values()}),2)
+        self.assertEqual(set(update.STEPS),{transition.DISCORD_FORMAT_BASE_COMMIT,transition.PILOT_BASE_COMMIT,transition.LOT1_BASE_COMMIT})
+        self.assertEqual(len({name for name,_ in update.STEPS.values()}),3)
+        self.assertEqual(len({ref for _,ref in update.STEPS.values()}),3)
 
 
 class PredecessorRecoveryStatusTests(unittest.TestCase):
@@ -98,9 +101,9 @@ class PilotChainedUpdateTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(receipt['release_hash'],_hash(pilot['new']))
         self.assertTrue((root/'.paper-cloud-cutover/discord-format/receipt.json').is_file())
         self.assertTrue((root/'.paper-cloud-cutover/pilot-source/receipt.json').is_file())
-        from scripts.paper_cloud_install import install
+        # The installation check against the current tree is covered by the
+        # lot 1 chain (test_paper_lot1_source_update).
         with patch.dict(update.os.environ,env):
-            self.assertEqual(install(f.project_root,pilot,env=env,experiment_id='paired-test')['status'],'already_installed')
             self.assertEqual(update.update_installed(f.project_root,discord,successor=pilot)['status'],'superseded')
             self.assertEqual(update.update_installed(f.project_root,pilot)['status'],'already_updated')
             # Without its successor, the notification step refuses the newer installation.

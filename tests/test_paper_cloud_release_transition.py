@@ -23,7 +23,9 @@ class CloudReleaseTransitionTests(unittest.TestCase):
         self.assertEqual(successor['old'],plan['new'])
         pilot=json.loads((Path(__file__).resolve().parents[1]/'scripts/pilot_release_plan.json').read_text())
         self.assertEqual(pilot['old'],successor['new'])
-        self.assertEqual(_supervisor_release(),pilot['new'])
+        lot1=json.loads((Path(__file__).resolve().parents[1]/'scripts/lot1_release_plan.json').read_text())
+        self.assertEqual(lot1['old'],pilot['new'])
+        self.assertEqual(_supervisor_release(),lot1['new'])
 
     def test_runtime_launchers_predecessor_and_inventory_are_pinned(self):
         for case in ['base','old','runtime','watcher','launcher','inventory','missing']:

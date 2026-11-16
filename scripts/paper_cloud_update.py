@@ -2,7 +2,8 @@
 
 Each reviewed step has its own predecessor commit, audit directory and
 approval reference. Steps are applied in order: the Discord notification
-correction (d045e98 -> 121069c), then the paper pilot (121069c -> pilot).
+correction (d045e98 -> 121069c), the paper pilot (121069c -> e39eefb), then
+lot 1 (e39eefb -> lot 1 release, LAT-120).
 """
 import os
 from pathlib import Path
@@ -14,6 +15,7 @@ from hermes_trading.reflection_supervision import _hash
 STEPS={
     transition.DISCORD_FORMAT_BASE_COMMIT:('discord-format','user-2026-11-12-discord-strategy-index'),
     transition.PILOT_BASE_COMMIT:('pilot-source','user-2026-11-13-lat-116-chained-transition'),
+    transition.LOT1_BASE_COMMIT:('lot1-source','user-2026-11-17-lat-120-chained-transition'),
 }
 
 
