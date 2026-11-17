@@ -12,6 +12,20 @@ import release_transition_fixtures as fixtures
 
 
 class CloudReleaseTransitionTests(unittest.TestCase):
+    def test_storage_limit_release_is_exactly_one_runtime_module(self):
+        from hermes_trading.paper_publication import _release_hashes
+        plan=json.loads((Path(__file__).resolve().parents[1]/'scripts/storage_limit_release_plan.json').read_text())
+        predecessor=json.loads((Path(__file__).resolve().parents[1]/'scripts/discord_format_release_plan.json').read_text())
+        self.assertEqual(plan['old'],predecessor['new'])
+        self.assertEqual(plan['new']['runtime'],_release_hashes())
+        transition.validate_release_plan(plan)
+        for case in ('extra_runtime','watcher','predecessor'):
+            broken=deepcopy(plan)
+            if case=='extra_runtime':broken['new']['runtime']['paired_worker.py']='0'*64
+            elif case=='watcher':broken['new']['watcher']='0'*64
+            else:broken['old']['runtime']['paper_safety.py']='0'*64
+            with self.subTest(case=case),self.assertRaises(ValueError):transition.validate_release_plan(broken)
+
     def plan(self):
         return json.loads((Path(__file__).resolve().parents[1]/'research/runs/paper-cloud-supervision-v1/source-map.json').read_text())
 
