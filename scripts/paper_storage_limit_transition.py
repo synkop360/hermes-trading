@@ -24,7 +24,7 @@ APPROVAL = 'user-2026-11-17-storage-limit-1gb'
 OLD_MAX = 500000000
 NEW_MAX = 1000000000
 RESERVE = 134217728
-EXPECTED_RUNTIME = '33f6c6329f1bc5383d12d5cafce8e13255eb68a02a2bf2bba9ec60ccb370114f'
+EXPECTED_RUNTIME = '924b045fb5bc8b08ae7313037f7cce347494b9c84daf20679b5f30b3cb0e0263'
 AUDIT = '.paper-storage-limit-transition-2026-11-17'
 
 
@@ -134,9 +134,23 @@ def _transition_limit(root, *, approval_ref, experiment_id, reserve_bytes, old_m
                     intent.get('approval_ref') != APPROVAL or
                     intent.get('old_hash') != old_hash or intent.get('new_hash') != new_hash or
                     intent.get('old_limits') != old or intent.get('new_limits') != new or
-                    intent.get('old_safety') != old_safety or intent.get('new_safety') != new_safety or
-                    intent.get('old_safety_state') != old_safety_state or intent.get('new_safety_state') != new_safety_state):
+                    intent.get('old_safety') != old_safety or intent.get('new_safety') != new_safety):
                 raise ValueError('storage transition intent differs')
+            old_safety_state = intent['old_safety_state']
+            new_safety_state = intent['new_safety_state']
+            if (dict(old_safety_state, policy_sha256=new_safety_sha) != new_safety_state or
+                    old_safety_state.get('policy_sha256') != old_safety_sha):
+                raise ValueError('storage transition safety state differs')
+            if receipt_path.exists():
+                receipt = _read(receipt_path)
+                if (receipt != {'schema_version': 1, 'status': 'transitioned', 'intent_hash': intent['intent_hash']} or
+                        current != new or current_safety != new_safety or
+                        current_safety_state.get('policy_sha256') != new_safety_sha or
+                        state.get('configuration_hash') != new_hash):
+                    raise ValueError('completed storage transition differs')
+                return {'kind': 'paper_storage_limit_transition', 'status': 'already_transitioned'}
+            if current_safety_state not in (old_safety_state, new_safety_state):
+                raise ValueError('pending storage transition safety state differs')
         else:
             if (current != old or current_safety != old_safety or current_safety_state != old_safety_state or
                     state.get('configuration_hash') != old_hash or receipt_path.exists()):

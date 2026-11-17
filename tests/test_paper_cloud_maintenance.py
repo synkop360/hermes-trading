@@ -43,15 +43,16 @@ class MaintenanceTests(unittest.IsolatedAsyncioTestCase):
             ready={'status':'ready','reason':None,'state_bytes':1,'free_bytes':2}
             with patch.object(maintenance,'install_default'),patch.object(maintenance,'compact_history',return_value={}) as compact, \
                     patch.object(maintenance,'repack_archives',return_value={}),patch.object(maintenance,'inspect_storage',return_value=ready), \
-                    patch.object(maintenance,'recover_storage',side_effect=[{'status':'already_recovered'}, {'status':'recovered'}]) as recover, \
+                    patch.object(maintenance,'recovery_status',return_value={'status':'already_recovered'}) as previous, \
+                    patch.object(maintenance,'recover_storage',return_value={'status':'recovered'}) as recover, \
                     patch.object(maintenance,'transition_limit',return_value={'status':'transitioned'}),patch.object(maintenance,'ownership',return_value=lease), \
                     redirect_stdout(io.StringIO()):
                 result=maintenance.maintain_storage(project)
             self.assertEqual(result['status'],'completed')
             compact.assert_called_once_with(project/'state',enabled=True,retire_originals=True)
-            self.assertEqual(recover.call_count,2)
-            self.assertEqual(recover.call_args_list[0].kwargs['recovery_tag'],maintenance.RECOVERY_TAG)
-            self.assertEqual(recover.call_args_list[1].kwargs['recovery_tag'],maintenance.NEW_RECOVERY_TAG)
+            previous.assert_called_once()
+            recover.assert_called_once()
+            self.assertEqual(recover.call_args.kwargs['recovery_tag'],maintenance.NEW_RECOVERY_TAG)
 
     def test_new_budget_checks_old_recovery_then_transitions_then_recovers_new_pause(self):
         from unittest.mock import MagicMock
@@ -61,15 +62,19 @@ class MaintenanceTests(unittest.IsolatedAsyncioTestCase):
             lease=MagicMock();lease.__enter__.return_value.execute.return_value.fetchone.return_value=('{"storage_stop":false}',)
             ready={'status':'ready','reason':None,'state_bytes':1,'free_bytes':2}
             events=[]
+            def previous(*args,**kwargs):
+                events.append(('recovery',kwargs['recovery_tag']))
+                return {'status':'already_recovered'}
             def recovery(*args,**kwargs):
                 events.append(('recovery',kwargs['recovery_tag']))
-                return {'status':'already_recovered' if len(events)==1 else 'recovered'}
+                return {'status':'recovered'}
             def transition(*args,**kwargs):
                 events.append(('transition',kwargs['approval_ref']))
                 return {'status':'transitioned'}
             with patch.object(maintenance,'install_default'),patch.object(maintenance,'compact_history',return_value={}), \
                     patch.object(maintenance,'repack_archives',return_value={}),patch.object(maintenance,'inspect_storage',return_value=ready), \
-                    patch.object(maintenance,'recover_storage',side_effect=recovery),patch.object(maintenance,'transition_limit',side_effect=transition), \
+                    patch.object(maintenance,'recovery_status',side_effect=previous),patch.object(maintenance,'recover_storage',side_effect=recovery), \
+                    patch.object(maintenance,'transition_limit',side_effect=transition), \
                     patch.object(maintenance,'ownership',return_value=lease),redirect_stdout(io.StringIO()):
                 maintenance.maintain_storage(project)
             self.assertEqual(events,[('recovery',maintenance.RECOVERY_TAG),

@@ -85,7 +85,7 @@ class StorageLimitTransitionTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(after, before)
 
     async def test_native_storage_recovery_can_follow_transition(self):
-        from scripts.paper_storage_recovery import recover_storage
+        from scripts.paper_storage_recovery import recover_storage, recovery_status
         from hermes_trading.paper_publication import _release_hashes
 
         fixture, before, old_limits, halt, old_safety, old_safety_state = await self.fixture()
@@ -94,6 +94,8 @@ class StorageLimitTransitionTests(unittest.IsolatedAsyncioTestCase):
             result = recover_storage(fixture.worker_root, approval_ref='synthetic-storage-recovery',
                                      expected_runtime=_hash(_release_hashes()), recovery_tag='after-budget', now=fixture.at)
         self.assertEqual(result['status'], 'recovered')
+        self.assertEqual(recovery_status(fixture.worker_root, approval_ref='synthetic-storage-recovery',
+                         source_runtime=_hash(_release_hashes()), recovery_tag='after-budget')['status'], 'already_recovered')
         self.assertFalse((fixture.primary / 'experiment_halt.json').exists())
         self.assertEqual(self.transition(fixture, old_limits)['status'], 'already_transitioned')
         resumed = await fixture.advance_worker(seconds=60)

@@ -7,10 +7,28 @@ from unittest.mock import Mock
 import unittest
 from unittest.mock import patch
 
-from scripts.paper_cloud_service import serve_cloud
+from scripts.paper_cloud_service import serve_cloud,install_default
 
 
 class CloudServiceTests(unittest.IsolatedAsyncioTestCase):
+    async def test_repeated_start_skips_completed_source_updates(self):
+        from hermes_trading.reflection_supervision import _hash
+        from scripts.hermes_watch import _supervisor_release
+        from shutil import copyfile
+        with tempfile.TemporaryDirectory() as tmp:
+            project=Path(tmp);scripts=project/'scripts';scripts.mkdir()
+            source=Path(__file__).resolve().parents[1]/'scripts'
+            for name in ('cloud_release_plan.json','discord_format_release_plan.json','storage_limit_release_plan.json','entry_history_release_plan.json'):
+                copyfile(source/name,scripts/name)
+            installed=project/'state/.paper-cloud-cutover/installed.json';installed.parent.mkdir(parents=True)
+            successor=json.loads((scripts/'storage_limit_release_plan.json').read_text())
+            installed.write_text(json.dumps({'release_hash':_hash(successor['new'])}))
+            with patch('scripts.paper_cloud_update.update_installed') as update, \
+                    patch('scripts.paper_cloud_service.install',return_value={'status':'already_installed'}) as install:
+                self.assertEqual(install_default(project)['status'],'already_installed')
+            update.assert_not_called()
+            self.assertEqual(install.call_args.args[1]['new'],_supervisor_release())
+
     async def test_expired_supervision_does_not_prevent_protective_worker_start(self):
         with tempfile.TemporaryDirectory() as tmp:
             project=Path(tmp);launch=project/'launch.json'

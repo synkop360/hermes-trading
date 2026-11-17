@@ -14,14 +14,19 @@ def update_installed(project,source_plan,*,fault=None):
     if any(os.environ.get('RAILWAY_'+k.upper()+'_ID')!=v for k,v in transition.TARGET.items()):
         raise ValueError('source update destination differs')
     transition.validate_release_plan(source_plan)
-    if source_plan['old_commit']!=transition.DISCORD_FORMAT_BASE_COMMIT:
-        raise ValueError('exact notification correction predecessor required')
+    updates={
+        transition.DISCORD_FORMAT_BASE_COMMIT: ('discord-format','user-2026-11-12-discord-strategy-index'),
+        transition.STORAGE_LIMIT_BASE_COMMIT: ('storage-limit','user-2026-11-17-storage-limit-1gb'),
+    }
+    if source_plan['old_commit'] not in updates:
+        raise ValueError('exact source update predecessor required')
+    audit_name,approval_ref=updates[source_plan['old_commit']]
     with transition.volume_cutover_layout(root,live_supervisor=True) as auxiliary:
         installed=transition._read(auxiliary/'installed.json')
         if (installed.get('status')!='installed' or installed.get('experiment_id')!=source_plan['target']['experiment_id']):
             raise ValueError('retained cloud installation required')
         supervisor=root/'paired-supervisor'/installed['experiment_id']/'adaptive_200'
-        launch=root/'cloud-supervisor-launch.json';audit=auxiliary/'discord-format'
+        launch=root/'cloud-supervisor-launch.json';audit=auxiliary/audit_name
         options=dict(worker_root=root,supervisor_root=supervisor,launch_file=launch,audit_dir=audit)
         intent=audit/'intent.json'
         if installed.get('release_hash')==_hash(source_plan['new']):
@@ -48,7 +53,7 @@ def update_installed(project,source_plan,*,fault=None):
             identity=transition._identity(transition._layout(root,supervisor,launch),check_economics=True)
             plan=transition.prepare_plan(root,supervisor,launch,release_plan=source_plan,expected_identity=identity)
         result=transition.apply_transition(plan,**options,apply=True,reconcile=intent.exists(),
-            approval_ref='user-2026-11-12-discord-strategy-index',fault=fault)
+            approval_ref=approval_ref,fault=fault)
         if result['status']!='completed':raise ValueError('source update completion required')
         transition._save(auxiliary/'installed.json',dict(installed,release_hash=_hash(source_plan['new']),source_update=plan['transition_id']))
         return {'kind':'paper_cloud_source_update','status':'updated'}
