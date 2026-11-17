@@ -80,3 +80,25 @@ class MaintenanceTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(events,[('recovery',maintenance.RECOVERY_TAG),
                                      ('transition',maintenance.TRANSITION_APPROVAL),
                                      ('recovery',maintenance.NEW_RECOVERY_TAG)])
+
+    def test_existing_storage_recovery_is_verified_under_its_original_runtime(self):
+        from unittest.mock import MagicMock
+        with tempfile.TemporaryDirectory() as tmp:
+            project=Path(tmp).resolve();root=project/'state';root.mkdir()
+            (root/'storage_limits.json').write_text('{}')
+            (root/maintenance.AUDIT).mkdir()
+            recovery=root/('.paper-storage-recovery-'+maintenance.NEW_RECOVERY_TAG)
+            recovery.mkdir()
+            (recovery/'intent.json').write_text(json.dumps({'source':maintenance.STORAGE_RUNTIME}))
+            (recovery/'receipt.json').write_text('{}')
+            lease=MagicMock();lease.__enter__.return_value.execute.return_value.fetchone.return_value=('{"storage_stop":false}',)
+            ready={'status':'ready','reason':None,'state_bytes':1,'free_bytes':2}
+            with patch.object(maintenance,'install_default'),patch.object(maintenance,'compact_history',return_value={}), \
+                    patch.object(maintenance,'repack_archives',return_value={}),patch.object(maintenance,'inspect_storage',return_value=ready), \
+                    patch.object(maintenance,'recovery_status',return_value={'status':'already_recovered'}) as verified, \
+                    patch.object(maintenance,'recover_storage') as recovery_call, \
+                    patch.object(maintenance,'transition_limit',return_value={'status':'already_transitioned'}), \
+                    patch.object(maintenance,'ownership',return_value=lease),redirect_stdout(io.StringIO()):
+                self.assertEqual(maintenance.maintain_storage(project)['status'],'completed')
+            recovery_call.assert_not_called()
+            self.assertEqual(verified.call_args.kwargs['source_runtime'],maintenance.STORAGE_RUNTIME)

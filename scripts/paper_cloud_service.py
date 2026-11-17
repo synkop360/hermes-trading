@@ -54,13 +54,18 @@ def install_default(project):
     if release!=plan['new']:
         from scripts.paper_cloud_update import update_installed
         from hermes_trading.reflection_supervision import _hash
-        for name in ('discord_format_release_plan.json','storage_limit_release_plan.json'):
-            successor=json.loads((scripts/name).read_bytes())
+        names=('discord_format_release_plan.json','storage_limit_release_plan.json',
+               'backup_restart_release_plan.json')
+        successors=[json.loads((scripts/name).read_bytes()) for name in names]
+        installed=json.loads((project/'state/.paper-cloud-cutover/installed.json').read_bytes())
+        installed_hash=installed.get('release_hash')
+        for index,successor in enumerate(successors):
             if successor['old']!=plan['new']:
                 raise ValueError('source update chain differs')
-            installed=json.loads((project/'state/.paper-cloud-cutover/installed.json').read_bytes())
-            if installed.get('release_hash') not in {_hash(successor['new']),_hash(release)}:
+            future={_hash(item['new']) for item in successors[index:]}
+            if installed_hash not in future:
                 print(json.dumps(update_installed(project,successor)),flush=True)
+                installed_hash=_hash(successor['new'])
             plan=successor
         if plan['new']!=release:
             raise ValueError('storage limit source map differs')

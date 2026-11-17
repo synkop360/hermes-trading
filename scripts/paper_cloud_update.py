@@ -17,6 +17,7 @@ def update_installed(project,source_plan,*,fault=None):
     updates={
         transition.DISCORD_FORMAT_BASE_COMMIT: ('discord-format','user-2026-11-12-discord-strategy-index'),
         transition.STORAGE_LIMIT_BASE_COMMIT: ('storage-limit','user-2026-11-17-storage-limit-1gb'),
+        transition.BACKUP_RESTART_BASE_COMMIT: ('backup-restart','user-2026-11-17-daily-backup-restart-repair'),
     }
     if source_plan['old_commit'] not in updates:
         raise ValueError('exact source update predecessor required')

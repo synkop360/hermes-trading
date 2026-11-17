@@ -54,6 +54,15 @@ class DiscordFormatUpdateTests(unittest.IsolatedAsyncioTestCase):
         self.assertTrue((audit/'receipt.json').is_file())
         self.assertEqual(json.loads((audit/'intent.json').read_text())['plan']['release_plan'],plan)
 
+    async def test_backup_restart_source_update_is_audited_and_idempotent(self):
+        plan=json.loads((Path(__file__).resolve().parents[1]/'scripts/backup_restart_release_plan.json').read_text())
+        f,root,plan,env=await self.fixture(plan)
+        with patch.dict(update.os.environ,env):
+            self.assertEqual(update.update_installed(f.project_root,plan)['status'],'updated')
+            self.assertEqual(update.update_installed(f.project_root,plan)['status'],'already_updated')
+        audit=root/'.paper-cloud-cutover/backup-restart'
+        self.assertTrue((audit/'receipt.json').is_file())
+
     async def test_update_preserves_worker_state_and_replays_after_new_supervisor_work(self):
         f,root,plan,env=await self.fixture()
         account=(root/'adaptive_200/wallet_account.json').read_bytes()
