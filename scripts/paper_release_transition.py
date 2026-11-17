@@ -51,6 +51,8 @@ DISCORD_FORMAT_BASE_COMMIT = 'd045e989ced5e089c10099c69ef04acf2ed63160'
 STORAGE_LIMIT_BASE_COMMIT = 'ecf8ac5688d68a18669790ae88bacd3e48c3da85'
 STORAGE_LIMIT_BASE_RELEASE = 'a4ba72fe0a759b5eab6fe353c2986e69aa075e02be19f85e7a43c28aceb055bd'
 STORAGE_LIMIT_TARGET_RELEASE = '387ecd4f3dd27f7d50a98b7506b5630db77920d2082cd886a1a8e5417c89a116'
+BACKUP_RESTART_BASE_COMMIT = 'e96404684f9d5bd5e7dc97ed531406c92d65632e'
+BACKUP_RESTART_TARGET_RELEASE = '78bf02b0c767cedd79f52351cde74284513179f09610aebee8820f58e3d06692'
 TARGET = dict(project='f78f42d9-20ec-44f6-ae3f-f8bb79ee7000',
               service='8b94cbc9-293e-4222-a8a7-698b656985f7',
               environment='fdcc71a3-00a9-410c-8d6f-59af9bc98d36')
@@ -169,7 +171,7 @@ def _layout(worker_root, supervisor_root, launch_file, audit_dir=None):
         raise ValueError('launch must remain separate from state copies')
     if audit_dir is not None:
         result['audit'] = _safe_root(Path(audit_dir).absolute())
-        allowed_audits=({'discord-format','storage-limit'} if volume is not None and volume['live'] else {'entry-history','cloud-source'})
+        allowed_audits=({'discord-format','storage-limit','backup-restart'} if volume is not None and volume['live'] else {'entry-history','cloud-source'})
         if volume is not None and result['audit'] not in {volume['auxiliary']/name for name in allowed_audits}:
             raise ValueError('volume audit namespace differs')
         if volume is None and any(result['audit'] == root or result['audit'].is_relative_to(root) or
@@ -849,6 +851,8 @@ def _digest(value, length=64):
 
 
 def _purpose(plan):
+    if plan['old_commit'] == BACKUP_RESTART_BASE_COMMIT:
+        return 'paper_backup_restart_release_transition_v1'
     if plan['old_commit'] == STORAGE_LIMIT_BASE_COMMIT:
         return 'paper_storage_limit_release_transition_v1'
     if plan['old_commit'] == DISCORD_FORMAT_BASE_COMMIT:
@@ -869,7 +873,7 @@ def _purpose(plan):
 def validate_release_plan(plan):
     if not isinstance(plan, dict) or set(plan) != {'old_commit', 'new_commit', 'target', 'old', 'new'}:
         raise ValueError('exact correction release plan required')
-    if plan['old_commit'] not in {BASE_COMMIT,REPORTING_BASE_COMMIT,SNAPSHOT_BASE_COMMIT,RECOVERY_BASE_COMMIT,RELIABILITY_BASE_COMMIT,ENTRY_HISTORY_BASE_COMMIT,CLOUD_BASE_COMMIT,DISCORD_FORMAT_BASE_COMMIT,STORAGE_LIMIT_BASE_COMMIT}:
+    if plan['old_commit'] not in {BASE_COMMIT,REPORTING_BASE_COMMIT,SNAPSHOT_BASE_COMMIT,RECOVERY_BASE_COMMIT,RELIABILITY_BASE_COMMIT,ENTRY_HISTORY_BASE_COMMIT,CLOUD_BASE_COMMIT,DISCORD_FORMAT_BASE_COMMIT,STORAGE_LIMIT_BASE_COMMIT,BACKUP_RESTART_BASE_COMMIT}:
         raise ValueError('correction must retain approved base commit')
     _digest(plan['new_commit'], 40)
     if plan['new_commit'] == plan['old_commit']:
@@ -905,6 +909,10 @@ def validate_release_plan(plan):
         # The complete successor is pinned above. Its other Python files only
         # change from Windows checkout line endings to the canonical Git bytes.
         return
+    elif plan['old_commit'] == BACKUP_RESTART_BASE_COMMIT:
+        if _hash(old)!=STORAGE_LIMIT_TARGET_RELEASE or _hash(new)!=BACKUP_RESTART_TARGET_RELEASE:
+            raise ValueError('backup restart predecessor or successor differs')
+        allowed = {'paired_worker.py'}
     elif plan['old_commit'] == STORAGE_LIMIT_BASE_COMMIT:
         if _hash(old)!=STORAGE_LIMIT_BASE_RELEASE or _hash(new)!=STORAGE_LIMIT_TARGET_RELEASE:
             raise ValueError('storage limit predecessor or successor differs')

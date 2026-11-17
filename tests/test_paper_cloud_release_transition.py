@@ -17,13 +17,26 @@ class CloudReleaseTransitionTests(unittest.TestCase):
         plan=json.loads((Path(__file__).resolve().parents[1]/'scripts/storage_limit_release_plan.json').read_text())
         predecessor=json.loads((Path(__file__).resolve().parents[1]/'scripts/discord_format_release_plan.json').read_text())
         self.assertEqual(plan['old'],predecessor['new'])
-        self.assertEqual(plan['new']['runtime'],_release_hashes())
+        backup=json.loads((Path(__file__).resolve().parents[1]/'scripts/backup_restart_release_plan.json').read_text())
+        self.assertEqual(plan['new'],backup['old'])
         transition.validate_release_plan(plan)
         for case in ('extra_runtime','watcher','predecessor'):
             broken=deepcopy(plan)
             if case=='extra_runtime':broken['new']['runtime']['paired_worker.py']='0'*64
             elif case=='watcher':broken['new']['watcher']='0'*64
             else:broken['old']['runtime']['paper_safety.py']='0'*64
+            with self.subTest(case=case),self.assertRaises(ValueError):transition.validate_release_plan(broken)
+
+    def test_backup_restart_release_is_exactly_one_runtime_module(self):
+        from hermes_trading.paper_publication import _release_hashes
+        plan=json.loads((Path(__file__).resolve().parents[1]/'scripts/backup_restart_release_plan.json').read_text())
+        self.assertEqual(plan['new']['runtime'],_release_hashes())
+        transition.validate_release_plan(plan)
+        for case in ('extra_runtime','watcher','predecessor'):
+            broken=deepcopy(plan)
+            if case=='extra_runtime':broken['new']['runtime']['paper_safety.py']='0'*64
+            elif case=='watcher':broken['new']['watcher']='0'*64
+            else:broken['old']['runtime']['paired_worker.py']='0'*64
             with self.subTest(case=case),self.assertRaises(ValueError):transition.validate_release_plan(broken)
 
     def plan(self):
@@ -35,9 +48,11 @@ class CloudReleaseTransitionTests(unittest.TestCase):
         from scripts.hermes_watch import _supervisor_release
         successor=json.loads((Path(__file__).resolve().parents[1]/'scripts/discord_format_release_plan.json').read_text())
         storage=json.loads((Path(__file__).resolve().parents[1]/'scripts/storage_limit_release_plan.json').read_text())
+        backup=json.loads((Path(__file__).resolve().parents[1]/'scripts/backup_restart_release_plan.json').read_text())
         self.assertEqual(successor['old'],plan['new'])
         self.assertEqual(storage['old'],successor['new'])
-        self.assertEqual(_supervisor_release(),storage['new'])
+        self.assertEqual(backup['old'],storage['new'])
+        self.assertEqual(_supervisor_release(),backup['new'])
 
     def test_runtime_launchers_predecessor_and_inventory_are_pinned(self):
         for case in ['base','old','runtime','watcher','launcher','inventory','missing']:
