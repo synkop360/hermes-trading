@@ -1,4 +1,4 @@
-"""Condense retained legacy evidence, then serve the existing paper experiment."""
+"""Resume the audited storage limit and source transition before paper startup."""
 import asyncio,json,os,signal,traceback,hashlib
 from pathlib import Path
 
@@ -34,15 +34,7 @@ def marker(root,*,enabled):
 
 
 def maintain_storage(project):
-    """Second storage pause (2026-11-13 02:45 UTC, filesystem reserve).
-
-    The legacy database archive and the first two recoveries are already
-    complete and pinned to the predecessor runtime; they are not replayed.
-    This phase only condenses one more obsolete root backup losslessly,
-    re-verifies the cutover archives, then runs a new, separately named
-    audited recovery bound to the installed runtime. It never resets a halt
-    unless the native recovery preconditions all hold.
-    """
+    """Verify the old recovery, migrate both 1 GB bounds, then recover storage."""
     root=project/'state'
     print(json.dumps(compact_history(root,enabled=True,retire_originals=True)),flush=True)
     print(json.dumps(repack_archives(root/'.paper-cloud-cutover')),flush=True)
