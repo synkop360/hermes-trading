@@ -1,6 +1,6 @@
 {
   "old_commit": "e39eefb60cb1eec58ae31794195cbc63a93640c7",
-  "new_commit": "849db27f14bba0b23700ff51e71d69d065cc8af7",
+  "new_commit": "20856d9215e6fe58af29746525fcf0c95e145af2",
   "target": {
     "environment": "fdcc71a3-00a9-410c-8d6f-59af9bc98d36",
     "experiment_id": "paper-beta-v1-20261021-6c9d520",
@@ -232,7 +232,7 @@
       "paired_worker.py": "f534868a3bc9edd8503e6a079e0c0c71c1fc0582fa153096f31b25c68e6dd5e8",
       "paper_backup.py": "3d4254ea4cbc27bbb3009d8d9f972d22ffa5758d39eed88c66334ba130b2dd8a",
       "paper_boot.py": "0b2059b6441610ce9f31c1e9be6a8dc5347b4ba0de93536199c2ea2d73425310",
-      "paper_history_retention.py": "7be9c42ba03f70dda5c1970372914fcb00b5189c02c2d4db2c056c54f4c895b1",
+      "paper_history_retention.py": "d6712b037063a9785605f20d1fdbac911f66eedd5e8635e365eb682072c5b930",
       "paper_offline.py": "f864464eec72f05fe34bc51f48466e2c28a1e3f6d34a3577acadaeebc6f76c17",
       "paper_publication.py": "92a63d5ed2c56c44d87a1a0addcbaa32fcb4d962857821e7f090daf0968f2460",
       "paper_safety.py": "8ab64545d923724dba29a9f66c201535edb979cb3a95477fb03ddf44a23db451",

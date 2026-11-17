@@ -26,7 +26,7 @@ PILOT_RECOVERY_TAG='after-2026-11-13-pilot'
 PILOT_RECOVERY_APPROVAL='user-2026-11-13-lat-116-chained-transition'
 # Installed runtime after the chained lot 1 release
 # (scripts/lot1_release_plan.json, new runtime; LAT-120, Thomas 2026-11-17).
-CURRENT_RUNTIME='c78341314cdf5d0fe42a44e272802c970c8f384fe60b3ae7e661713e3dd5a028'
+CURRENT_RUNTIME='19ed0954a27dcb9c50a1f7863578068fdbc58c8dce91d2a4acc5fea25556f7db'
 RECOVERY_TAG='after-2026-11-17-lot1'
 RECOVERY_APPROVAL='user-2026-11-17-lat-120-chained-transition'
 # Earlier audits of the same second pause, in release order.
