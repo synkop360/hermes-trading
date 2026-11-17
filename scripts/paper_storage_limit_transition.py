@@ -10,12 +10,13 @@ import os
 from pathlib import Path
 
 from hermes_trading.archive_snapshot import _safe_root, ownership
+from hermes_trading.persistence.artifacts import _artifact_lock
 from hermes_trading.paired_inception import read_paired_inception
 from hermes_trading.paired_primary import resolve_primary
 from hermes_trading.paired_storage_admission import inspect_storage, validate_storage_limits
 from hermes_trading.paired_worker import _profiles
 from hermes_trading.paper_publication import _release_hashes, _sync_dir, _temporary
-from hermes_trading.paper_safety import load_policy
+from hermes_trading.paper_safety import _policy
 from hermes_trading.reflection_supervision import _hash, _json, _now, assert_writer_owner
 
 EXPERIMENT = 'paper-beta-v1-20261021-6c9d520'
@@ -44,7 +45,7 @@ def _save(path, body):
         temporary.unlink(missing_ok=True)
 
 
-def _configuration(root, storage, experiment_id):
+def _configuration(root, storage, safety_policy, experiment_id):
     manifest = _read(root / 'manifest.json')
     primary = resolve_primary(manifest)
     profiles = _profiles(root, manifest)
@@ -61,9 +62,7 @@ def _configuration(root, storage, experiment_id):
                      'accounts': {f'{arm}_{wallet}': config
                                   for (arm, wallet), (_, _, config) in profiles.items()},
                      'opening_receipt_hash': None if opening is None else _hash(opening)}
-    safety = load_policy(root, experiment_id)
-    if safety is not None:
-        configuration['paper_safety'] = safety
+    configuration['paper_safety'] = _policy(safety_policy, experiment_id)
     return _hash(configuration), selected, policy
 
 
@@ -89,10 +88,12 @@ def _transition_limit(root, *, approval_ref, experiment_id, reserve_bytes, old_m
         raise ValueError('storage transition source differs')
     root = _safe_root(Path(root).absolute())
     path = _safe_root(root / 'storage_limits.json')
+    safety_path = _safe_root(root / 'paper_safety.json')
+    safety_state_path = _safe_root(root / 'paper_safety_state.json')
     audit = _safe_root(root / AUDIT)
     intent_path = _safe_root(audit / 'intent.json')
     receipt_path = _safe_root(audit / 'receipt.json')
-    with ownership(root, role='worker', enabled=True) as db:
+    with ownership(root, role='worker', enabled=True) as db, _artifact_lock(safety_state_path):
         raw = db.execute('SELECT state FROM lifecycle WHERE id=1').fetchone()
         if raw is None:
             raise ValueError('original worker lifecycle required')
@@ -107,8 +108,22 @@ def _transition_limit(root, *, approval_ref, experiment_id, reserve_bytes, old_m
         new = dict(old, max_state_bytes=new_max)
         validate_storage_limits(old, experiment_id)
         validate_storage_limits(new, experiment_id)
-        old_hash, primary, policy = _configuration(root, old, experiment_id)
-        new_hash, _, _ = _configuration(root, new, experiment_id)
+        current_safety = _read(safety_path)
+        if current_safety.get('experiment_id') != experiment_id or current_safety.get('capacity_bytes') not in (OLD_MAX, NEW_MAX):
+            raise ValueError('original safety capacity differs')
+        old_safety = dict(current_safety, capacity_bytes=OLD_MAX)
+        new_safety = dict(old_safety, capacity_bytes=NEW_MAX)
+        old_policy = _policy(old_safety, experiment_id)
+        new_policy = _policy(new_safety, experiment_id)
+        current_safety_state = _read(safety_state_path)
+        old_safety_sha = hashlib.sha256(_json(old_policy).encode()).hexdigest()
+        new_safety_sha = hashlib.sha256(_json(new_policy).encode()).hexdigest()
+        if current_safety_state.get('policy_sha256') not in (old_safety_sha, new_safety_sha):
+            raise ValueError('safety state policy differs')
+        old_safety_state = dict(current_safety_state, policy_sha256=old_safety_sha)
+        new_safety_state = dict(old_safety_state, policy_sha256=new_safety_sha)
+        old_hash, primary, policy = _configuration(root, old, old_safety, experiment_id)
+        new_hash, _, _ = _configuration(root, new, new_safety, experiment_id)
         if state.get('status') != 'running' or state.get('storage_stop') is not True:
             if not receipt_path.exists():
                 raise ValueError('active original storage pause required')
@@ -118,10 +133,13 @@ def _transition_limit(root, *, approval_ref, experiment_id, reserve_bytes, old_m
                     intent.get('root') != str(root) or intent.get('experiment_id') != experiment_id or
                     intent.get('approval_ref') != APPROVAL or
                     intent.get('old_hash') != old_hash or intent.get('new_hash') != new_hash or
-                    intent.get('old_limits') != old or intent.get('new_limits') != new):
+                    intent.get('old_limits') != old or intent.get('new_limits') != new or
+                    intent.get('old_safety') != old_safety or intent.get('new_safety') != new_safety or
+                    intent.get('old_safety_state') != old_safety_state or intent.get('new_safety_state') != new_safety_state):
                 raise ValueError('storage transition intent differs')
         else:
-            if current != old or state.get('configuration_hash') != old_hash or receipt_path.exists():
+            if (current != old or current_safety != old_safety or current_safety_state != old_safety_state or
+                    state.get('configuration_hash') != old_hash or receipt_path.exists()):
                 raise ValueError('unowned storage transition state')
             report = inspect_storage(root, new)
             if report.get('status') != 'ready' or report['free_bytes'] < reserve_bytes + 2*1024*1024:
@@ -133,7 +151,9 @@ def _transition_limit(root, *, approval_ref, experiment_id, reserve_bytes, old_m
                 raise ValueError('unowned storage transition audit')
             body = {'schema_version': 1, 'root': str(root), 'experiment_id': experiment_id, 'approval_ref': APPROVAL,
                     'old_hash': old_hash, 'new_hash': new_hash, 'old_limits': old,
-                    'new_limits': new, 'halt_sha256': hashlib.sha256((primary / 'experiment_halt.json').read_bytes()).hexdigest(),
+                    'new_limits': new, 'old_safety': old_safety, 'new_safety': new_safety,
+                    'old_safety_state': old_safety_state, 'new_safety_state': new_safety_state,
+                    'halt_sha256': hashlib.sha256((primary / 'experiment_halt.json').read_bytes()).hexdigest(),
                     'observed_at': _now().isoformat()}
             audit.mkdir(exist_ok=True)
             intent = dict(body, intent_hash=_hash(body))
@@ -148,6 +168,14 @@ def _transition_limit(root, *, approval_ref, experiment_id, reserve_bytes, old_m
             _save(path, new)
             if fault:
                 fault('storage_limits')
+        if current_safety == old_safety:
+            _save(safety_path, new_safety)
+            if fault:
+                fault('paper_safety')
+        if current_safety_state == old_safety_state:
+            _save(safety_state_path, new_safety_state)
+            if fault:
+                fault('paper_safety_state')
         if state.get('configuration_hash') == old_hash:
             updated = deepcopy(state)
             updated['configuration_hash'] = new_hash

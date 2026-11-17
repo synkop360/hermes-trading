@@ -14,6 +14,9 @@ class StorageLimitTransitionTests(unittest.IsolatedAsyncioTestCase):
         fixture = await fixtures.NativeTransitionFixture.create(self)
         root = fixture.worker_root
         old_limits = json.loads((root / 'storage_limits.json').read_text())
+        old_safety = json.loads((root / 'paper_safety.json').read_text())
+        old_safety_state = json.loads((root / 'paper_safety_state.json').read_text())
+        self.assertEqual(old_safety['capacity_bytes'], 500000000)
         with closing(sqlite3.connect(root / 'worker_runtime.sqlite')) as db:
             before = json.loads(db.execute('SELECT state FROM lifecycle WHERE id=1').fetchone()[0])
             before['storage_stop'] = True
@@ -22,7 +25,7 @@ class StorageLimitTransitionTests(unittest.IsolatedAsyncioTestCase):
         halt = {'schema_version': 1, 'experiment_id': fixture.policy['experiment_id'],
                 'policy_hash': _hash(fixture.policy), 'reason': 'storage_stop'}
         (fixture.primary / 'experiment_halt.json').write_text(json.dumps(halt))
-        return fixture, before, old_limits, halt
+        return fixture, before, old_limits, halt, old_safety, old_safety_state
 
     def transition(self, fixture, old_limits, **kwargs):
         from scripts.paper_storage_limit_transition import _transition_limit
@@ -34,7 +37,7 @@ class StorageLimitTransitionTests(unittest.IsolatedAsyncioTestCase):
                                      protective_required=False, expected_runtime=expected_runtime, **kwargs)
 
     async def test_changes_only_budget_and_bound_hash_while_retaining_halt(self):
-        fixture, before, old_limits, halt = await self.fixture()
+        fixture, before, old_limits, halt, old_safety, old_safety_state = await self.fixture()
         root = fixture.worker_root
 
         result = self.transition(fixture, old_limits)
@@ -44,6 +47,12 @@ class StorageLimitTransitionTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(again['status'], 'already_transitioned')
         new_limits = json.loads((root / 'storage_limits.json').read_text())
         self.assertEqual(new_limits, dict(old_limits, max_state_bytes=1000000000))
+        safety = json.loads((root / 'paper_safety.json').read_text())
+        safety_state = json.loads((root / 'paper_safety_state.json').read_text())
+        self.assertEqual(safety, dict(old_safety, capacity_bytes=1000000000))
+        self.assertEqual(safety_state['worker'], old_safety_state['worker'])
+        self.assertEqual(safety_state['supervisor'], old_safety_state['supervisor'])
+        self.assertNotEqual(safety_state['policy_sha256'], old_safety_state['policy_sha256'])
         with closing(sqlite3.connect(root / 'worker_runtime.sqlite')) as db:
             after = json.loads(db.execute('SELECT state FROM lifecycle WHERE id=1').fetchone()[0])
         self.assertNotEqual(after['configuration_hash'], before['configuration_hash'])
@@ -54,9 +63,9 @@ class StorageLimitTransitionTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(json.loads((fixture.primary / 'experiment_halt.json').read_text()), halt)
 
     async def test_each_interruption_resumes_without_clearing_halt(self):
-        for stage in ('intent', 'storage_limits', 'lifecycle'):
+        for stage in ('intent', 'storage_limits', 'paper_safety', 'paper_safety_state', 'lifecycle'):
             with self.subTest(stage=stage):
-                fixture, before, old_limits, halt = await self.fixture()
+                fixture, before, old_limits, halt, old_safety, old_safety_state = await self.fixture()
                 def interrupt(seen):
                     if seen == stage:
                         raise RuntimeError('synthetic interruption')
@@ -66,7 +75,7 @@ class StorageLimitTransitionTests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(json.loads((fixture.primary / 'experiment_halt.json').read_text()), halt)
 
     async def test_unowned_edit_is_rejected_before_lifecycle_change(self):
-        fixture, before, old_limits, halt = await self.fixture()
+        fixture, before, old_limits, halt, old_safety, old_safety_state = await self.fixture()
         path = fixture.worker_root / 'storage_limits.json'
         path.write_text(json.dumps(dict(old_limits, max_state_bytes=1000000000)))
         with self.assertRaisesRegex(ValueError, 'unowned storage transition state'):
@@ -79,7 +88,7 @@ class StorageLimitTransitionTests(unittest.IsolatedAsyncioTestCase):
         from scripts.paper_storage_recovery import recover_storage
         from hermes_trading.paper_publication import _release_hashes
 
-        fixture, before, old_limits, halt = await self.fixture()
+        fixture, before, old_limits, halt, old_safety, old_safety_state = await self.fixture()
         self.transition(fixture, old_limits)
         with patch.dict(os.environ, fixtures.PAPER_ENV):
             result = recover_storage(fixture.worker_root, approval_ref='synthetic-storage-recovery',
@@ -91,13 +100,13 @@ class StorageLimitTransitionTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(resumed['completed_batches'], before['completed_batches'] + 1)
 
     async def test_wrong_runtime_is_rejected_without_intent(self):
-        fixture, before, old_limits, halt = await self.fixture()
+        fixture, before, old_limits, halt, old_safety, old_safety_state = await self.fixture()
         with self.assertRaisesRegex(ValueError, 'source differs'):
             self.transition(fixture, old_limits, expected_runtime='0'*64)
         self.assertFalse((fixture.worker_root / '.paper-storage-limit-transition-2026-11-17').exists())
 
     async def test_changed_halt_marker_prevents_interrupted_transition_resume(self):
-        fixture, before, old_limits, halt = await self.fixture()
+        fixture, before, old_limits, halt, old_safety, old_safety_state = await self.fixture()
         def interrupt(stage):
             if stage == 'intent':
                 raise RuntimeError('synthetic interruption')
