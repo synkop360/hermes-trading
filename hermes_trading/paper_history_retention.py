@@ -430,49 +430,69 @@ def _read_only(path):
     return sqlite3.connect(path.resolve().as_uri() + "?mode=ro", uri=True, timeout=5)
 
 
+def _detail_observations(root, account):
+    """Wallet observations still in detail, decoded inside one read snapshot."""
+    wallet = _safe_root(root / account / "wallet_equity.sqlite")
+    if not wallet.is_file():
+        return []
+    with closing(_read_only(wallet)) as db:
+        db.execute("BEGIN")
+        if db.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='observations'").fetchone() is None:
+            return []
+        rows = db.execute("SELECT at, payload FROM observations ORDER BY at").fetchall()
+        return _decoded_observations(db, rows)
+
+
+def _archived_summaries(summary_path):
+    archived, watermarks = {}, {}
+    if not summary_path.is_file():
+        return archived, watermarks
+    with closing(_read_only(summary_path)) as db:
+        db.execute("BEGIN")
+        tables = {row[0] for row in db.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+        if "daily_summaries" in tables:
+            for account, date, decisions, last_at, balance, costs in db.execute(
+                    "SELECT account,date,decisions,last_at,balance,costs FROM daily_summaries"):
+                archived.setdefault(account, {})[date] = {
+                    "decisions": decisions, "last_at": last_at, "balance": balance, "costs": costs}
+        if "summary_watermarks" in tables:
+            watermarks = {account: _timestamp(through) for account, through in
+                          db.execute("SELECT account,through FROM summary_watermarks")}
+    return archived, watermarks
+
+
 def daily_summaries(root):
     """Permanent daily summaries for every account, read-only.
 
     ``{account_directory: [{'date', 'balance', 'decisions', 'costs'}, ...]}``,
     one row per UTC day of activity (archived days included), amounts as
     decimal strings, ``decisions`` the number of wallet observations (cycles).
+
+    Read order matters: every detail snapshot is taken before the summary
+    snapshot.  Retention commits the summary and its watermark before deleting
+    the detail, so a summary read afterwards always covers any observation the
+    detail snapshots no longer hold, and the watermark drops the detail rows it
+    already counts.  A retention running between the reads, including the one
+    that creates the summary file, therefore neither loses nor doubles a day.
     """
     root = _safe_root(Path(root).absolute())
     manifest = _manifest(root)
-    summary_path = _safe_root(root / SUMMARY_DB)
-    archived, watermarks = {}, {}
-    if summary_path.is_file():
-        with closing(_read_only(summary_path)) as db:
-            db.execute("BEGIN")
-            tables = {row[0] for row in db.execute("SELECT name FROM sqlite_master WHERE type='table'")}
-            if "daily_summaries" in tables:
-                for account, date, decisions, last_at, balance, costs in db.execute(
-                        "SELECT account,date,decisions,last_at,balance,costs FROM daily_summaries"):
-                    archived.setdefault(account, {})[date] = {
-                        "decisions": decisions, "last_at": last_at, "balance": balance, "costs": costs}
-            if "summary_watermarks" in tables:
-                watermarks = {account: _timestamp(through) for account, through in
-                              db.execute("SELECT account,through FROM summary_watermarks")}
+    accounts = [profile["directory"] for profile in manifest.get("profiles", [])]
+    detail = {account: _detail_observations(root, account) for account in accounts}
+    archived, watermarks = _archived_summaries(_safe_root(root / SUMMARY_DB))
     summaries = {}
-    for profile in manifest.get("profiles", []):
-        account = profile["directory"]
+    for account in accounts:
         days = {date: dict(row) for date, row in archived.get(account, {}).items()}
-        wallet = _safe_root(root / account / "wallet_equity.sqlite")
-        if wallet.is_file():
-            with closing(_read_only(wallet)) as db:
-                db.execute("BEGIN")
-                if db.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='observations'").fetchone():
-                    through = watermarks.get(account)
-                    rows = [row for row in db.execute("SELECT at, payload FROM observations ORDER BY at")
-                            if through is None or _timestamp(row[0]) >= through]
-                    for date, day in _day_totals(_decoded_observations(db, rows)).items():
-                        stored = days.get(date)
-                        if stored is None:
-                            days[date] = day
-                            continue
-                        stored["decisions"] += day["decisions"]
-                        if _timestamp(day["last_at"]) >= _timestamp(stored["last_at"]):
-                            stored.update(balance=day["balance"], costs=day["costs"], last_at=day["last_at"])
+        through = watermarks.get(account)
+        fresh = [obs for obs in detail[account] if through is None or _timestamp(obs["at"]) >= through]
+        for date, day in _day_totals(fresh).items():
+            stored = days.get(date)
+            if stored is None:
+                days[date] = day
+                continue
+            stored["decisions"] += day["decisions"]
+            if _timestamp(day["last_at"]) >= _timestamp(stored["last_at"]):
+                stored.update(balance=day["balance"], costs=day["costs"], last_at=day["last_at"])
         summaries[account] = [
             {"date": date, "balance": row["balance"], "decisions": int(row["decisions"]), "costs": row["costs"]}
             for date, row in sorted(days.items())

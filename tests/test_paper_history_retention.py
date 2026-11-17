@@ -291,5 +291,83 @@ class PaperHistoryRetentionTests(unittest.TestCase):
             retention.restore_wallet_archive(archive)
 
 
+    # --- review PR #29: a retention between the reads loses no archived day ---
+    def _summaries_with_retention_at(self, point, now):
+        """``daily_summaries`` with one retention injected before read step ``point``.
+
+        Steps are every read-only open and the summary lookup itself, so the
+        retention lands before, between and after the detail and summary reads.
+        """
+        from unittest import mock
+        state = {"step": 0, "ran": False}
+
+        def maybe_retain():
+            if state["step"] == point and not state["ran"]:
+                state["ran"] = True
+                retention.apply_retention(self.root, now=now, backup_verified=True)
+            state["step"] += 1
+
+        real_open, real_archived = retention._read_only, retention._archived_summaries
+
+        def open_hook(path):
+            maybe_retain()
+            return real_open(path)
+
+        def archived_hook(path):
+            maybe_retain()
+            return real_archived(path)
+
+        with mock.patch.object(retention, "_read_only", open_hook), \
+                mock.patch.object(retention, "_archived_summaries", archived_hook):
+            result = retention.daily_summaries(self.root)
+        return result, state["ran"]
+
+    def _assert_stable_across_interleavings(self, now):
+        expected = retention.daily_summaries(self.root)
+        point = 0
+        while True:
+            snapshot = self._snapshot_files()
+            got, ran = self._summaries_with_retention_at(point, now)
+            if not ran:
+                break
+            self.assertEqual(got, expected, f"retention before read step {point}")
+            self.assertEqual(retention.daily_summaries(self.root), expected, point)
+            self._restore_files(snapshot)
+            point += 1
+        self.assertGreaterEqual(point, 3)
+        return expected
+
+    def _snapshot_files(self):
+        return {path: path.read_bytes() for path in self.root.rglob("*") if path.is_file()}
+
+    def _restore_files(self, snapshot):
+        for path in list(self.root.rglob("*")):
+            if path.is_file() and path not in snapshot:
+                path.unlink()
+        for path, raw in snapshot.items():
+            path.write_bytes(raw)
+
+    def test_retention_creating_the_summary_between_reads_keeps_every_decision(self):
+        old = NOW - timedelta(days=31)
+        self._write_observations("adaptive_100", [old, NOW])
+        self._write_observations("control_100", [old, NOW])
+        self.assertFalse((self.root / retention.SUMMARY_DB).exists())
+        expected = self._assert_stable_across_interleavings(NOW)
+        for account in ("adaptive_100", "control_100"):
+            self.assertEqual([row["decisions"] for row in expected[account]], [1, 1], account)
+
+    def test_later_retention_between_reads_keeps_every_decision(self):
+        old = NOW - timedelta(days=40)
+        stamps = [old, NOW - timedelta(days=29, hours=12), NOW]
+        self._write_observations("adaptive_100", stamps)
+        self._write_observations("control_100", stamps)
+        retention.apply_retention(self.root, now=NOW, backup_verified=True)
+        self.assertTrue((self.root / retention.SUMMARY_DB).is_file())
+        # One day later the second observation crosses the cutoff.
+        expected = self._assert_stable_across_interleavings(NOW + timedelta(days=1))
+        for account in ("adaptive_100", "control_100"):
+            self.assertEqual(sum(row["decisions"] for row in expected[account]), 3, account)
+
+
 if __name__ == "__main__":
     unittest.main()
