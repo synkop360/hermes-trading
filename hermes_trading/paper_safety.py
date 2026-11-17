@@ -1,7 +1,7 @@
 """Optional paper entry admission; never changes finance, strategy or exit rules.
 
 The explicit ``root/paper_safety.json`` binds one experiment to a whole-volume
-500 MB budget, a 70% entry alert and three-error latches. Health is durable in
+500 MB or reviewed 1 GB budget, a 70% entry alert and three-error latches. Health is durable in
 ``paper_safety_state.json``. Supervisor retries must repeat the latest event ID,
 event time and semantic result exactly; retries do not refresh its freshness.
 Only ``paper_runtime.log`` and its three named generations may be rotated.
@@ -24,12 +24,12 @@ MAX_VOLUME_ENTRIES = 100000
 VOLUME_TIMEOUT_SECONDS = 5
 _JSON_LIMIT = 16384
 _FIXED = {
-    'schema_version': 1, 'capacity_bytes': 500000000, 'alert_fraction': '0.70',
+    'schema_version': 1, 'alert_fraction': '0.70',
     'max_worker_errors': 3, 'max_supervisor_errors': 3,
     'supervisor_stale_seconds': 300, 'diagnostics_max_bytes': 1048576,
     'diagnostics_generations': 3,
 }
-_REQUIRED = set(_FIXED) | {'experiment_id', 'volume_root'}
+_REQUIRED = set(_FIXED) | {'experiment_id', 'volume_root', 'capacity_bytes'}
 
 
 def _utc_now():
@@ -113,6 +113,8 @@ def _policy(value, experiment_id):
     for key, expected in _FIXED.items():
         if type(value[key]) is not type(expected) or value[key] != expected:
             raise ValueError('unsupported paper safety policy limit')
+    if type(value['capacity_bytes']) is not int or value['capacity_bytes'] not in (500000000, 1000000000):
+        raise ValueError('unsupported paper safety capacity')
     identity = value['experiment_id']
     if not isinstance(identity, str) or not 1 <= len(identity) <= 128 or identity != experiment_id:
         raise ValueError('paper safety experiment differs')

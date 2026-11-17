@@ -1,4 +1,4 @@
-"""Condense retained legacy evidence, then serve the existing paper experiment."""
+"""Resume the audited storage limit and source transition before paper startup."""
 import asyncio,json,os,signal,traceback,hashlib
 from pathlib import Path
 
@@ -6,23 +6,22 @@ from scripts.paper_cloud_service import install_default,serve_cloud
 from scripts.paper_cloud_install import _same_or_create
 from scripts.paper_compact_history import compact_history
 from scripts.paper_storage_recovery import recover_storage,recovery_status
+from scripts.paper_storage_limit_transition import transition_limit, AUDIT, APPROVAL as TRANSITION_APPROVAL
 from scripts.paper_archive_repack import repack_archives
 from hermes_trading.archive_snapshot import ownership,_safe_root
 from hermes_trading.paired_storage_admission import inspect_storage
 
 MARKER={'schema_version':1,'purpose':'paper_cloud_storage_maintenance_v1','mode':'paper'}
 RUNTIME='082042439d5dadd8247b788fe6b29de5c7449f165f339a2e155761bf55c525de'
-# Runtime of the reviewed Discord format release
-# (scripts/discord_format_release_plan.json, new runtime). The second storage
-# pause recovery is bound to it and is never replayed under another runtime.
-PREVIOUS_RUNTIME='33f6c6329f1bc5383d12d5cafce8e13255eb68a02a2bf2bba9ec60ccb370114f'
-PREVIOUS_RECOVERY_TAG='after-2026-11-13-reserve'
-PREVIOUS_RECOVERY_APPROVAL='user-2026-11-13-storage-maintenance-option-2'
-# Installed runtime after the chained paper pilot release
-# (scripts/pilot_release_plan.json, new runtime).
-CURRENT_RUNTIME='42cf3f3efe1b931f4f4cec942749b086af2bdb5d82aa4865d4c244c85ba6df7e'
-RECOVERY_TAG='after-2026-11-13-pilot'
-RECOVERY_APPROVAL='user-2026-11-13-lat-116-chained-transition'
+# Installed runtime after the reviewed Discord format release
+# (scripts/discord_format_release_plan.json, new runtime).
+CURRENT_RUNTIME='33f6c6329f1bc5383d12d5cafce8e13255eb68a02a2bf2bba9ec60ccb370114f'
+STORAGE_RUNTIME='924b045fb5bc8b08ae7313037f7cce347494b9c84daf20679b5f30b3cb0e0263'
+NEW_RUNTIME='3b7eb68929b48c502a3b041768069274d05e7dd1508cf97e56366737b7b82258'
+RECOVERY_TAG='after-2026-11-13-reserve'
+RECOVERY_APPROVAL='user-2026-11-13-storage-maintenance-option-2'
+NEW_RECOVERY_TAG='after-2026-11-17-storage-limit-1gb'
+NEW_RECOVERY_APPROVAL='user-2026-11-17-storage-limit-1gb-recovery'
 
 
 def marker(root,*,enabled):
@@ -36,33 +35,34 @@ def marker(root,*,enabled):
 
 
 def maintain_storage(project):
-    """Second storage pause (2026-11-13 02:45 UTC, filesystem reserve).
-
-    The legacy database archive and the first two recoveries are already
-    complete and pinned to the predecessor runtime; they are not replayed.
-    This phase only condenses one more obsolete root backup losslessly,
-    re-verifies the cutover archives, then resolves the second pause once:
-    if its recovery already completed under the Discord format runtime, that
-    evidence is verified read-only and nothing is recovered; otherwise the
-    same approved pause is recovered under a new, separately named audit bound
-    to the pilot runtime. A later, different pause is never recovered here.
-    It never resets a halt unless the native recovery preconditions all hold.
-    """
+    """Verify the old recovery, migrate both 1 GB bounds, then recover storage."""
     root=project/'state'
-    install_default(project)
     print(json.dumps(compact_history(root,enabled=True,retire_originals=True)),flush=True)
     print(json.dumps(repack_archives(root/'.paper-cloud-cutover')),flush=True)
     storage=inspect_storage(root,json.loads((root/'storage_limits.json').read_bytes()))
     print(json.dumps({'kind':'paper_cloud_storage_probe','status':storage['status'],
         'reason':storage['reason'],'state_bytes':storage['state_bytes'],'free_bytes':storage['free_bytes']}),flush=True)
-    previous=recovery_status(root,approval_ref=PREVIOUS_RECOVERY_APPROVAL,
-        source_runtime=PREVIOUS_RUNTIME,recovery_tag=PREVIOUS_RECOVERY_TAG)
-    if previous=='completed':
-        if (root/('.paper-storage-recovery-'+RECOVERY_TAG)).exists():raise ValueError('second pause recovered twice')
-        print(json.dumps({'kind':'paper_storage_recovery','status':'already_recovered_by_predecessor'}),flush=True)
+    # The 13 November receipt belongs to the old configuration. Verify it
+    # before the first migration; subsequent starts verify the durable intent.
+    if not (root/AUDIT/'intent.json').exists():
+        previous=recovery_status(root,approval_ref=RECOVERY_APPROVAL,
+            source_runtime=CURRENT_RUNTIME,recovery_tag=RECOVERY_TAG)
+        if previous.get('status')!='already_recovered':
+            raise ValueError('previous storage recovery is not complete')
+        print(json.dumps(previous),flush=True)
+    print(json.dumps(transition_limit(root,approval_ref=TRANSITION_APPROVAL)),flush=True)
+    install_default(project)
+    new_recovery=root/('.paper-storage-recovery-'+NEW_RECOVERY_TAG)
+    if (new_recovery/'receipt.json').exists():
+        source=json.loads((new_recovery/'intent.json').read_bytes()).get('source')
+        if source not in {STORAGE_RUNTIME,NEW_RUNTIME}:
+            raise ValueError('storage recovery source differs')
+        recovered=recovery_status(root,approval_ref=NEW_RECOVERY_APPROVAL,
+            source_runtime=source,recovery_tag=NEW_RECOVERY_TAG)
     else:
-        print(json.dumps(recover_storage(root,approval_ref=RECOVERY_APPROVAL,
-            expected_runtime=CURRENT_RUNTIME,recovery_tag=RECOVERY_TAG)),flush=True)
+        recovered=recover_storage(root,approval_ref=NEW_RECOVERY_APPROVAL,
+            expected_runtime=NEW_RUNTIME,recovery_tag=NEW_RECOVERY_TAG)
+    print(json.dumps(recovered),flush=True)
     with ownership(root,role='worker',enabled=True) as db:
         state=json.loads(db.execute('SELECT state FROM lifecycle WHERE id=1').fetchone()[0])
         storage=inspect_storage(root,json.loads((root/'storage_limits.json').read_bytes()))

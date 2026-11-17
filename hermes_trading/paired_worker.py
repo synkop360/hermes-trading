@@ -284,7 +284,11 @@ async def run_worker(root,*,collector_factory=None,clock=None,sleep=asyncio.slee
         def daily_backup():
             if backup is None:return
             at=current();day=at.date().isoformat()
-            if state.get('daily_backup',{}).get('date')==day:return
+            previous=state.get('daily_backup',{})
+            prior=Path(previous.get('path',''))
+            receipt=prior/'paper_backup_receipt.json'
+            if (previous.get('date')==day and prior.is_dir() and not prior.is_symlink() and
+                    receipt.is_file() and not receipt.is_symlink()):return
             from hermes_trading.paper_backup import create_daily_backup
             try:
                 result=create_daily_backup(root.resolve(),backup['destination'],enabled=True,
