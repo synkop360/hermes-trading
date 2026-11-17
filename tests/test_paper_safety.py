@@ -66,6 +66,11 @@ class PaperSafetyTests(unittest.TestCase):
             with self.subTest(changes=changes), self.assertRaises(ValueError):
                 self.policy(**changes)
 
+    def test_one_gb_policy_retains_seventy_percent_alert(self):
+        policy = self.policy(capacity_bytes=1000000000)
+        self.assertEqual(policy['capacity_bytes'], 1000000000)
+        self.assertEqual(self.api.inspect_volume(policy)['threshold_bytes'], 700000000)
+
     def test_volume_counts_legacy_files_and_blocks_exactly_at_seventy_percent(self):
         policy = self.policy(supervisor_health_required=False)
         legacy = self.volume / 'old-release'
