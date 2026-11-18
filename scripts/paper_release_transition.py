@@ -55,15 +55,22 @@ PILOT_BASE_RELEASE = 'a4ba72fe0a759b5eab6fe353c2986e69aa075e02be19f85e7a43c28ace
 PILOT_BASE_RUNTIME = '33f6c6329f1bc5383d12d5cafce8e13255eb68a02a2bf2bba9ec60ccb370114f'
 PILOT_ADDED_MODULES = {'paper_offline.py','pilot_market.py','pilot_paper.py','pilot_replay.py'}
 PILOT_PURPOSE = 'paper_pilot_release_transition_v1'
-# Chained after the paper pilot release (e39eefb, runtime 42cf...): lot 1
-# (LAT-120, decision of Thomas 2026-11-17) adds the history retention module
-# and changes the paper worker only. LAT-121 updates this same lot 1 plan for
-# its own hermes_trading changes instead of chaining a third transition.
-LOT1_BASE_COMMIT = 'e39eefb60cb1eec58ae31794195cbc63a93640c7'
-LOT1_BASE_RELEASE = '0fed7ffde5c000c6d6ebe30fe7e9bd758b3e29550b34933d589e32cfb5d2b4da'
-LOT1_BASE_RUNTIME = '42cf3f3efe1b931f4f4cec942749b086af2bdb5d82aa4865d4c244c85ba6df7e'
-LOT1_ADDED_MODULES = {'paper_history_retention.py'}
-LOT1_MODULES = {'paired_worker.py'}
+STORAGE_LIMIT_BASE_COMMIT = 'ecf8ac5688d68a18669790ae88bacd3e48c3da85'
+STORAGE_LIMIT_BASE_RELEASE = 'a4ba72fe0a759b5eab6fe353c2986e69aa075e02be19f85e7a43c28aceb055bd'
+STORAGE_LIMIT_TARGET_RELEASE = '387ecd4f3dd27f7d50a98b7506b5630db77920d2082cd886a1a8e5417c89a116'
+BACKUP_RESTART_BASE_COMMIT = 'e96404684f9d5bd5e7dc97ed531406c92d65632e'
+BACKUP_RESTART_TARGET_RELEASE = '78bf02b0c767cedd79f52351cde74284513179f09610aebee8820f58e3d06692'
+# Chained after the installed backup restart release (4021b84, runtime 3b7e...;
+# scripts/backup_restart_release_plan.json): lot 1 (LAT-120, decisions of
+# Thomas 2026-11-17 and 2026-11-18) adds the reviewed paper pilot modules and
+# the history retention module, and changes reflect.py (pilot) and the paper
+# worker only. LAT-121 updates this same lot 1 plan for its own hermes_trading
+# changes instead of chaining another transition.
+LOT1_BASE_COMMIT = '4021b842e3b0c5713043b64c90e2ef5892f3daf7'
+LOT1_BASE_RELEASE = BACKUP_RESTART_TARGET_RELEASE
+LOT1_BASE_RUNTIME = '3b7eb68929b48c502a3b041768069274d05e7dd1508cf97e56366737b7b82258'
+LOT1_ADDED_MODULES = PILOT_ADDED_MODULES | {'paper_history_retention.py'}
+LOT1_MODULES = {'reflect.py','paired_worker.py'}
 LOT1_PURPOSE = 'paper_lot1_release_transition_v1'
 TARGET = dict(project='f78f42d9-20ec-44f6-ae3f-f8bb79ee7000',
               service='8b94cbc9-293e-4222-a8a7-698b656985f7',
@@ -193,7 +200,7 @@ def _layout(worker_root, supervisor_root, launch_file, audit_dir=None):
         raise ValueError('launch must remain separate from state copies')
     if audit_dir is not None:
         result['audit'] = _safe_root(Path(audit_dir).absolute())
-        allowed_audits=({'discord-format','pilot-source','lot1-source'} if volume is not None and volume['live'] else {'entry-history','cloud-source'})
+        allowed_audits=({'discord-format','pilot-source','storage-limit','backup-restart','lot1-source'} if volume is not None and volume['live'] else {'entry-history','cloud-source'})
         if volume is not None and result['audit'] not in {volume['auxiliary']/name for name in allowed_audits}:
             raise ValueError('volume audit namespace differs')
         if volume is None and any(result['audit'] == root or result['audit'].is_relative_to(root) or
@@ -929,6 +936,10 @@ def _digest(value, length=64):
 def _purpose(plan):
     if plan['old_commit'] == LOT1_BASE_COMMIT:
         return LOT1_PURPOSE
+    if plan['old_commit'] == BACKUP_RESTART_BASE_COMMIT:
+        return 'paper_backup_restart_release_transition_v1'
+    if plan['old_commit'] == STORAGE_LIMIT_BASE_COMMIT:
+        return 'paper_storage_limit_release_transition_v1'
     if plan['old_commit'] == PILOT_BASE_COMMIT:
         return PILOT_PURPOSE
     if plan['old_commit'] == DISCORD_FORMAT_BASE_COMMIT:
@@ -949,7 +960,7 @@ def _purpose(plan):
 def validate_release_plan(plan):
     if not isinstance(plan, dict) or set(plan) != {'old_commit', 'new_commit', 'target', 'old', 'new'}:
         raise ValueError('exact correction release plan required')
-    if plan['old_commit'] not in {BASE_COMMIT,REPORTING_BASE_COMMIT,SNAPSHOT_BASE_COMMIT,RECOVERY_BASE_COMMIT,RELIABILITY_BASE_COMMIT,ENTRY_HISTORY_BASE_COMMIT,CLOUD_BASE_COMMIT,DISCORD_FORMAT_BASE_COMMIT,PILOT_BASE_COMMIT,LOT1_BASE_COMMIT}:
+    if plan['old_commit'] not in {BASE_COMMIT,REPORTING_BASE_COMMIT,SNAPSHOT_BASE_COMMIT,RECOVERY_BASE_COMMIT,RELIABILITY_BASE_COMMIT,ENTRY_HISTORY_BASE_COMMIT,CLOUD_BASE_COMMIT,DISCORD_FORMAT_BASE_COMMIT,PILOT_BASE_COMMIT,STORAGE_LIMIT_BASE_COMMIT,BACKUP_RESTART_BASE_COMMIT,LOT1_BASE_COMMIT}:
         raise ValueError('correction must retain approved base commit')
     _digest(plan['new_commit'], 40)
     if plan['new_commit'] == plan['old_commit']:
@@ -980,8 +991,7 @@ def validate_release_plan(plan):
     pilot=plan['old_commit']==PILOT_BASE_COMMIT
     lot1=plan['old_commit']==LOT1_BASE_COMMIT
     added=set(new['runtime'])-set(old['runtime'])
-    expected_added=PILOT_ADDED_MODULES if pilot else LOT1_ADDED_MODULES if lot1 else set()
-    if set(old['runtime'])-set(new['runtime']) or added != expected_added:
+    if set(old['runtime'])-set(new['runtime']) or added != (PILOT_ADDED_MODULES if pilot else LOT1_ADDED_MODULES if lot1 else set()):
         raise ValueError('runtime source inventory changed')
     if cloud:
         if _hash(old)!=CLOUD_BASE_RELEASE or _hash(new)!=CLOUD_TARGET_RELEASE:
@@ -989,14 +999,22 @@ def validate_release_plan(plan):
         # The complete successor is pinned above. Its other Python files only
         # change from Windows checkout line endings to the canonical Git bytes.
         return
+    elif lot1:
+        if _hash(old)!=LOT1_BASE_RELEASE or _hash(old['runtime'])!=LOT1_BASE_RUNTIME:
+            raise ValueError('lot 1 predecessor differs from the installed backup restart release')
+        allowed = LOT1_MODULES
+    elif plan['old_commit'] == BACKUP_RESTART_BASE_COMMIT:
+        if _hash(old)!=STORAGE_LIMIT_TARGET_RELEASE or _hash(new)!=BACKUP_RESTART_TARGET_RELEASE:
+            raise ValueError('backup restart predecessor or successor differs')
+        allowed = {'paired_worker.py'}
+    elif plan['old_commit'] == STORAGE_LIMIT_BASE_COMMIT:
+        if _hash(old)!=STORAGE_LIMIT_BASE_RELEASE or _hash(new)!=STORAGE_LIMIT_TARGET_RELEASE:
+            raise ValueError('storage limit predecessor or successor differs')
+        allowed = {'paper_safety.py'}
     elif pilot:
         if _hash(old)!=PILOT_BASE_RELEASE or _hash(old['runtime'])!=PILOT_BASE_RUNTIME:
             raise ValueError('pilot predecessor differs from installed Discord format release')
         allowed = {'reflect.py'}
-    elif lot1:
-        if _hash(old)!=LOT1_BASE_RELEASE or _hash(old['runtime'])!=LOT1_BASE_RUNTIME:
-            raise ValueError('lot 1 predecessor differs from the paper pilot release')
-        allowed = LOT1_MODULES
     elif plan['old_commit'] == DISCORD_FORMAT_BASE_COMMIT:
         if _hash(old)!=CLOUD_TARGET_RELEASE:
             raise ValueError('Discord format predecessor differs from installed cloud release')

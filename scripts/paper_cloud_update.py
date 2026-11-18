@@ -1,9 +1,12 @@
 """Resume exact chained source-only release transitions before child startup.
 
 Each reviewed step has its own predecessor commit, audit directory and
-approval reference. Steps are applied in order: the Discord notification
-correction (d045e98 -> 121069c), the paper pilot (121069c -> e39eefb), then
-lot 1 (e39eefb -> lot 1 release, LAT-120).
+approval reference. The installed production chain is the Discord
+notification correction (d045e98 -> 121069c), then the 1 GB storage limit
+(ecf8ac5 -> 9cc483c), the daily backup restart repair (e964046 -> 4021b84),
+then lot 1 (4021b84 -> lot 1 release, LAT-120), which carries the reviewed
+paper pilot delta and the history retention. The standalone paper pilot step
+(121069c -> e39eefb) is retained for validation only.
 """
 import os
 from pathlib import Path
@@ -15,6 +18,8 @@ from hermes_trading.reflection_supervision import _hash
 STEPS={
     transition.DISCORD_FORMAT_BASE_COMMIT:('discord-format','user-2026-11-12-discord-strategy-index'),
     transition.PILOT_BASE_COMMIT:('pilot-source','user-2026-11-13-lat-116-chained-transition'),
+    transition.STORAGE_LIMIT_BASE_COMMIT:('storage-limit','user-2026-11-17-storage-limit-1gb'),
+    transition.BACKUP_RESTART_BASE_COMMIT:('backup-restart','user-2026-11-17-daily-backup-restart-repair'),
     transition.LOT1_BASE_COMMIT:('lot1-source','user-2026-11-17-lat-120-chained-transition'),
 }
 
@@ -36,7 +41,7 @@ def update_installed(project,source_plan,*,successor=None,fault=None):
         raise ValueError('source update destination differs')
     transition.validate_release_plan(source_plan)
     if source_plan['old_commit'] not in STEPS:
-        raise ValueError('exact reviewed source update predecessor required')
+        raise ValueError('exact source update predecessor required')
     name,approval=STEPS[source_plan['old_commit']]
     if successor is not None:
         transition.validate_release_plan(successor)

@@ -6,7 +6,6 @@ from pathlib import Path
 from unittest.mock import patch
 from scripts import paper_release_transition as transition
 from scripts import paper_cloud_update as update
-from scripts import paper_storage_recovery as recovery
 import release_transition_fixtures as fixtures
 from hermes_trading.reflection_supervision import _hash
 
@@ -25,11 +24,16 @@ class PilotValidationTests(unittest.TestCase):
         self.assertEqual(pilot['old'],discord['new'])
         self.assertEqual(pilot['target'],discord['target'])
         self.assertEqual(transition._purpose(pilot),'paper_pilot_release_transition_v1')
-        # The frozen pilot release is now the predecessor of the lot 1 release
-        # (scripts/lot1_release_plan.json), which pins the current tree.
-        lot1=json.loads((SCRIPTS/'lot1_release_plan.json').read_text())
-        self.assertEqual(lot1['old'],pilot['new'])
-        self.assertEqual(lot1['old_commit'],pilot['new_commit'])
+        # The checkout also carries master's storage limit and backup restart
+        # runtime changes and the lot 1 retention (LAT-120); the pilot's own
+        # delta is unchanged.
+        from scripts.hermes_watch import _supervisor_release
+        release=_supervisor_release()
+        self.assertEqual({k:v for k,v in release.items() if k!='runtime'},{k:v for k,v in pilot['new'].items() if k!='runtime'})
+        self.assertEqual(set(release['runtime'])-set(pilot['new']['runtime']),{'paper_history_retention.py'})
+        self.assertEqual(set(pilot['new']['runtime'])-set(release['runtime']),set())
+        self.assertEqual({name for name in pilot['new']['runtime'] if release['runtime'][name]!=pilot['new']['runtime'][name]},
+                         {'paper_safety.py','paired_worker.py'})
         self.assertEqual(set(pilot['new']['runtime'])-set(pilot['old']['runtime']),transition.PILOT_ADDED_MODULES)
 
     def test_exact_added_modules_and_reflect_delta(self):
@@ -51,19 +55,11 @@ class PilotValidationTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError,'inventory'):transition.validate_release_plan(bad)
 
     def test_each_step_has_its_own_audit_and_approval(self):
-        self.assertEqual(set(update.STEPS),{transition.DISCORD_FORMAT_BASE_COMMIT,transition.PILOT_BASE_COMMIT,transition.LOT1_BASE_COMMIT})
-        self.assertEqual(len({name for name,_ in update.STEPS.values()}),3)
-        self.assertEqual(len({ref for _,ref in update.STEPS.values()}),3)
-
-
-class PredecessorRecoveryStatusTests(unittest.TestCase):
-    def test_absent_and_pending_predecessor_recovery(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            root=Path(tmp).resolve()
-            options=dict(approval_ref='approval',source_runtime='0'*64,recovery_tag='after-test')
-            self.assertEqual(recovery.recovery_status(root,**options),'absent')
-            audit=root/'.paper-storage-recovery-after-test';audit.mkdir();(audit/'intent.json').write_text('{}')
-            with self.assertRaisesRegex(ValueError,'reconciliation'):recovery.recovery_status(root,**options)
+        self.assertEqual(set(update.STEPS),{transition.DISCORD_FORMAT_BASE_COMMIT,transition.PILOT_BASE_COMMIT,
+                                            transition.STORAGE_LIMIT_BASE_COMMIT,transition.BACKUP_RESTART_BASE_COMMIT,
+                                            transition.LOT1_BASE_COMMIT})
+        self.assertEqual(len({name for name,_ in update.STEPS.values()}),5)
+        self.assertEqual(len({ref for _,ref in update.STEPS.values()}),5)
 
 
 class PilotChainedUpdateTests(unittest.IsolatedAsyncioTestCase):
@@ -101,9 +97,12 @@ class PilotChainedUpdateTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(receipt['release_hash'],_hash(pilot['new']))
         self.assertTrue((root/'.paper-cloud-cutover/discord-format/receipt.json').is_file())
         self.assertTrue((root/'.paper-cloud-cutover/pilot-source/receipt.json').is_file())
-        # The installation check against the current tree is covered by the
-        # lot 1 chain (test_paper_lot1_source_update).
+        from scripts.paper_cloud_install import install
         with patch.dict(update.os.environ,env):
+            # LAT-133: the checkout also carries master's runtime changes; this
+            # step is checked against its own frozen successor release.
+            with patch('scripts.hermes_watch._supervisor_release',return_value=pilot['new']):
+                self.assertEqual(install(f.project_root,pilot,env=env,experiment_id='paired-test')['status'],'already_installed')
             self.assertEqual(update.update_installed(f.project_root,discord,successor=pilot)['status'],'superseded')
             self.assertEqual(update.update_installed(f.project_root,pilot)['status'],'already_updated')
             # Without its successor, the notification step refuses the newer installation.

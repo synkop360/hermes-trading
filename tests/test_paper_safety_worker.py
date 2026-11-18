@@ -197,6 +197,40 @@ class PaperSafetyWorkerTests(unittest.IsolatedAsyncioTestCase):
         self.assertFalse(result['daily_backup']['off_host_verified'])
         self.assertTrue((Path(result['daily_backup']['path'])/'paper_backup_receipt.json').is_file())
 
+    async def test_missing_same_day_backup_is_recreated_after_instance_restart(self):
+        from pathlib import Path
+        import shutil
+        from hermes_trading.paper_backup import create_daily_backup
+        self.safety()
+        self.limits['max_cycles'] = 2
+        destination = (self.root.parent/'daily').resolve()
+        self.limits['daily_backup'] = dict(schema_version=1, destination=str(destination),
+            max_bytes=500000000, timeout_seconds=30, keep=2)
+        (self.root/'worker_limits.json').write_text(json.dumps(self.limits))
+        calls = []
+        lost = []
+        def capture(*args, **kwargs):
+            result = create_daily_backup(*args, **kwargs)
+            calls.append(result)
+            return result
+        async def lose_ephemeral_backup(seconds):
+            if len(calls) == 1 and not lost:
+                old = Path(calls[0]['path']).resolve()
+                self.assertEqual(old.parent, destination)
+                shutil.rmtree(old)
+                lost.append(True)
+            await self.sleep(seconds)
+            snapshot = replace(self.snapshot, price=dict(self.snapshot.price,
+                bid='77', ask='78', received_at=self.at.isoformat()))
+            self.market.collect.return_value = {'ETH/EUR': snapshot}
+            self.costs()
+        with patch('hermes_trading.paper_backup.create_daily_backup', side_effect=capture):
+            result = await self.invoke(sleep=lose_ephemeral_backup)
+        self.assertEqual(len(calls), 2)
+        self.assertEqual(result['daily_backup']['date'], self.at.date().isoformat())
+        self.assertTrue((Path(result['daily_backup']['path'])/'paper_backup_receipt.json').is_file())
+        self.assertIsNone(result.get('daily_backup_error'))
+
     async def test_backup_failure_blocks_next_entries_but_preserves_exit_and_retries(self):
         from hermes_trading.paper_backup import create_daily_backup
         self.safety()
