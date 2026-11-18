@@ -29,53 +29,10 @@ class MaintenanceTests(unittest.IsolatedAsyncioTestCase):
 
     def test_second_pause_recovery_is_bound_to_the_installed_runtime_and_a_new_tag(self):
         import hashlib
-        scripts=Path(__file__).resolve().parents[1]/'scripts'
-        digest=lambda runtime:hashlib.sha256(json.dumps(runtime,sort_keys=True,separators=(',',':')).encode()).hexdigest()
-        previous=json.loads((scripts/'discord_format_release_plan.json').read_text())['new']['runtime']
-        current=json.loads((scripts/'pilot_release_plan.json').read_text())['new']['runtime']
-        self.assertEqual(digest(previous),maintenance.PREVIOUS_RUNTIME)
-        self.assertEqual(digest(current),maintenance.CURRENT_RUNTIME)
-        from hermes_trading.paper_publication import _release_hashes
-        self.assertEqual(digest(_release_hashes()),maintenance.CURRENT_RUNTIME)
-        tags={'after-legacy-archive',maintenance.PREVIOUS_RECOVERY_TAG,maintenance.RECOVERY_TAG}
-        self.assertEqual(len(tags),3)
-        self.assertNotEqual(maintenance.RECOVERY_APPROVAL,maintenance.PREVIOUS_RECOVERY_APPROVAL)
-
-    def maintain(self,project,previous):
-        from unittest.mock import MagicMock
-        (project/'state/storage_limits.json').write_text('{}')
-        lease=MagicMock();lease.__enter__.return_value.execute.return_value.fetchone.return_value=('{"storage_stop":false}',)
-        ready={'status':'ready','reason':None,'state_bytes':1,'free_bytes':2}
-        with patch.object(maintenance,'install_default'),patch.object(maintenance,'compact_history',return_value={}), \
-                patch.object(maintenance,'repack_archives',return_value={}),patch.object(maintenance,'inspect_storage',return_value=ready), \
-                patch.object(maintenance,'recovery_status',return_value=previous) as status, \
-                patch.object(maintenance,'recover_storage',return_value={}) as recover,patch.object(maintenance,'ownership',return_value=lease), \
-                redirect_stdout(io.StringIO()):
-            result=maintenance.maintain_storage(project)
-        status.assert_called_once_with(project/'state',approval_ref=maintenance.PREVIOUS_RECOVERY_APPROVAL,
-            source_runtime=maintenance.PREVIOUS_RUNTIME,recovery_tag=maintenance.PREVIOUS_RECOVERY_TAG)
-        return result,recover
-
-    def test_completed_predecessor_recovery_is_verified_and_never_replayed(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            project=Path(tmp).resolve();(project/'state').mkdir()
-            result,recover=self.maintain(project,'completed')
-            self.assertEqual(result['status'],'completed')
-            recover.assert_not_called()
-
-    def test_completed_predecessor_with_successor_audit_is_refused(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            project=Path(tmp).resolve();(project/'state').mkdir()
-            (project/'state'/('.paper-storage-recovery-'+maintenance.RECOVERY_TAG)).mkdir()
-            with self.assertRaisesRegex(ValueError,'recovered twice'):self.maintain(project,'completed')
-
-    def test_absent_predecessor_recovery_runs_under_the_pilot_runtime(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            project=Path(tmp).resolve();(project/'state').mkdir()
-            result,recover=self.maintain(project,'absent')
-            self.assertEqual(result['status'],'completed')
-            recover.assert_called_once_with(project/'state',approval_ref=maintenance.RECOVERY_APPROVAL,
-                expected_runtime=maintenance.CURRENT_RUNTIME,recovery_tag=maintenance.RECOVERY_TAG)
+        runtime=json.loads((Path(__file__).resolve().parents[1]/'scripts/discord_format_release_plan.json').read_text())['new']['runtime']
+        self.assertEqual(hashlib.sha256(json.dumps(runtime,sort_keys=True,separators=(',',':')).encode()).hexdigest(),
+                         maintenance.CURRENT_RUNTIME)
+        self.assertNotEqual(maintenance.RECOVERY_TAG,'after-legacy-archive')
 
     def test_maintenance_never_replays_the_pinned_legacy_database_step(self):
         from unittest.mock import MagicMock
@@ -86,11 +43,62 @@ class MaintenanceTests(unittest.IsolatedAsyncioTestCase):
             ready={'status':'ready','reason':None,'state_bytes':1,'free_bytes':2}
             with patch.object(maintenance,'install_default'),patch.object(maintenance,'compact_history',return_value={}) as compact, \
                     patch.object(maintenance,'repack_archives',return_value={}),patch.object(maintenance,'inspect_storage',return_value=ready), \
-                    patch.object(maintenance,'recovery_status',return_value='absent'), \
-                    patch.object(maintenance,'recover_storage',return_value={}) as recover,patch.object(maintenance,'ownership',return_value=lease), \
+                    patch.object(maintenance,'recovery_status',return_value={'status':'already_recovered'}) as previous, \
+                    patch.object(maintenance,'recover_storage',return_value={'status':'recovered'}) as recover, \
+                    patch.object(maintenance,'transition_limit',return_value={'status':'transitioned'}),patch.object(maintenance,'ownership',return_value=lease), \
                     redirect_stdout(io.StringIO()):
                 result=maintenance.maintain_storage(project)
             self.assertEqual(result['status'],'completed')
             compact.assert_called_once_with(project/'state',enabled=True,retire_originals=True)
-            recover.assert_called_once_with(project/'state',approval_ref=maintenance.RECOVERY_APPROVAL,
-                expected_runtime=maintenance.CURRENT_RUNTIME,recovery_tag=maintenance.RECOVERY_TAG)
+            previous.assert_called_once()
+            recover.assert_called_once()
+            self.assertEqual(recover.call_args.kwargs['recovery_tag'],maintenance.NEW_RECOVERY_TAG)
+
+    def test_new_budget_checks_old_recovery_then_transitions_then_recovers_new_pause(self):
+        from unittest.mock import MagicMock
+        with tempfile.TemporaryDirectory() as tmp:
+            project=Path(tmp).resolve();root=project/'state';root.mkdir()
+            (root/'storage_limits.json').write_text('{}')
+            lease=MagicMock();lease.__enter__.return_value.execute.return_value.fetchone.return_value=('{"storage_stop":false}',)
+            ready={'status':'ready','reason':None,'state_bytes':1,'free_bytes':2}
+            events=[]
+            def previous(*args,**kwargs):
+                events.append(('recovery',kwargs['recovery_tag']))
+                return {'status':'already_recovered'}
+            def recovery(*args,**kwargs):
+                events.append(('recovery',kwargs['recovery_tag']))
+                return {'status':'recovered'}
+            def transition(*args,**kwargs):
+                events.append(('transition',kwargs['approval_ref']))
+                return {'status':'transitioned'}
+            with patch.object(maintenance,'install_default'),patch.object(maintenance,'compact_history',return_value={}), \
+                    patch.object(maintenance,'repack_archives',return_value={}),patch.object(maintenance,'inspect_storage',return_value=ready), \
+                    patch.object(maintenance,'recovery_status',side_effect=previous),patch.object(maintenance,'recover_storage',side_effect=recovery), \
+                    patch.object(maintenance,'transition_limit',side_effect=transition), \
+                    patch.object(maintenance,'ownership',return_value=lease),redirect_stdout(io.StringIO()):
+                maintenance.maintain_storage(project)
+            self.assertEqual(events,[('recovery',maintenance.RECOVERY_TAG),
+                                     ('transition',maintenance.TRANSITION_APPROVAL),
+                                     ('recovery',maintenance.NEW_RECOVERY_TAG)])
+
+    def test_existing_storage_recovery_is_verified_under_its_original_runtime(self):
+        from unittest.mock import MagicMock
+        with tempfile.TemporaryDirectory() as tmp:
+            project=Path(tmp).resolve();root=project/'state';root.mkdir()
+            (root/'storage_limits.json').write_text('{}')
+            (root/maintenance.AUDIT).mkdir()
+            recovery=root/('.paper-storage-recovery-'+maintenance.NEW_RECOVERY_TAG)
+            recovery.mkdir()
+            (recovery/'intent.json').write_text(json.dumps({'source':maintenance.STORAGE_RUNTIME}))
+            (recovery/'receipt.json').write_text('{}')
+            lease=MagicMock();lease.__enter__.return_value.execute.return_value.fetchone.return_value=('{"storage_stop":false}',)
+            ready={'status':'ready','reason':None,'state_bytes':1,'free_bytes':2}
+            with patch.object(maintenance,'install_default'),patch.object(maintenance,'compact_history',return_value={}), \
+                    patch.object(maintenance,'repack_archives',return_value={}),patch.object(maintenance,'inspect_storage',return_value=ready), \
+                    patch.object(maintenance,'recovery_status',return_value={'status':'already_recovered'}) as verified, \
+                    patch.object(maintenance,'recover_storage') as recovery_call, \
+                    patch.object(maintenance,'transition_limit',return_value={'status':'already_transitioned'}), \
+                    patch.object(maintenance,'ownership',return_value=lease),redirect_stdout(io.StringIO()):
+                self.assertEqual(maintenance.maintain_storage(project)['status'],'completed')
+            recovery_call.assert_not_called()
+            self.assertEqual(verified.call_args.kwargs['source_runtime'],maintenance.STORAGE_RUNTIME)

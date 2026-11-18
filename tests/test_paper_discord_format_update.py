@@ -27,8 +27,9 @@ class DiscordFormatValidationTests(unittest.TestCase):
 
 
 class DiscordFormatUpdateTests(unittest.IsolatedAsyncioTestCase):
-    async def fixture(self):
-        plan=source_plan();plan['target']['experiment_id']='paired-test'
+    async def fixture(self,plan=None):
+        plan=deepcopy(plan) if plan is not None else source_plan()
+        plan['target']['experiment_id']='paired-test'
         with patch.object(fixtures,'OLD_COMMIT',plan['old_commit']),patch.object(fixtures.NativeTransitionFixture,'_releases',return_value=(plan['old'],plan['new'])):
             f=await fixtures.NativeTransitionFixture.create(self)
         root=f.project_root/'state';shutil.copytree(f.worker_root,root,dirs_exist_ok=True)
@@ -43,6 +44,25 @@ class DiscordFormatUpdateTests(unittest.IsolatedAsyncioTestCase):
         env=dict(fixtures.PAPER_ENV,**{'RAILWAY_'+k.upper()+'_ID':v for k,v in transition.TARGET.items()})
         return f,root,plan,env
 
+    async def test_storage_limit_source_update_is_audited_and_idempotent(self):
+        plan=json.loads((Path(__file__).resolve().parents[1]/'scripts/storage_limit_release_plan.json').read_text())
+        f,root,plan,env=await self.fixture(plan)
+        with patch.dict(update.os.environ,env):
+            self.assertEqual(update.update_installed(f.project_root,plan)['status'],'updated')
+            self.assertEqual(update.update_installed(f.project_root,plan)['status'],'already_updated')
+        audit=root/'.paper-cloud-cutover/storage-limit'
+        self.assertTrue((audit/'receipt.json').is_file())
+        self.assertEqual(json.loads((audit/'intent.json').read_text())['plan']['release_plan'],plan)
+
+    async def test_backup_restart_source_update_is_audited_and_idempotent(self):
+        plan=json.loads((Path(__file__).resolve().parents[1]/'scripts/backup_restart_release_plan.json').read_text())
+        f,root,plan,env=await self.fixture(plan)
+        with patch.dict(update.os.environ,env):
+            self.assertEqual(update.update_installed(f.project_root,plan)['status'],'updated')
+            self.assertEqual(update.update_installed(f.project_root,plan)['status'],'already_updated')
+        audit=root/'.paper-cloud-cutover/backup-restart'
+        self.assertTrue((audit/'receipt.json').is_file())
+
     async def test_update_preserves_worker_state_and_replays_after_new_supervisor_work(self):
         f,root,plan,env=await self.fixture()
         account=(root/'adaptive_200/wallet_account.json').read_bytes()
@@ -55,8 +75,6 @@ class DiscordFormatUpdateTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual((root/'adaptive_200/wallet_account.json').read_bytes(),account)
         self.assertEqual(worker_state(),before)
         from scripts.paper_cloud_install import install
-        # The checkout now carries the chained pilot successor; this step is
-        # checked against its own frozen successor release.
         with patch.dict(update.os.environ,env),patch('scripts.hermes_watch._supervisor_release',return_value=plan['new']):
             self.assertEqual(install(f.project_root,plan,env=env,experiment_id='paired-test')['status'],'already_installed')
         life=root/'paired-supervisor/paired-test/adaptive_200/supervisor_lifecycle.json'
