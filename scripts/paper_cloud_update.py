@@ -3,9 +3,10 @@
 Each reviewed step has its own predecessor commit, audit directory and
 approval reference. The installed production chain is the Discord
 notification correction (d045e98 -> 121069c), then the 1 GB storage limit
-(ecf8ac5 -> 9cc483c) and the daily backup restart repair (e964046 -> 4021b84).
-The paper pilot step (121069c -> pilot) is retained for validation only; its
-recalibration after the backup restart release belongs to LAT-120.
+(ecf8ac5 -> 9cc483c), the daily backup restart repair (e964046 -> 4021b84),
+then lot 1 (4021b84 -> lot 1 release, LAT-120), which carries the reviewed
+paper pilot delta and the history retention. The standalone paper pilot step
+(121069c -> e39eefb) is retained for validation only.
 """
 import os
 from pathlib import Path
@@ -19,6 +20,7 @@ STEPS={
     transition.PILOT_BASE_COMMIT:('pilot-source','user-2026-11-13-lat-116-chained-transition'),
     transition.STORAGE_LIMIT_BASE_COMMIT:('storage-limit','user-2026-11-17-storage-limit-1gb'),
     transition.BACKUP_RESTART_BASE_COMMIT:('backup-restart','user-2026-11-17-daily-backup-restart-repair'),
+    transition.LOT1_BASE_COMMIT:('lot1-source','user-2026-11-17-lat-120-chained-transition'),
 }
 
 

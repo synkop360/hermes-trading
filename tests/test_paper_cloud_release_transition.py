@@ -30,12 +30,12 @@ class CloudReleaseTransitionTests(unittest.TestCase):
     def test_backup_restart_release_is_exactly_one_runtime_module(self):
         from hermes_trading.paper_publication import _release_hashes
         plan=json.loads((Path(__file__).resolve().parents[1]/'scripts/backup_restart_release_plan.json').read_text())
-        # LAT-133: apart from the lot 1 pilot delta (chained in LAT-120), the
-        # checkout is exactly the backup restart release.
-        pilot=transition.PILOT_ADDED_MODULES|{'reflect.py'}
-        current={k:v for k,v in _release_hashes().items() if k not in pilot}
-        self.assertEqual({k:v for k,v in plan['new']['runtime'].items() if k not in pilot},current)
-        self.assertEqual(set(_release_hashes())-set(plan['new']['runtime']),transition.PILOT_ADDED_MODULES)
+        # Apart from the reviewed lot 1 delta (LAT-120, chained after this
+        # release), the checkout is exactly the backup restart release.
+        lot1=transition.LOT1_ADDED_MODULES|transition.LOT1_MODULES
+        current={k:v for k,v in _release_hashes().items() if k not in lot1}
+        self.assertEqual({k:v for k,v in plan['new']['runtime'].items() if k not in lot1},current)
+        self.assertEqual(set(_release_hashes())-set(plan['new']['runtime']),transition.LOT1_ADDED_MODULES)
         transition.validate_release_plan(plan)
         for case in ('extra_runtime','watcher','predecessor'):
             broken=deepcopy(plan)
@@ -57,17 +57,14 @@ class CloudReleaseTransitionTests(unittest.TestCase):
         self.assertEqual(successor['old'],plan['new'])
         self.assertEqual(storage['old'],successor['new'])
         self.assertEqual(backup['old'],storage['new'])
-        # LAT-133: integration carries master's production chain plus the lot 1
-        # pilot, whose plan still forks from the Discord release. Until LAT-120
-        # chains the pilot after backup_restart_release_plan.json, the checkout
-        # is exactly the backup restart release plus the reviewed pilot delta.
+        # LAT-120: lot 1 is chained after the installed backup restart release
+        # and pins the checkout; it carries the reviewed pilot delta unchanged.
         pilot=json.loads((Path(__file__).resolve().parents[1]/'scripts/pilot_release_plan.json').read_text())
         self.assertEqual(pilot['old'],successor['new'])
+        lot1=json.loads((Path(__file__).resolve().parents[1]/'scripts/lot1_release_plan.json').read_text())
+        self.assertEqual(lot1['old'],backup['new'])
         release=_supervisor_release()
-        self.assertEqual({k:v for k,v in release.items() if k!='runtime'},{k:v for k,v in backup['new'].items() if k!='runtime'})
-        self.assertEqual(set(release['runtime'])-set(backup['new']['runtime']),transition.PILOT_ADDED_MODULES)
-        self.assertEqual(set(backup['new']['runtime'])-set(release['runtime']),set())
-        self.assertEqual({name for name in backup['new']['runtime'] if release['runtime'][name]!=backup['new']['runtime'][name]},{'reflect.py'})
+        self.assertEqual(release,lot1['new'])
         self.assertEqual({name:release['runtime'][name] for name in transition.PILOT_ADDED_MODULES|{'reflect.py'}},
                          {name:pilot['new']['runtime'][name] for name in transition.PILOT_ADDED_MODULES|{'reflect.py'}})
 

@@ -18,36 +18,35 @@ class CloudServiceTests(unittest.IsolatedAsyncioTestCase):
             project=Path(tmp);scripts=project/'scripts';scripts.mkdir()
             source=Path(__file__).resolve().parents[1]/'scripts'
             for name in ('cloud_release_plan.json','discord_format_release_plan.json','storage_limit_release_plan.json',
-                         'backup_restart_release_plan.json','entry_history_release_plan.json'):
+                         'backup_restart_release_plan.json','lot1_release_plan.json','entry_history_release_plan.json'):
                 copyfile(source/name,scripts/name)
             installed=project/'state/.paper-cloud-cutover/installed.json';installed.parent.mkdir(parents=True)
-            successor=json.loads((scripts/'backup_restart_release_plan.json').read_text())
+            successor=json.loads((scripts/'lot1_release_plan.json').read_text())
             installed.write_text(json.dumps({'release_hash':_hash(successor['new'])}))
-            # LAT-133: integration also carries the lot 1 pilot; this chain is
-            # checked against the frozen backup restart release (see below).
+            # The checkout is the lot 1 release (LAT-120), last step of the chain.
             with patch('scripts.paper_cloud_update.update_installed') as update, \
-                    patch('scripts.hermes_watch._supervisor_release',return_value=successor['new']), \
                     patch('scripts.paper_cloud_service.install',return_value={'status':'already_installed'}) as install:
                 self.assertEqual(install_default(project)['status'],'already_installed')
             update.assert_not_called()
             self.assertEqual(install.call_args.args[1]['new'],successor['new'])
 
-    async def test_checkout_with_unchained_pilot_is_never_installed(self):
-        # LAT-133: until LAT-120 chains the pilot after the backup restart
-        # release, the merged checkout matches no reviewed plan and the cloud
-        # service refuses to install it, without any source update.
+    async def test_checkout_matching_no_reviewed_plan_is_never_installed(self):
+        # A checkout that differs from the last reviewed step (here, the bare
+        # backup restart release, without lot 1) is refused, without any
+        # source update.
         from hermes_trading.reflection_supervision import _hash
         from shutil import copyfile
         with tempfile.TemporaryDirectory() as tmp:
             project=Path(tmp);scripts=project/'scripts';scripts.mkdir()
             source=Path(__file__).resolve().parents[1]/'scripts'
             for name in ('cloud_release_plan.json','discord_format_release_plan.json','storage_limit_release_plan.json',
-                         'backup_restart_release_plan.json','entry_history_release_plan.json'):
+                         'backup_restart_release_plan.json','lot1_release_plan.json','entry_history_release_plan.json'):
                 copyfile(source/name,scripts/name)
             installed=project/'state/.paper-cloud-cutover/installed.json';installed.parent.mkdir(parents=True)
             backup=json.loads((scripts/'backup_restart_release_plan.json').read_text())
             installed.write_text(json.dumps({'release_hash':_hash(backup['new'])}))
             with patch('scripts.paper_cloud_update.update_installed') as update, \
+                    patch('scripts.hermes_watch._supervisor_release',return_value=backup['new']), \
                     patch('scripts.paper_cloud_service.install') as install, \
                     self.assertRaisesRegex(ValueError,'storage limit source map differs'):
                 install_default(project)
@@ -60,21 +59,40 @@ class CloudServiceTests(unittest.IsolatedAsyncioTestCase):
             project=Path(tmp);scripts=project/'scripts';scripts.mkdir()
             source=Path(__file__).resolve().parents[1]/'scripts'
             for name in ('cloud_release_plan.json','discord_format_release_plan.json','storage_limit_release_plan.json',
-                         'backup_restart_release_plan.json','entry_history_release_plan.json'):
+                         'backup_restart_release_plan.json','lot1_release_plan.json','entry_history_release_plan.json'):
                 copyfile(source/name,scripts/name)
             installed=project/'state/.paper-cloud-cutover/installed.json';installed.parent.mkdir(parents=True)
             predecessor=json.loads((scripts/'discord_format_release_plan.json').read_text())
             successor=json.loads((scripts/'storage_limit_release_plan.json').read_text())
             installed.write_text(json.dumps({'release_hash':_hash(predecessor['new'])}))
-            backup=json.loads((scripts/'backup_restart_release_plan.json').read_text())
             with patch('scripts.paper_cloud_update.update_installed',return_value={'status':'updated'}) as update, \
-                    patch('scripts.hermes_watch._supervisor_release',return_value=backup['new']), \
-                    patch('scripts.paper_cloud_service.install',return_value={'status':'installed'}):
+                    patch('scripts.paper_cloud_service.install',return_value={'status':'installed'}) as install:
                 self.assertEqual(install_default(project)['status'],'installed')
-            self.assertEqual(update.call_count,2)
-            self.assertEqual(update.call_args_list[0].args[1],successor)
             backup=json.loads((scripts/'backup_restart_release_plan.json').read_text())
-            self.assertEqual(update.call_args_list[1].args[1],backup)
+            lot1=json.loads((scripts/'lot1_release_plan.json').read_text())
+            self.assertEqual([call.args[1] for call in update.call_args_list],[successor,backup,lot1])
+            self.assertEqual(install.call_args.args[1],lot1)
+
+    async def test_installed_backup_restart_release_advances_only_to_lot1(self):
+        # Production case (LAT-120): the backup restart release is installed;
+        # only the lot 1 step runs, then the checkout is installed.
+        from hermes_trading.reflection_supervision import _hash
+        from shutil import copyfile
+        with tempfile.TemporaryDirectory() as tmp:
+            project=Path(tmp);scripts=project/'scripts';scripts.mkdir()
+            source=Path(__file__).resolve().parents[1]/'scripts'
+            for name in ('cloud_release_plan.json','discord_format_release_plan.json','storage_limit_release_plan.json',
+                         'backup_restart_release_plan.json','lot1_release_plan.json','entry_history_release_plan.json'):
+                copyfile(source/name,scripts/name)
+            installed=project/'state/.paper-cloud-cutover/installed.json';installed.parent.mkdir(parents=True)
+            backup=json.loads((scripts/'backup_restart_release_plan.json').read_text())
+            lot1=json.loads((scripts/'lot1_release_plan.json').read_text())
+            installed.write_text(json.dumps({'release_hash':_hash(backup['new'])}))
+            with patch('scripts.paper_cloud_update.update_installed',return_value={'status':'updated'}) as update, \
+                    patch('scripts.paper_cloud_service.install',return_value={'status':'installed'}) as install:
+                self.assertEqual(install_default(project)['status'],'installed')
+            self.assertEqual([call.args[1] for call in update.call_args_list],[lot1])
+            self.assertEqual(install.call_args.args[1],lot1)
 
     async def test_expired_supervision_does_not_prevent_protective_worker_start(self):
         with tempfile.TemporaryDirectory() as tmp:

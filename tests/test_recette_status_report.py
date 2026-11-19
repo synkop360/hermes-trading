@@ -9,6 +9,7 @@ import http.client
 import json
 import os
 import shutil
+import sqlite3
 import subprocess
 import sys
 import tempfile
@@ -19,6 +20,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 
 from hermes_trading import pilot_paper
+from hermes_trading.paired_packet_storage import store_record
+from hermes_trading.reflection_supervision import _json
 from scripts import recette_status_report as report_module
 
 AT = datetime(2026, 11, 16, 12, 0, tzinfo=timezone.utc)
@@ -29,6 +32,7 @@ TOP_LEVEL_KEYS = {
 }
 ACCOUNT_KEYS = {"arm", "wallet_eur", "currency", "starting_balance", "status",
                 "net_equity", "observed_at", "error_code"}
+DAILY_SUMMARY_ACCOUNT_KEYS = {"days", "decisions", "last_date", "last_balance", "last_costs"}
 SECRET = "SECRET_VALUE_never_published"
 
 
@@ -45,6 +49,45 @@ class ReportFixture(unittest.TestCase):
         kwargs.setdefault("interval_seconds", 3600)
         return report_module.build_recette_report(self.volume, self.pilot, event=event,
                                                   now=now, **kwargs)
+
+    def write_observations(self, account, stamps, balance="100", costs="0.1"):
+        """Insert wallet observations so retention can build daily summaries."""
+        from hermes_trading import paper_history_retention as retention
+
+        db_path = self.pilot / account / "wallet_equity.sqlite"
+        config = {
+            "schema_version": 1,
+            "experiment_id": "pilot-paper-recette",
+            "currency": "EUR",
+            "starting_balance": "100",
+            "activated_at": (AT - timedelta(days=40)).isoformat(),
+        }
+        db = sqlite3.connect(db_path, timeout=0, isolation_level=None)
+        try:
+            db.execute("PRAGMA journal_mode=WAL")
+            db.execute("BEGIN IMMEDIATE")
+            db.execute("CREATE TABLE wallet_config (id INTEGER PRIMARY KEY CHECK(id=1), config TEXT NOT NULL)")
+            db.execute("CREATE TABLE observations (at TEXT PRIMARY KEY, payload TEXT NOT NULL)")
+            db.execute("INSERT INTO wallet_config VALUES (1,?)", (_json(config),))
+            for stamp in stamps:
+                observation = {
+                    "schema_version": 1,
+                    "at": stamp.isoformat(),
+                    "currency": "EUR",
+                    "starting_balance": "100",
+                    "external_flow": "0",
+                    "net_equity": balance,
+                    "known_accrued_costs": costs,
+                    "known_cost_equity": str(float(balance) - float(costs)),
+                }
+                db.execute(
+                    "INSERT INTO observations VALUES (?,?)",
+                    (stamp.isoformat(), store_record(db, observation)),
+                )
+            db.commit()
+        finally:
+            db.close()
+        retention.apply_retention(self.pilot, now=AT, backup_verified=True)
 
 
 class ReportContentTests(ReportFixture):
@@ -68,9 +111,20 @@ class ReportContentTests(ReportFixture):
         for key in ("state_bytes", "free_bytes", "reserve_bytes", "max_state_bytes", "files"):
             self.assertIsInstance(storage[key], int, key)
         self.assertGreaterEqual(storage["reserve_bytes"], 128 * 1024 * 1024)
-        self.assertEqual(report["growth_and_projection"],
-                         {"status": "unavailable", "reason": "pending_lat_120_daily_summary"})
-        self.assertEqual(report["daily_summary"]["status"], "unavailable")
+        growth = report["growth_and_projection"]
+        self.assertEqual(growth["schema_version"], 1)
+        self.assertEqual(growth["status"], "insufficient_data")
+        self.assertIsNone(growth["bytes_per_day"])
+        self.assertIsNone(growth["days_before_reserve"])
+        self.assertIs(type(growth["headroom_bytes"]), int)
+        daily_summary = report["daily_summary"]
+        self.assertEqual(daily_summary["status"], "ready")
+        self.assertEqual(daily_summary["total_decisions"], 0)
+        self.assertEqual(sorted(daily_summary["accounts"]), sorted(
+            f"{arm}_{wallet}" for arm in pilot_paper.ARMS for wallet in pilot_paper.WALLETS_EUR))
+        for name, summary in daily_summary["accounts"].items():
+            self.assertEqual(set(summary), DAILY_SUMMARY_ACCOUNT_KEYS, name)
+            self.assertEqual((summary["days"], summary["decisions"]), (0, 0))
         self.assertEqual(report["locks"]["active"], [])
         self.assertEqual(report["recent_errors"], [])
         accounts = report["accounts"]
@@ -203,6 +257,26 @@ class ReportContentTests(ReportFixture):
         self.assertEqual(len(report["recent_errors"]), 3)
         for row in report["recent_errors"]:
             self.assertIsNone(row["at"])
+
+    def test_daily_summary_preserves_cycle_count_after_retention(self) -> None:
+        yesterday = AT - timedelta(days=1)
+        self.write_observations("adaptive_100", [yesterday, AT], balance="102.5", costs="0")
+        report = self.build()
+        daily_summary = report["daily_summary"]
+        self.assertEqual(daily_summary["status"], "ready")
+        self.assertEqual(daily_summary["total_decisions"], 2)
+        summary = daily_summary["accounts"]["adaptive_100"]
+        self.assertEqual(summary["days"], 2)
+        self.assertEqual(summary["decisions"], 2)
+        self.assertEqual(summary["last_date"], AT.date().isoformat())
+        self.assertEqual(summary["last_balance"], "102.5")
+        self.assertEqual(summary["last_costs"], "0")
+        for name in daily_summary["accounts"]:
+            if name != "adaptive_100":
+                self.assertEqual(daily_summary["accounts"][name]["decisions"], 0)
+        raw = report_module.encode_report(report).decode()
+        self.assertNotIn(str(self.pilot), raw)
+        self.assertNotIn(str(self.volume), raw)
 
     def test_malformed_experiment_id_is_not_published(self) -> None:
         manifest_path = self.pilot / "manifest.json"

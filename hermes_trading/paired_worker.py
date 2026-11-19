@@ -13,6 +13,7 @@ from hermes_trading.reflection_supervision import _connect,_hash,_json,_now,_tim
 from hermes_trading.supervisor_sync import capture_startup_release
 from hermes_trading.paired_packet_storage import load_packet,MAX_PACKET_BYTES
 from hermes_trading.paired_storage_admission import validate_storage_limits,inspect_storage,StorageStopReached
+from hermes_trading.paper_history_retention import apply_retention,heartbeat_projection
 
 
 def _write(path,value):
@@ -43,7 +44,9 @@ def _stats(primary):
         db.execute('BEGIN')
         if db.execute("SELECT 1 FROM sqlite_master WHERE name='paired_batches'").fetchone() is None:
             return {'complete':0,'pending':False,'latest':None}
-        count=db.execute("SELECT COUNT(*) FROM paired_batches WHERE status='complete'").fetchone()[0]
+        from hermes_trading.paper_history_retention import retired_complete
+        # Batches removed by the 30-day retention still count toward max_cycles.
+        count=db.execute("SELECT COUNT(*) FROM paired_batches WHERE status='complete'").fetchone()[0]+retired_complete(db)
         pending=db.execute("SELECT 1 FROM paired_batches WHERE status='pending' LIMIT 1").fetchone() is not None
         archive_revision=0
         if db.execute("SELECT 1 FROM sqlite_master WHERE name='paired_archive_checkpoint'").fetchone() is not None:
@@ -154,7 +157,8 @@ def _write_heartbeat(root,primary,state,release,stats,*,at,model_ready,error=Non
         'wallet_report_hash':_hash(report) if isinstance(report,dict) and report.get('status')=='observed' else None,
         'wallet_account':None if report is None else {'status':report.get('status'),'experiment_id':report.get('experiment_id')},
         'economic_gate':{'status':'blocked','eligible_for_real_trading':False,'basis':'unqualified_prospective_paper'},
-        'hosting_stopped':False,'error':error}
+        'hosting_stopped':False,'error':error,
+        'storage_projection':heartbeat_projection(root,state.get('storage_report'),now=at)}
     _write(root/'heartbeat.json',heartbeat);_write(primary/'heartbeat.json',heartbeat)
     if at>=_time(state['activated_at'])+timedelta(days=30) and not (root/'checkpoint_30d.json').exists():
         _write(root/'checkpoint_30d.json',{'timestamp':at.isoformat(),'kind':'operational_learning_checkpoint',
@@ -304,7 +308,21 @@ async def run_worker(root,*,collector_factory=None,clock=None,sleep=asyncio.slee
                 record_worker_result(root.resolve(),success=False,now=current(),error_kind='daily_backup_failed')
                 append_diagnostic(root.resolve(),policy=safety,now=current(),event='daily_backup_failed',
                                   error_type=type(error).__name__)
+            else:history_retention(at)
             entry_admission()
+        def history_retention(at):
+            # Only after this day's backup was created and verified; a failure
+            # deletes nothing and is reported without blocking exits.
+            try:
+                result=apply_retention(root.resolve(),now=at,backup_verified=True)
+                state['history_retention']=dict(date=at.date().isoformat(),cutoff=result['cutoff'],
+                    archived_observations=sum(row['archived'] for row in result['accounts'].values()),
+                    archived_batches=result['publications']['archived'])
+                state['history_retention_error']=None
+            except Exception as error:
+                state['history_retention_error']=type(error).__name__
+                append_diagnostic(root.resolve(),policy=safety,now=current(),event='history_retention_failed',
+                                  error_type=type(error).__name__)
         if protective_identity is not None:
             from hermes_trading.archive_protective_session import ProtectiveSession
             protective_session=ProtectiveSession(root,db,witness_config['binding'],protective_identity,witness,enabled=True,now=current)

@@ -24,13 +24,15 @@ class PilotValidationTests(unittest.TestCase):
         self.assertEqual(pilot['old'],discord['new'])
         self.assertEqual(pilot['target'],discord['target'])
         self.assertEqual(transition._purpose(pilot),'paper_pilot_release_transition_v1')
-        # LAT-133: the checkout also carries master's storage limit and backup
-        # restart runtime changes; the pilot's own delta is unchanged.
+        # The checkout also carries master's storage limit and backup restart
+        # runtime changes and the lot 1 retention (LAT-120); the pilot's own
+        # delta is unchanged.
         from scripts.hermes_watch import _supervisor_release
         release=_supervisor_release()
         self.assertEqual({k:v for k,v in release.items() if k!='runtime'},{k:v for k,v in pilot['new'].items() if k!='runtime'})
-        self.assertEqual(set(release['runtime']),set(pilot['new']['runtime']))
-        self.assertEqual({name for name in release['runtime'] if release['runtime'][name]!=pilot['new']['runtime'][name]},
+        self.assertEqual(set(release['runtime'])-set(pilot['new']['runtime']),{'paper_history_retention.py'})
+        self.assertEqual(set(pilot['new']['runtime'])-set(release['runtime']),set())
+        self.assertEqual({name for name in pilot['new']['runtime'] if release['runtime'][name]!=pilot['new']['runtime'][name]},
                          {'paper_safety.py','paired_worker.py'})
         self.assertEqual(set(pilot['new']['runtime'])-set(pilot['old']['runtime']),transition.PILOT_ADDED_MODULES)
 
@@ -54,9 +56,10 @@ class PilotValidationTests(unittest.TestCase):
 
     def test_each_step_has_its_own_audit_and_approval(self):
         self.assertEqual(set(update.STEPS),{transition.DISCORD_FORMAT_BASE_COMMIT,transition.PILOT_BASE_COMMIT,
-                                            transition.STORAGE_LIMIT_BASE_COMMIT,transition.BACKUP_RESTART_BASE_COMMIT})
-        self.assertEqual(len({name for name,_ in update.STEPS.values()}),4)
-        self.assertEqual(len({ref for _,ref in update.STEPS.values()}),4)
+                                            transition.STORAGE_LIMIT_BASE_COMMIT,transition.BACKUP_RESTART_BASE_COMMIT,
+                                            transition.LOT1_BASE_COMMIT})
+        self.assertEqual(len({name for name,_ in update.STEPS.values()}),5)
+        self.assertEqual(len({ref for _,ref in update.STEPS.values()}),5)
 
 
 class PilotChainedUpdateTests(unittest.IsolatedAsyncioTestCase):

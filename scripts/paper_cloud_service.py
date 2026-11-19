@@ -54,21 +54,25 @@ def install_default(project):
     if release!=plan['new']:
         from scripts.paper_cloud_update import update_installed
         from hermes_trading.reflection_supervision import _hash
+        # Production chain, then lot 1 (LAT-120) after the backup restart release.
         names=('discord_format_release_plan.json','storage_limit_release_plan.json',
-               'backup_restart_release_plan.json')
+               'backup_restart_release_plan.json','lot1_release_plan.json')
         successors=[json.loads((scripts/name).read_bytes()) for name in names]
+        # Verify the whole chain and its destination before any source update:
+        # a checkout matching no reviewed step never advances the installation.
+        for previous,successor in zip([plan]+successors,successors):
+            if successor['old']!=previous['new']:
+                raise ValueError('source update chain differs')
+        if successors[-1]['new']!=release:
+            raise ValueError('storage limit source map differs')
         installed=json.loads((project/'state/.paper-cloud-cutover/installed.json').read_bytes())
         installed_hash=installed.get('release_hash')
         for index,successor in enumerate(successors):
-            if successor['old']!=plan['new']:
-                raise ValueError('source update chain differs')
             future={_hash(item['new']) for item in successors[index:]}
             if installed_hash not in future:
                 print(json.dumps(update_installed(project,successor)),flush=True)
                 installed_hash=_hash(successor['new'])
             plan=successor
-        if plan['new']!=release:
-            raise ValueError('storage limit source map differs')
     return install(project,plan,
         entry_plan=json.loads((scripts/'entry_history_release_plan.json').read_bytes()),
         observer=lambda phase:print(json.dumps({'kind':'paper_cloud_install_phase','phase':phase}),flush=True))

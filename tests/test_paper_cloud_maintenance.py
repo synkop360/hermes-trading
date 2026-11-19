@@ -34,6 +34,18 @@ class MaintenanceTests(unittest.IsolatedAsyncioTestCase):
                          maintenance.CURRENT_RUNTIME)
         self.assertNotEqual(maintenance.RECOVERY_TAG,'after-legacy-archive')
 
+    def test_lot1_runtime_is_the_current_tree_chained_after_the_backup_restart_runtime(self):
+        import hashlib
+        scripts=Path(__file__).resolve().parents[1]/'scripts'
+        digest=lambda runtime:hashlib.sha256(json.dumps(runtime,sort_keys=True,separators=(',',':')).encode()).hexdigest()
+        backup=json.loads((scripts/'backup_restart_release_plan.json').read_text())
+        lot1=json.loads((scripts/'lot1_release_plan.json').read_text())
+        self.assertEqual(digest(backup['new']['runtime']),maintenance.NEW_RUNTIME)
+        self.assertEqual(digest(lot1['old']['runtime']),maintenance.NEW_RUNTIME)
+        self.assertEqual(digest(lot1['new']['runtime']),maintenance.LOT1_RUNTIME)
+        from hermes_trading.paper_publication import _release_hashes
+        self.assertEqual(digest(_release_hashes()),maintenance.LOT1_RUNTIME)
+
     def test_maintenance_never_replays_the_pinned_legacy_database_step(self):
         from unittest.mock import MagicMock
         with tempfile.TemporaryDirectory() as tmp:
@@ -53,6 +65,8 @@ class MaintenanceTests(unittest.IsolatedAsyncioTestCase):
             previous.assert_called_once()
             recover.assert_called_once()
             self.assertEqual(recover.call_args.kwargs['recovery_tag'],maintenance.NEW_RECOVERY_TAG)
+            # A missing 1 GB recovery runs under the installed lot 1 runtime.
+            self.assertEqual(recover.call_args.kwargs['expected_runtime'],maintenance.LOT1_RUNTIME)
 
     def test_new_budget_checks_old_recovery_then_transitions_then_recovers_new_pause(self):
         from unittest.mock import MagicMock
@@ -82,6 +96,11 @@ class MaintenanceTests(unittest.IsolatedAsyncioTestCase):
                                      ('recovery',maintenance.NEW_RECOVERY_TAG)])
 
     def test_existing_storage_recovery_is_verified_under_its_original_runtime(self):
+        for source in (maintenance.STORAGE_RUNTIME,maintenance.NEW_RUNTIME,maintenance.LOT1_RUNTIME):
+            with self.subTest(source=source):self.verify_existing_recovery(source)
+        with self.assertRaisesRegex(ValueError,'source differs'):self.verify_existing_recovery(maintenance.CURRENT_RUNTIME)
+
+    def verify_existing_recovery(self,source):
         from unittest.mock import MagicMock
         with tempfile.TemporaryDirectory() as tmp:
             project=Path(tmp).resolve();root=project/'state';root.mkdir()
@@ -89,7 +108,7 @@ class MaintenanceTests(unittest.IsolatedAsyncioTestCase):
             (root/maintenance.AUDIT).mkdir()
             recovery=root/('.paper-storage-recovery-'+maintenance.NEW_RECOVERY_TAG)
             recovery.mkdir()
-            (recovery/'intent.json').write_text(json.dumps({'source':maintenance.STORAGE_RUNTIME}))
+            (recovery/'intent.json').write_text(json.dumps({'source':source}))
             (recovery/'receipt.json').write_text('{}')
             lease=MagicMock();lease.__enter__.return_value.execute.return_value.fetchone.return_value=('{"storage_stop":false}',)
             ready={'status':'ready','reason':None,'state_bytes':1,'free_bytes':2}
@@ -101,4 +120,4 @@ class MaintenanceTests(unittest.IsolatedAsyncioTestCase):
                     patch.object(maintenance,'ownership',return_value=lease),redirect_stdout(io.StringIO()):
                 self.assertEqual(maintenance.maintain_storage(project)['status'],'completed')
             recovery_call.assert_not_called()
-            self.assertEqual(verified.call_args.kwargs['source_runtime'],maintenance.STORAGE_RUNTIME)
+            self.assertEqual(verified.call_args.kwargs['source_runtime'],source)
