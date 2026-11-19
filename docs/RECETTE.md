@@ -172,8 +172,8 @@ Clés de premier niveau, toutes toujours présentes :
   `projection_alert_days` (7), `alerts` par type (`active`, `occurrences`,
   `emitted`, `suppressed_total`, `pending_suppressed`, `last_emitted_at`),
   `balances` (`slot_seconds` 900, `proposed`, `last_proposed_at`), `messages`,
-  `outbox`, `restarts`, `transport_errors`. Les compteurs sont ceux de
-  l'évaluation du rapport même qui les publie.
+  `outbox`, `restarts`, `transport_errors`. Les compteurs correspondent à
+  l'évaluation du rapport qui les publie.
 
 Expurgation : aucun chemin absolu, aucune valeur de variable, aucun message
 d'exception, aucun contenu de stratégie. Un code n'est publié que s'il figure
