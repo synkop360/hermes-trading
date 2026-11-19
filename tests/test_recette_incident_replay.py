@@ -139,6 +139,18 @@ class IncidentReplay(IncidentWorld):
                 await self.invoke(sleep=sleep)
         return seen
 
+    def fake_disk(self, free_bytes=AMPLE):
+        """FakeDisk for the whole test: first start and every restart included."""
+        disk = FakeDisk(free_bytes)
+        patcher = disk.patch()
+        patcher.start()
+        self.addCleanup(patcher.stop)
+        return disk
+
+    def assert_disk_was_fake(self, disk):
+        with self.subTest('garde: storage admission only saw the fake disk'):
+            self.assertGreater(disk.calls, 0)
+
     def prepare(self, **limits):
         self.enable_safety()
         self.enable_backup()
@@ -226,9 +238,13 @@ class IncidentReplay(IncidentWorld):
         self.prepare()
         disk = FakeDisk(AMPLE)
         beats = []
+        reference = {}
 
         async def fill(seconds):
             beats.append(self.heartbeat())
+            if len(beats) == 1:
+                # Positions after the only cycle run with storage ready, before the reserve is crossed.
+                reference.update({name: len(self.positions(name)) for name in ACCOUNTS})
             if len(beats) == 3:
                 (self.root / 'paper_stop.json').write_text(json.dumps({'experiment_id': 'paired-test'}))
             self.at += timedelta(seconds=seconds)
@@ -238,7 +254,7 @@ class IncidentReplay(IncidentWorld):
         with disk.patch():
             result = await self.invoke(sleep=fill)
         ready, halted = beats[0], beats[1:]
-        opened = {name: len(self.positions(name)) for name in ACCOUNTS}
+        self.assertEqual(set(reference), set(ACCOUNTS), 'reference captured before the reserve crossing')
         with self.subTest('garde: reserve crossing latches storage stop with its reason'):
             self.assertEqual(result['stop_reason'], 'operator_stop')
             report = self.heartbeat()['worker_lifecycle']['storage_report']
@@ -253,7 +269,7 @@ class IncidentReplay(IncidentWorld):
                 self.assertTrue(beat['entry_admission']['blocked'])
                 self.assertIn('storage_stop', beat['entry_admission']['reasons'])
             self.assertLess(_parse(halted[0]['timestamp']), _parse(halted[-1]['timestamp']))
-            self.assertEqual(opened, {name: len(self.positions(name)) for name in ACCOUNTS})
+            self.assertEqual({name: len(self.positions(name)) for name in ACCOUNTS}, reference)
         with self.subTest('contrat-5: projection present while storage is ready'):
             projection = ready.get('storage_projection')
             self.assertIsInstance(projection, dict, 'heartbeat has no storage_projection')
@@ -306,6 +322,7 @@ class IncidentReplay(IncidentWorld):
 
     # --- S4: restart while the worker is latched -----------------------
     async def test_s4_restart_with_latch_lifts_after_three_successes_with_receipt(self):
+        disk = self.fake_disk()
         self.prepare()
         await self.flat_then_crash()
         self.latch()
@@ -337,8 +354,10 @@ class IncidentReplay(IncidentWorld):
             self.assertEqual(after, before)
             self.assertTrue(before)
             self.assertFalse(again[0]['halt'])
+        self.assert_disk_was_fake(disk)
 
     async def test_s4_interrupted_series_restarts_the_count(self):
+        disk = self.fake_disk()
         self.prepare()
         await self.flat_then_crash()
         self.latch()
@@ -350,8 +369,10 @@ class IncidentReplay(IncidentWorld):
         with self.subTest('contrat-6: third success after the failure lifts the latch'):
             self.assertFalse(seen[5]['halt'])
             self.assertEqual(seen[5]['receipts'], 1)
+        self.assert_disk_was_fake(disk)
 
     async def test_s4_open_position_keeps_latch_after_restart(self):
+        disk = self.fake_disk()
         self.prepare()
         steps = []
 
@@ -366,8 +387,10 @@ class IncidentReplay(IncidentWorld):
             self.assertEqual([row['halt'] for row in seen], [True] * 4)
             self.assertEqual([row['open'] for row in seen], [len(ACCOUNTS)] * 4)
             self.assertEqual(self.recovery_files('intent') + self.recovery_files('receipt'), [])
+        self.assert_disk_was_fake(disk)
 
     async def test_s4_failed_backup_of_the_day_keeps_latch_after_restart(self):
+        disk = self.fake_disk()
         self.prepare()
         await self.flat_then_crash()
         self.at += timedelta(days=1)
@@ -379,6 +402,7 @@ class IncidentReplay(IncidentWorld):
             self.assertEqual([row['halt'] for row in seen], [True] * 4)
             self.assertTrue(all('daily_backup_failed' in row['reasons'] for row in seen))
             self.assertEqual(self.recovery_files('intent') + self.recovery_files('receipt'), [])
+        self.assert_disk_was_fake(disk)
 
 
 def _parse(value):
