@@ -111,6 +111,7 @@ pilote) :
 | ----------------- | --------------------------------------------------------- |
 | `start`           | volume reconnu ou initialisé, avant la première session   |
 | `cycle`           | après chaque cycle suivi d'une attente dans une session   |
+| `tick`            | toutes les 15 min pendant une attente plus longue (LAT-122) |
 | `pass`            | après chaque session bornée (couvre son dernier cycle)    |
 | `stop`            | fichier `STOP` constaté, arrêt propre                     |
 | `error`           | session hors bornes, exception du pilote, volume inconnu  |
@@ -164,6 +165,15 @@ Clés de premier niveau, toutes toujours présentes :
   `arm`, `wallet_eur`, `currency`, `starting_balance`, `status`
   (`not_observed` avant la première mesure), `net_equity` (texte décimal),
   `observed_at`, `error_code`.
+- `notifications` (LAT-122, voir « Alertes et cadence ») : `{"status": "disabled"}`
+  quand le rapport est construit hors service ; sinon `status` (`ready` ou
+  `unavailable` avec `reason` en code), `state` (`fresh`, `resumed`,
+  `reset_invalid`), `transport` (`local_outbox`), `alert_delay_seconds` (900),
+  `projection_alert_days` (7), `alerts` par type (`active`, `occurrences`,
+  `emitted`, `suppressed_total`, `pending_suppressed`, `last_emitted_at`),
+  `balances` (`slot_seconds` 900, `proposed`, `last_proposed_at`), `messages`,
+  `outbox`, `restarts`, `transport_errors`. Les compteurs sont ceux de
+  l'évaluation du rapport même qui les publie.
 
 Expurgation : aucun chemin absolu, aucune valeur de variable, aucun message
 d'exception, aucun contenu de stratégie. Un code n'est publié que s'il figure
@@ -201,10 +211,59 @@ L'exposition publique (domaine Railway) relève de Thomas. La preuve de 24 h
 de rapports sains se collecte en recette, après les tickets 5, 6 et 7 ; les
 tests locaux ne la remplacent pas.
 
+## Alertes et cadence (LAT-122)
+
+Code dans `scripts/recette_notifications.py`, appelé par le service à chaque
+publication du rapport. Deux flux indépendants, jamais confondus :
+
+- **Alertes de stockage, par type.**
+  - `storage_projection_below_7_days` : `growth_and_projection.status` vaut
+    `projected` ou `reserve_reached` et `days_before_reserve < 7`, strictement
+    (`days_before_reserve` est l'entier `headroom // bytes_per_day` : pour un
+    ratio positif, `ratio < 7` équivaut à `floor(ratio) < 7` ; 6 alerte, 7 non).
+  - `storage_projection_unavailable` : projection `unavailable` ou mal formée.
+    `insufficient_data` et `non_positive_growth` sont silencieux.
+  - Regroupement : la première occurrence d'un type est émise ; les suivantes du
+    même type moins de 15 min (900 s) après sa dernière émission sont
+    supprimées et comptées. L'émission suivante (nouvelle occurrence à 900 s ou
+    plus, ou, si la condition a cessé, vidage du compte en attente une fois le
+    délai écoulé) porte le compte exact `suppressed`. Chaque type a son propre
+    délai et son propre compteur. Une horloge qui recule met fin au délai : une
+    alerte peut se répéter, jamais se taire.
+- **Soldes, toutes les 15 minutes.** Les soldes des huit comptes (`net_equity`,
+  `currency`, déjà expurgés par le rapport) sont proposés une fois par tranche
+  UTC de 900 s (`floor(epoch / 900)`), quelle que soit l'activité des alertes.
+  Des tranches manquées pendant un arrêt donnent une seule proposition de
+  rattrapage. Pour que la cadence tienne avec des cycles d'une heure, les
+  attentes du service (dans une session et entre deux sessions) sont découpées
+  en tranches d'au plus 900 s, la durée totale étant inchangée ; chaque tranche
+  intermédiaire publie un rapport `tick`. Un `session_runner` injecté sans
+  paramètre `on_tick` garde son contrat d'origine.
+
+État persistant : `/app/state/recette_notifications.json` (racine du volume,
+hors pilote, 128 Kio au plus), écrit par fichier temporaire, `fsync` puis
+`os.replace`, **avant** tout appel de transport. Un redémarrage garde les délais,
+les comptes en attente et la tranche de soldes courante : il ne répète ni une
+alerte dans son délai ni une tranche déjà proposée (`restarts` incrémenté). Un
+état illisible, lien ou mal formé repart à zéro avec `state: reset_invalid`
+(une alerte peut alors se répéter une fois). Un échec de l'état ou du transport
+n'interrompt jamais la session ni le rapport (`notifications.status:
+unavailable`, `transport_errors`).
+
+Transport : la seule sortie en recette est la boîte locale bornée (32 derniers
+messages) dans ce même fichier, d'où `transport: local_outbox`. Aucun appel
+réseau, aucun Discord, aucune variable `HERMES_DISCORD_*` (toujours refusées au
+démarrage) ; les credentials Discord et l'activation en production sont hors
+périmètre. Les tests injectent `tests/fakes/notifications.RecordingTransport`.
+La démonstration réelle en recette (compteurs visibles sur `GET /recette`
+pendant la période probante) reste distincte des tests synthétiques et relève
+de l'accord de Thomas.
+
 ## Tests
 
 ```sh
-PYTHONPATH=$PWD/tests uv run python -m unittest test_recette_status_report test_recette_service
+PYTHONPATH=$PWD/tests:$PWD uv run python -m unittest test_recette_status_report test_recette_service \
+  test_storage_alerts test_notification_cadence
 ```
 
 Les tests utilisent des racines `.test-tmp-recette-*` (ou un répertoire
