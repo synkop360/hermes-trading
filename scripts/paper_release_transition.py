@@ -63,14 +63,15 @@ BACKUP_RESTART_TARGET_RELEASE = '78bf02b0c767cedd79f52351cde74284513179f09610aeb
 # Chained after the installed backup restart release (4021b84, runtime 3b7e...;
 # scripts/backup_restart_release_plan.json): lot 1 (LAT-120, decisions of
 # Thomas 2026-11-17 and 2026-11-18) adds the reviewed paper pilot modules and
-# the history retention module, and changes reflect.py (pilot) and the paper
-# worker only. LAT-121 updates this same lot 1 plan for its own hermes_trading
-# changes instead of chaining another transition.
+# the history retention module, and changes reflect.py (pilot), the paper
+# worker and, for the audited worker latch recovery (LAT-121, decision of
+# Thomas 2026-11-19), paper_safety.py only. LAT-121 updates this same lot 1
+# plan instead of chaining another transition.
 LOT1_BASE_COMMIT = '4021b842e3b0c5713043b64c90e2ef5892f3daf7'
 LOT1_BASE_RELEASE = BACKUP_RESTART_TARGET_RELEASE
 LOT1_BASE_RUNTIME = '3b7eb68929b48c502a3b041768069274d05e7dd1508cf97e56366737b7b82258'
 LOT1_ADDED_MODULES = PILOT_ADDED_MODULES | {'paper_history_retention.py'}
-LOT1_MODULES = {'reflect.py','paired_worker.py'}
+LOT1_MODULES = {'reflect.py','paired_worker.py','paper_safety.py'}
 LOT1_PURPOSE = 'paper_lot1_release_transition_v1'
 TARGET = dict(project='f78f42d9-20ec-44f6-ae3f-f8bb79ee7000',
               service='8b94cbc9-293e-4222-a8a7-698b656985f7',

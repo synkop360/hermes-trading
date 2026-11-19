@@ -42,13 +42,14 @@ class Lot1ValidationTests(unittest.TestCase):
 
     def test_exact_added_modules_and_reviewed_delta(self):
         *_,plan=plans()
-        for case in ('source','runtime','launcher','watcher','noop','extra','missing','missing_pilot','removed','old_storage'):
+        for case in ('source','runtime','launcher','watcher','noop','noop_safety','extra','missing','missing_pilot','removed','old_storage'):
             bad=deepcopy(plan)
             if case=='source':bad['old']['runtime']['notifications.py']='0'*64
-            if case=='runtime':bad['new']['runtime']['paper_safety.py']='0'*64
+            if case=='runtime':bad['new']['runtime']['paper_backup.py']='0'*64
             if case=='launcher':bad['new']['native_launcher']='0'*64
             if case=='watcher':bad['new']['watcher']='0'*64
             if case=='noop':bad['new']['runtime']['paired_worker.py']=bad['old']['runtime']['paired_worker.py']
+            if case=='noop_safety':bad['new']['runtime']['paper_safety.py']=bad['old']['runtime']['paper_safety.py']
             if case=='extra':bad['new']['runtime']['unreviewed.py']='0'*64
             if case=='missing':del bad['new']['runtime']['paper_history_retention.py']
             if case=='missing_pilot':del bad['new']['runtime']['pilot_paper.py']

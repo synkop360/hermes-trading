@@ -19,9 +19,9 @@ CURRENT_RUNTIME='33f6c6329f1bc5383d12d5cafce8e13255eb68a02a2bf2bba9ec60ccb370114
 STORAGE_RUNTIME='924b045fb5bc8b08ae7313037f7cce347494b9c84daf20679b5f30b3cb0e0263'
 NEW_RUNTIME='3b7eb68929b48c502a3b041768069274d05e7dd1508cf97e56366737b7b82258'
 # Installed runtime after the chained lot 1 release (scripts/lot1_release_plan.json,
-# new runtime; LAT-120). A 1 GB recovery completed under an earlier runtime is
+# new runtime; LAT-120 then LAT-121). A 1 GB recovery completed under an earlier runtime is
 # verified read-only; a missing one is recovered under the lot 1 runtime.
-LOT1_RUNTIME='e6ce69c93e5e434f76ec059874ab040dc5ef134041df7a2d8869b5d0963a31a2'
+LOT1_RUNTIME='a6264f3d184d435ce61c96aca0f81a92b8f9f78b4ae584e4c0f926bc4319ebd1'
 RECOVERY_TAG='after-2026-11-13-reserve'
 RECOVERY_APPROVAL='user-2026-11-13-storage-maintenance-option-2'
 NEW_RECOVERY_TAG='after-2026-11-17-storage-limit-1gb'
