@@ -38,5 +38,5 @@ jobs:
           test_global_reflection test_model_runner test_paper_publication
           test_supervisor_usage_source test_supervisor_usage_feed test_supervisor_sync
           test_paper_supervisor_health test_paper_supervisor_recovery
-          test_paper_notifications test_notifications test_paper_notification_capture test_paper_discord_format_update test_paper_safety test_paper_safety_worker
+          test_paper_notifications test_notifications test_paper_notification_capture test_paper_discord_format_update test_paper_safety test_paper_safety_worker test_recette_incident_replay
           test_paper_pilot_source_update test_paper_lot1_source_update
