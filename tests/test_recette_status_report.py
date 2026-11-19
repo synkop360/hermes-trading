@@ -467,7 +467,6 @@ class NotificationReportTests(unittest.TestCase):
         self.addCleanup(shutil.rmtree, self.base, ignore_errors=True)
         self.root = self.base / "volume"
         self.environ = {"HERMES_TRADING_MODE": "paper",
-                        "HERMES_TRADING_ALLOW_REAL_ORDERS": "false",
                         "HERMES_NOTIFY_ENABLED": "false"}
         self.clock = ManualClock(AT)
         self.transport = RecordingTransport()
