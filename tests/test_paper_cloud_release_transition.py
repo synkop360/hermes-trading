@@ -12,6 +12,38 @@ import release_transition_fixtures as fixtures
 
 
 class CloudReleaseTransitionTests(unittest.TestCase):
+    def test_storage_limit_release_is_exactly_one_runtime_module(self):
+        from hermes_trading.paper_publication import _release_hashes
+        plan=json.loads((Path(__file__).resolve().parents[1]/'scripts/storage_limit_release_plan.json').read_text())
+        predecessor=json.loads((Path(__file__).resolve().parents[1]/'scripts/discord_format_release_plan.json').read_text())
+        self.assertEqual(plan['old'],predecessor['new'])
+        backup=json.loads((Path(__file__).resolve().parents[1]/'scripts/backup_restart_release_plan.json').read_text())
+        self.assertEqual(plan['new'],backup['old'])
+        transition.validate_release_plan(plan)
+        for case in ('extra_runtime','watcher','predecessor'):
+            broken=deepcopy(plan)
+            if case=='extra_runtime':broken['new']['runtime']['paired_worker.py']='0'*64
+            elif case=='watcher':broken['new']['watcher']='0'*64
+            else:broken['old']['runtime']['paper_safety.py']='0'*64
+            with self.subTest(case=case),self.assertRaises(ValueError):transition.validate_release_plan(broken)
+
+    def test_backup_restart_release_is_exactly_one_runtime_module(self):
+        from hermes_trading.paper_publication import _release_hashes
+        plan=json.loads((Path(__file__).resolve().parents[1]/'scripts/backup_restart_release_plan.json').read_text())
+        # Apart from the reviewed lot 1 delta (LAT-120, chained after this
+        # release), the checkout is exactly the backup restart release.
+        lot1=transition.LOT1_ADDED_MODULES|transition.LOT1_MODULES
+        current={k:v for k,v in _release_hashes().items() if k not in lot1}
+        self.assertEqual({k:v for k,v in plan['new']['runtime'].items() if k not in lot1},current)
+        self.assertEqual(set(_release_hashes())-set(plan['new']['runtime']),transition.LOT1_ADDED_MODULES)
+        transition.validate_release_plan(plan)
+        for case in ('extra_runtime','watcher','predecessor'):
+            broken=deepcopy(plan)
+            if case=='extra_runtime':broken['new']['runtime']['paper_safety.py']='0'*64
+            elif case=='watcher':broken['new']['watcher']='0'*64
+            else:broken['old']['runtime']['paired_worker.py']='0'*64
+            with self.subTest(case=case),self.assertRaises(ValueError):transition.validate_release_plan(broken)
+
     def plan(self):
         return json.loads((Path(__file__).resolve().parents[1]/'research/runs/paper-cloud-supervision-v1/source-map.json').read_text())
 
@@ -20,10 +52,21 @@ class CloudReleaseTransitionTests(unittest.TestCase):
         self.assertEqual(transition._purpose(plan),'paper_cloud_supervision_release_transition_v1')
         from scripts.hermes_watch import _supervisor_release
         successor=json.loads((Path(__file__).resolve().parents[1]/'scripts/discord_format_release_plan.json').read_text())
+        storage=json.loads((Path(__file__).resolve().parents[1]/'scripts/storage_limit_release_plan.json').read_text())
+        backup=json.loads((Path(__file__).resolve().parents[1]/'scripts/backup_restart_release_plan.json').read_text())
         self.assertEqual(successor['old'],plan['new'])
+        self.assertEqual(storage['old'],successor['new'])
+        self.assertEqual(backup['old'],storage['new'])
+        # LAT-120: lot 1 is chained after the installed backup restart release
+        # and pins the checkout; it carries the reviewed pilot delta unchanged.
         pilot=json.loads((Path(__file__).resolve().parents[1]/'scripts/pilot_release_plan.json').read_text())
         self.assertEqual(pilot['old'],successor['new'])
-        self.assertEqual(_supervisor_release(),pilot['new'])
+        lot1=json.loads((Path(__file__).resolve().parents[1]/'scripts/lot1_release_plan.json').read_text())
+        self.assertEqual(lot1['old'],backup['new'])
+        release=_supervisor_release()
+        self.assertEqual(release,lot1['new'])
+        self.assertEqual({name:release['runtime'][name] for name in transition.PILOT_ADDED_MODULES|{'reflect.py'}},
+                         {name:pilot['new']['runtime'][name] for name in transition.PILOT_ADDED_MODULES|{'reflect.py'}})
 
     def test_runtime_launchers_predecessor_and_inventory_are_pinned(self):
         for case in ['base','old','runtime','watcher','launcher','inventory','missing']:

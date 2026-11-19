@@ -1,6 +1,6 @@
 """Finite shared-input paper worker. No model or exchange order API is invoked."""
-import argparse,asyncio,json,os,sqlite3
-from contextlib import closing
+import argparse,asyncio,hashlib,json,os,sqlite3,time,uuid
+from contextlib import closing,nullcontext
 from datetime import timedelta
 from pathlib import Path
 
@@ -13,6 +13,7 @@ from hermes_trading.reflection_supervision import _connect,_hash,_json,_now,_tim
 from hermes_trading.supervisor_sync import capture_startup_release
 from hermes_trading.paired_packet_storage import load_packet,MAX_PACKET_BYTES
 from hermes_trading.paired_storage_admission import validate_storage_limits,inspect_storage,StorageStopReached
+from hermes_trading.paper_history_retention import apply_retention,heartbeat_projection
 
 
 def _write(path,value):
@@ -43,7 +44,9 @@ def _stats(primary):
         db.execute('BEGIN')
         if db.execute("SELECT 1 FROM sqlite_master WHERE name='paired_batches'").fetchone() is None:
             return {'complete':0,'pending':False,'latest':None}
-        count=db.execute("SELECT COUNT(*) FROM paired_batches WHERE status='complete'").fetchone()[0]
+        from hermes_trading.paper_history_retention import retired_complete
+        # Batches removed by the 30-day retention still count toward max_cycles.
+        count=db.execute("SELECT COUNT(*) FROM paired_batches WHERE status='complete'").fetchone()[0]+retired_complete(db)
         pending=db.execute("SELECT 1 FROM paired_batches WHERE status='pending' LIMIT 1").fetchone() is not None
         archive_revision=0
         if db.execute("SELECT 1 FROM sqlite_master WHERE name='paired_archive_checkpoint'").fetchone() is not None:
@@ -69,6 +72,24 @@ def _active_storage_positions(profiles,*,allow_missing=False):
             counts[f'{arm}_{wallet}']=connection.execute("SELECT COUNT(*) FROM positions WHERE status!='closed'").fetchone()[0]
         finally:connection.close()
     return counts
+
+
+def _daily_backup_verified(root,backup,record,at):
+    """Re-verify today's daily backup receipt and members (bounded, 30 s)."""
+    if backup is None or record.get('date')!=at.date().isoformat() or not isinstance(record.get('path'),str):return False
+    try:
+        from hermes_trading.paper_backup import _verified
+        from hermes_trading.archive_snapshot import _safe_root
+        source=_safe_root(Path(root).resolve());path=_safe_root(Path(record['path']))
+        if path.parent!=_safe_root(Path(backup['destination']).resolve()):return False
+        manifest=(source/'manifest.json').read_bytes()
+        identity=hashlib.sha256(source.as_posix().encode()+b'\0'+manifest).hexdigest()
+        if path.name!='state-'+record['date']+'-'+identity[:12]:return False
+        deadline=time.monotonic()+backup['timeout_seconds']
+        def check():
+            if time.monotonic()>=deadline:raise TimeoutError('daily backup verification deadline')
+        return _verified(path,identity,check,backup['max_bytes']).get('sha256')==record.get('sha256')
+    except (OSError,ValueError,TimeoutError):return False
 
 
 def _protective_space(root,storage):
@@ -154,7 +175,8 @@ def _write_heartbeat(root,primary,state,release,stats,*,at,model_ready,error=Non
         'wallet_report_hash':_hash(report) if isinstance(report,dict) and report.get('status')=='observed' else None,
         'wallet_account':None if report is None else {'status':report.get('status'),'experiment_id':report.get('experiment_id')},
         'economic_gate':{'status':'blocked','eligible_for_real_trading':False,'basis':'unqualified_prospective_paper'},
-        'hosting_stopped':False,'error':error}
+        'hosting_stopped':False,'error':error,
+        'storage_projection':heartbeat_projection(root,state.get('storage_report'),now=at)}
     _write(root/'heartbeat.json',heartbeat);_write(primary/'heartbeat.json',heartbeat)
     if at>=_time(state['activated_at'])+timedelta(days=30) and not (root/'checkpoint_30d.json').exists():
         _write(root/'checkpoint_30d.json',{'timestamp':at.isoformat(),'kind':'operational_learning_checkpoint',
@@ -207,6 +229,7 @@ async def run_worker(root,*,collector_factory=None,clock=None,sleep=asyncio.slee
     try:storage=validate_storage_limits(json.loads((root/'storage_limits.json').read_text(encoding='utf-8')),policy['experiment_id'])
     except OSError as error:raise ValueError('explicit storage limits are required before collection') from error
     from hermes_trading.paper_safety import load_policy,entry_status,record_worker_result,append_diagnostic
+    from hermes_trading import paper_safety
     safety=load_policy(root.resolve(),policy['experiment_id'])
     if safety is not None and not root.resolve().is_relative_to(Path(safety['volume_root']).resolve()):
         raise ValueError('paper safety must measure the complete active volume')
@@ -284,7 +307,11 @@ async def run_worker(root,*,collector_factory=None,clock=None,sleep=asyncio.slee
         def daily_backup():
             if backup is None:return
             at=current();day=at.date().isoformat()
-            if state.get('daily_backup',{}).get('date')==day:return
+            previous=state.get('daily_backup',{})
+            prior=Path(previous.get('path',''))
+            receipt=prior/'paper_backup_receipt.json'
+            if (previous.get('date')==day and prior.is_dir() and not prior.is_symlink() and
+                    receipt.is_file() and not receipt.is_symlink()):return
             from hermes_trading.paper_backup import create_daily_backup
             try:
                 result=create_daily_backup(root.resolve(),backup['destination'],enabled=True,
@@ -300,6 +327,89 @@ async def run_worker(root,*,collector_factory=None,clock=None,sleep=asyncio.slee
                 record_worker_result(root.resolve(),success=False,now=current(),error_kind='daily_backup_failed')
                 append_diagnostic(root.resolve(),policy=safety,now=current(),event='daily_backup_failed',
                                   error_type=type(error).__name__)
+            else:history_retention(at)
+            entry_admission()
+        def history_retention(at):
+            # Only after this day's backup was created and verified; a failure
+            # deletes nothing and is reported without blocking exits.
+            try:
+                result=apply_retention(root.resolve(),now=at,backup_verified=True)
+                state['history_retention']=dict(date=at.date().isoformat(),cutoff=result['cutoff'],
+                    archived_observations=sum(row['archived'] for row in result['accounts'].values()),
+                    archived_batches=result['publications']['archived'])
+                state['history_retention_error']=None
+            except Exception as error:
+                state['history_retention_error']=type(error).__name__
+                append_diagnostic(root.resolve(),policy=safety,now=current(),event='history_retention_failed',
+                                  error_type=type(error).__name__)
+        # Audited worker latch recovery (paper_safety.recover_worker). The
+        # series of consecutive successful cycles lives in memory only: a
+        # restart, a failed cycle or any pass without a successful cycle
+        # restarts the count; no premature unlock can survive a crash.
+        recovery_series=[];recovery_pass={'current':0,'success':None}
+        def recovery_report(status,reason=None,**extra):
+            previous=state.get('worker_recovery') or {}
+            state['worker_recovery']=dict(schema_version=1,status=status,reason=reason,
+                successes=len(recovery_series),required=paper_safety.WORKER_RECOVERY_SUCCESSES,
+                observed_at=current().isoformat(),**extra)
+            if status in {'refused','failed','reconciled','completed'} and (previous.get('status'),previous.get('reason'))!=(status,reason):
+                append_diagnostic(root.resolve(),policy=safety,now=current(),event='worker_recovery_'+status,
+                                  error_type=reason)
+        def recovery_bindings():
+            current_stats=_stats(primary);check_storage()
+            report=state.get('storage_report') or {};record=state.get('daily_backup') or {}
+            return dict(accounts=_active_storage_positions(profiles),pending_batch=current_stats['pending'],
+                daily_backup=dict(date=record.get('date'),sha256=record.get('sha256'),status=record.get('status'),
+                                  verified=_daily_backup_verified(root,backup,record,current())),
+                daily_backup_error=state.get('daily_backup_error'),
+                storage=dict(status=report.get('status'),storage_stop=bool(state.get('storage_stop'))),
+                local_archive_capture_error=state.get('local_archive_capture_error'))
+        def reconcile_recovery():
+            if safety is None:return
+            result=paper_safety.reconcile_worker_recovery(root.resolve(),experiment_id=policy['experiment_id'],enabled=True)
+            if result is not None:
+                recovery_report('reconciled',result['outcome'],request_id=result['request_id'])
+                entry_admission()
+        def worker_recovery(stats):
+            # Called at the end of each successful cycle only.
+            if safety is None:return
+            worker=(state.get('entry_admission') or {}).get('worker')
+            consecutive=recovery_pass['success']==recovery_pass['current']-1
+            recovery_pass['success']=recovery_pass['current']
+            if worker is None or worker['entry_halt'] is not True:
+                recovery_series.clear()
+                if state.get('worker_recovery',{}).get('status') not in (None,'completed','reconciled','not_latched'):
+                    recovery_report('not_latched')
+                return
+            if not consecutive or worker['success'] is not True:recovery_series.clear()
+            if worker['success'] is not True:
+                recovery_report('counting','last_cycle_failed');return
+            batch=None if stats['latest'] is None else stats['latest']['batch_id']
+            if batch is None or (recovery_series and recovery_series[-1]['batch_id']==batch):
+                recovery_report('counting','no_new_batch');return
+            recovery_series.append(dict(at=worker['last_seen'],batch_id=batch))
+            del recovery_series[:-paper_safety.WORKER_RECOVERY_SUCCESSES]
+            if len(recovery_series)<paper_safety.WORKER_RECOVERY_SUCCESSES:
+                recovery_report('counting');return
+            try:
+                reconcile_recovery()
+                at=current();bindings=recovery_bindings()
+                with paper_safety._artifact_lock(root.resolve()/'paper_safety_state.json'):
+                    safety_state=paper_safety._state(root.resolve(),safety)
+                request=dict(schema_version=1,purpose=paper_safety.WORKER_RECOVERY_PURPOSE,request_id=uuid.uuid4().hex,
+                    experiment_id=policy['experiment_id'],mode='paper',prepared_at=at.isoformat(),
+                    valid_until=(at+timedelta(seconds=120)).isoformat(),
+                    state_hash=paper_safety._recovery_hash(safety_state),
+                    successes=list(recovery_series),bindings=bindings)
+                result=paper_safety.recover_worker(root.resolve(),request,enabled=True,now=current(),
+                    preflight=lambda:nullcontext(recovery_bindings()))
+            except paper_safety.WorkerRecoveryRefused as refusal:
+                recovery_report('refused',refusal.code)
+            except Exception as error:
+                recovery_report('failed',type(error).__name__)
+            else:
+                recovery_series.clear()
+                recovery_report('completed',None,request_id=result['request_id'])
             entry_admission()
         if protective_identity is not None:
             from hermes_trading.archive_protective_session import ProtectiveSession
@@ -440,8 +550,13 @@ async def run_worker(root,*,collector_factory=None,clock=None,sleep=asyncio.slee
                 publish_heartbeat(root,primary,state,release,_stats(primary),at=current(),model_ready=False,
                     error='archive_protection_failed:'+type(failure).__name__)
                 raise
+        # An unreconciled marker keeps entries blocked; it never stops exits.
+        try:reconcile_recovery()
+        except paper_safety.WorkerRecoveryRefused as refusal:recovery_report('refused',refusal.code)
+        except Exception as error:recovery_report('failed',type(error).__name__)
         publish_heartbeat(root,primary,state,release,stats,at=current(),model_ready=False,error='worker_starting')
         while True:
+            recovery_pass['current']+=1
             stats=_stats(primary)
             if protective_session is not None:
                 try:protective_head=protective_session.reconcile()
@@ -578,6 +693,7 @@ async def run_worker(root,*,collector_factory=None,clock=None,sleep=asyncio.slee
                 record_result(True)
                 db.execute('UPDATE lifecycle SET state=? WHERE id=1',(_json(state),));db.commit()
                 daily_backup()
+                worker_recovery(stats)
                 db.execute('UPDATE lifecycle SET state=? WHERE id=1',(_json(state),));db.commit()
                 publish_heartbeat(root,primary,state,release,stats,at=current(),model_ready=_model_ready(primary,policy,current()))
             except (PairedDeadlineReached,PairedStopReached,StorageStopReached):

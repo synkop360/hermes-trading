@@ -1,7 +1,7 @@
 """Optional paper entry admission; never changes finance, strategy or exit rules.
 
 The explicit ``root/paper_safety.json`` binds one experiment to a whole-volume
-500 MB budget, a 70% entry alert and three-error latches. Health is durable in
+500 MB or reviewed 1 GB budget, a 70% entry alert and three-error latches. Health is durable in
 ``paper_safety_state.json``. Supervisor retries must repeat the latest event ID,
 event time and semantic result exactly; retries do not refresh its freshness.
 Only ``paper_runtime.log`` and its three named generations may be rotated.
@@ -24,12 +24,12 @@ MAX_VOLUME_ENTRIES = 100000
 VOLUME_TIMEOUT_SECONDS = 5
 _JSON_LIMIT = 16384
 _FIXED = {
-    'schema_version': 1, 'capacity_bytes': 500000000, 'alert_fraction': '0.70',
+    'schema_version': 1, 'alert_fraction': '0.70',
     'max_worker_errors': 3, 'max_supervisor_errors': 3,
     'supervisor_stale_seconds': 300, 'diagnostics_max_bytes': 1048576,
     'diagnostics_generations': 3,
 }
-_REQUIRED = set(_FIXED) | {'experiment_id', 'volume_root'}
+_REQUIRED = set(_FIXED) | {'experiment_id', 'volume_root', 'capacity_bytes'}
 
 
 def _utc_now():
@@ -113,6 +113,8 @@ def _policy(value, experiment_id):
     for key, expected in _FIXED.items():
         if type(value[key]) is not type(expected) or value[key] != expected:
             raise ValueError('unsupported paper safety policy limit')
+    if type(value['capacity_bytes']) is not int or value['capacity_bytes'] not in (500000000, 1000000000):
+        raise ValueError('unsupported paper safety capacity')
     identity = value['experiment_id']
     if not isinstance(identity, str) or not 1 <= len(identity) <= 128 or identity != experiment_id:
         raise ValueError('paper safety experiment differs')
@@ -576,3 +578,294 @@ def append_diagnostic(root, *, policy, event, now=None, error_type=None):
             stream.flush()
             os.fsync(stream.fileno())
     rotate_diagnostics(root, policy=policy)
+
+
+# --- Audited automatic recovery of the worker error latch (paper only) -----
+#
+# Same lane as the 17/11 manual latch release and recover_supervisor: one
+# shared pending marker (``paper_supervisor_recovery_pending.json``) blocks
+# entries while a transition is in flight and makes every recovery mutually
+# exclusive; the immutable intent/receipt pair is the audit trail. The worker
+# latch is lifted only; the supervisor latch keeps its own procedure.
+WORKER_RECOVERY_SUCCESSES = 3
+WORKER_RECOVERY_PURPOSE = 'paper_worker_recovery_v1'
+WORKER_RECOVERY_DIRECTORY = 'paper_worker_recovery'
+WORKER_RECOVERY_ACCOUNTS = frozenset(f'{arm}_{wallet}' for arm in ('adaptive', 'control')
+                                     for wallet in (50, 100, 150, 200))
+_WORKER_RECOVERY_ALLOWED_REASONS = frozenset({'worker_error_halt', 'supervisor_error_halt'})
+_WORKER_REQUEST_FIELDS = {'schema_version', 'purpose', 'request_id', 'experiment_id', 'mode',
+                          'prepared_at', 'valid_until', 'state_hash', 'successes', 'bindings'}
+_WORKER_BINDING_FIELDS = {'accounts', 'pending_batch', 'daily_backup', 'daily_backup_error',
+                          'storage', 'local_archive_capture_error'}
+
+
+class WorkerRecoveryRefused(ValueError):
+    """A precondition of the worker latch recovery is not met (bounded code)."""
+
+    def __init__(self, code):
+        if re.fullmatch(r'[a-z][a-z0-9_]{0,63}', code) is None:
+            raise ValueError('bounded refusal code required')
+        super().__init__('worker recovery refused: ' + code)
+        self.code = code
+
+
+def _worker_mode(enabled, env):
+    if enabled is not True:
+        raise ValueError('explicit worker recovery opt-in required')
+    env = os.environ if env is None else env
+    # The paired worker is paper-only; an explicit other mode always refuses.
+    if str(env.get('HERMES_TRADING_MODE', 'paper')).strip().lower() != 'paper':
+        raise WorkerRecoveryRefused('mode_not_paper')
+
+
+def _worker_request(request):
+    request = _pairs(list(request.items())) if isinstance(request, dict) else None
+    if request is None or set(request) != _WORKER_REQUEST_FIELDS or len(_json(request).encode()) > _JSON_LIMIT:
+        raise ValueError('bounded worker recovery request required')
+    if (request['schema_version'] != 1 or type(request['schema_version']) is not int or
+            request['purpose'] != WORKER_RECOVERY_PURPOSE):
+        raise ValueError('worker recovery request purpose differs')
+    if not isinstance(request['request_id'], str) or re.fullmatch('[0-9a-f]{32}', request['request_id']) is None:
+        raise ValueError('worker recovery request identity differs')
+    if request['mode'] != 'paper':
+        raise WorkerRecoveryRefused('mode_not_paper')
+    if not isinstance(request['state_hash'], str) or re.fullmatch('[0-9a-f]{64}', request['state_hash']) is None:
+        raise ValueError('worker recovery state hash differs')
+    successes = request['successes']
+    if not isinstance(successes, list) or len(successes) != WORKER_RECOVERY_SUCCESSES:
+        raise WorkerRecoveryRefused('successes_insufficient')
+    previous = None
+    for row in successes:
+        if not isinstance(row, dict) or set(row) != {'at', 'batch_id'}:
+            raise ValueError('worker recovery success record differs')
+        at = _time(row['at'])
+        if not isinstance(row['batch_id'], str) or not 1 <= len(row['batch_id']) <= 128:
+            raise ValueError('worker recovery success batch differs')
+        if previous is not None and at <= previous:
+            raise WorkerRecoveryRefused('successes_not_consecutive')
+        previous = at
+    if len({row['batch_id'] for row in successes}) != len(successes):
+        raise WorkerRecoveryRefused('successes_not_consecutive')
+    if not isinstance(request['bindings'], dict):
+        raise ValueError('worker recovery bindings required')
+    return request
+
+
+def _worker_bindings(bindings, at):
+    """Cumulative preconditions measured by the worker preflight."""
+    if not isinstance(bindings, dict) or set(bindings) != _WORKER_BINDING_FIELDS:
+        raise ValueError('worker recovery bindings differ')
+    accounts = bindings['accounts']
+    if (not isinstance(accounts, dict) or set(accounts) != WORKER_RECOVERY_ACCOUNTS or
+            any(type(value) is not int or value < 0 for value in accounts.values())):
+        raise ValueError('worker recovery accounts differ')
+    if any(accounts.values()):
+        raise WorkerRecoveryRefused('accounts_not_flat')
+    if bindings['pending_batch'] is not False:
+        raise WorkerRecoveryRefused('batch_pending')
+    backup = bindings['daily_backup']
+    if (bindings['daily_backup_error'] is not None or not isinstance(backup, dict) or
+            set(backup) != {'date', 'sha256', 'status', 'verified'} or backup['verified'] is not True or
+            backup['date'] != at.date().isoformat() or
+            backup['status'] not in ('completed', 'already_completed') or
+            not isinstance(backup['sha256'], str) or re.fullmatch('[0-9a-f]{64}', backup['sha256']) is None):
+        raise WorkerRecoveryRefused('daily_backup_missing')
+    if bindings['storage'] != {'status': 'ready', 'storage_stop': False}:
+        raise WorkerRecoveryRefused('storage_not_ready')
+    if bindings['local_archive_capture_error'] is not None:
+        raise WorkerRecoveryRefused('archive_capture_error')
+
+
+def _worker_paths(root, identifier):
+    directory = root / WORKER_RECOVERY_DIRECTORY
+    return (directory, directory / (identifier + '.intent.json'),
+            directory / (identifier + '.receipt.json'), directory / (identifier + '.abort.json'))
+
+
+def _worker_intent(path, *, request_id, root_hash):
+    intent = _read(path)
+    if (set(intent) != {'schema_version', 'request', 'request_hash', 'root_hash', 'before_worker', 'after_worker'} or
+            intent['schema_version'] != 1 or not isinstance(intent['request'], dict) or
+            intent['request'].get('request_id') != request_id or
+            intent['request_hash'] != _recovery_hash(intent['request']) or intent['root_hash'] != root_hash):
+        raise ValueError('worker recovery intent differs')
+    before = intent['before_worker']
+    if not isinstance(before, dict) or before.get('entry_halt') is not True:
+        raise ValueError('worker recovery intent differs')
+    if intent['after_worker'] != dict(before, entry_halt=False, consecutive_errors=0):
+        raise ValueError('worker recovery target differs')
+    return intent
+
+
+def _worker_receipt(intent, outcome):
+    request = intent['request']
+    after = intent['after_worker'] if outcome == 'completed' else intent['before_worker']
+    return dict(schema_version=1, purpose=WORKER_RECOVERY_PURPOSE, request_id=request['request_id'],
+                request_hash=intent['request_hash'], root_hash=intent['root_hash'],
+                intent_hash=_recovery_hash(intent), before_worker=intent['before_worker'],
+                after_worker=after, outcome=outcome)
+
+
+def _worker_marker(intent):
+    return dict(schema_version=1, kind='worker_recovery', request_id=intent['request']['request_id'],
+                request_hash=intent['request_hash'], root_hash=intent['root_hash'])
+
+
+def _manual_release_unfinished(root):
+    # The 17/11 manual release (scripts/paper_entry_latch_recovery_20261117.py)
+    # keeps its own audit; an unfinished one needs manual reconciliation.
+    for audit in root.glob('.manual-latch-release-*'):
+        if not (audit / 'receipt.json').is_file():
+            return True
+    return False
+
+
+def _worker_inventory(directory, intent_path, extra):
+    if not directory.exists():
+        directory.mkdir()
+        _fsync_directory(directory.parent)
+    _directory(directory)
+    members = list(directory.iterdir())
+    if (len(set(members) | {intent_path, extra}) > 96 or any(
+            _regular(path) is None or
+            re.fullmatch('[0-9a-f]{32}\\.(intent|receipt|abort)\\.json', path.name) is None for path in members)):
+        raise ValueError('worker recovery audit inventory differs')
+    if not intent_path.exists() and len(list(directory.glob('*.intent.json'))) >= 32:
+        raise WorkerRecoveryRefused('audit_capacity_reached')
+
+
+def reconcile_worker_recovery(root, *, experiment_id, enabled=False, env=None):
+    """Finish or cancel an interrupted worker recovery found at startup.
+
+    Only the worker's own pending marker is handled; a supervisor or manual
+    marker is left to its procedure (entries stay blocked meanwhile). The
+    state already written is receipted; an unwritten one is aborted, keeping
+    the latch. Never re-checks or relaxes a precondition.
+    """
+    _worker_mode(enabled, env)
+    root = _directory(Path(root))
+    policy = load_policy(root, experiment_id)
+    if policy is None:
+        return None
+    state_path = root / 'paper_safety_state.json'
+    _regular(state_path.with_suffix('.json.lock'), missing=True)
+    with _artifact_lock(state_path):
+        if not _recovery_pending(root):
+            return None
+        marker = _read(root / _RECOVERY_PENDING)
+        if marker.get('kind') != 'worker_recovery':
+            return None
+        identifier = marker.get('request_id')
+        if not isinstance(identifier, str) or re.fullmatch('[0-9a-f]{32}', identifier) is None:
+            raise ValueError('worker recovery marker differs')
+        directory, intent_path, receipt_path, abort_path = _worker_paths(root, identifier)
+        _directory(directory)
+        intent = _worker_intent(intent_path, request_id=identifier, root_hash=_recovery_hash(str(root)))
+        if _worker_marker(intent) != marker:
+            raise ValueError('worker recovery marker differs')
+        for path, outcome in ((receipt_path, 'completed'), (abort_path, 'aborted')):
+            if _regular(path, missing=True) is not None:
+                if _read(path) != _worker_receipt(intent, outcome):
+                    raise ValueError('worker recovery receipt differs')
+                _recovery_clear_marker(root, marker)
+                return dict(_read(path), status='already_' + outcome)
+        worker = _state(root, policy)['worker']
+        if worker == intent['after_worker']:
+            path, outcome = receipt_path, 'completed'
+        elif worker == intent['before_worker']:
+            path, outcome = abort_path, 'aborted'
+        else:
+            raise ValueError('interrupted worker recovery state differs')
+        done = _worker_receipt(intent, outcome)
+        _recovery_once(path, done)
+        _recovery_clear_marker(root, marker)
+        return dict(done, status='reconciled_' + outcome)
+
+
+def recover_worker(root, request, *, preflight, now=None, enabled=False, env=None):
+    """Lift the worker error latch after N consecutive successful cycles.
+
+    Opt-in transition, paper only, called by the worker itself. ``preflight``
+    is a context manager re-measuring the cumulative preconditions (flat
+    accounts, no pending batch, today's verified daily backup, ready storage
+    without storage stop); it must yield exactly ``request['bindings']``. It is
+    entered BEFORE the safety lock (worker lock order). Under the lock the
+    latch, its fresh successful observation and the remaining entry blockers
+    are verified; then an immutable intent, the shared pending marker, the
+    new state and the receipt are written in that order.
+    """
+    _worker_mode(enabled, env)
+    root = _directory(Path(root))
+    request = _worker_request(request)
+    identifier = request['request_id']
+    policy = load_policy(root, request['experiment_id'])
+    if policy is None:
+        raise ValueError('worker recovery requires existing safety policy')
+    state_path = root / 'paper_safety_state.json'
+    _regular(state_path)
+    _regular(state_path.with_suffix('.json.lock'), missing=True)
+    directory, intent_path, receipt_path, abort_path = _worker_paths(root, identifier)
+    if directory.exists():
+        _directory(directory)
+    request_hash = _recovery_hash(request)
+    root_hash = _recovery_hash(str(root))
+
+    with _artifact_lock(state_path):
+        # A confirmed retry never reapplies the transition.
+        for path, outcome in ((receipt_path, 'completed'), (abort_path, 'aborted')):
+            if _regular(path, missing=True) is not None:
+                intent = _worker_intent(intent_path, request_id=identifier, root_hash=root_hash)
+                if intent['request'] != request or _read(path) != _worker_receipt(intent, outcome):
+                    raise ValueError('worker recovery receipt differs')
+                return dict(_read(path), status='already_' + outcome,
+                            current_worker_halted=_state(root, policy)['worker']['entry_halt'])
+
+    with preflight() as bindings:
+        if bindings != request['bindings']:
+            raise WorkerRecoveryRefused('preflight_changed')
+        at = _time(_utc_now() if now is None else now)
+        _worker_bindings(bindings, at)
+        with _artifact_lock(state_path):
+            if load_policy(root, policy['experiment_id']) != policy:
+                raise ValueError('worker recovery safety policy changed')
+            if not (_time(request['prepared_at']) <= at < _time(request['valid_until']) and
+                    (_time(request['valid_until']) - _time(request['prepared_at'])).total_seconds() == 120):
+                raise ValueError('worker recovery request expired or future-dated')
+            state = _state(root, policy)
+            if _recovery_pending(root):
+                raise WorkerRecoveryRefused('recovery_pending')
+            if _manual_release_unfinished(root):
+                raise WorkerRecoveryRefused('manual_release_unfinished')
+            if _regular(intent_path, missing=True) is not None:
+                raise ValueError('unreceipted worker recovery intent requires reconciliation')
+            if _recovery_hash(state) != request['state_hash']:
+                raise WorkerRecoveryRefused('safety_state_changed')
+            worker = state['worker']
+            if worker is None or worker['entry_halt'] is not True or worker['consecutive_errors'] != 3:
+                raise WorkerRecoveryRefused('worker_not_latched')
+            if worker['success'] is not True or worker['last_seen'] != request['successes'][-1]['at']:
+                raise WorkerRecoveryRefused('worker_last_cycle_not_successful')
+            if not 0 <= (at - _time(worker['last_seen'])).total_seconds() <= 60:
+                raise WorkerRecoveryRefused('worker_health_stale')
+            # The cause has disappeared: no other entry blocker than the
+            # latches themselves (the supervisor keeps its own procedure).
+            status = entry_status(root, policy=policy, now=at)
+            if 'worker_error_halt' not in status['reasons']:
+                raise WorkerRecoveryRefused('worker_not_latched')
+            if set(status['reasons']) - _WORKER_RECOVERY_ALLOWED_REASONS:
+                raise WorkerRecoveryRefused('entry_blocker_present')
+            _worker_inventory(directory, intent_path, receipt_path)
+            after_worker = dict(worker, entry_halt=False, consecutive_errors=0)
+            intent = dict(schema_version=1, request=request, request_hash=request_hash, root_hash=root_hash,
+                          before_worker=worker, after_worker=after_worker)
+            marker = _worker_marker(intent)
+            _recovery_once(intent_path, intent)
+            _recovery_once(root / _RECOVERY_PENDING, marker)
+            target = dict(state, worker=after_worker)
+            _write(root, target)
+            if _state(root, policy) != target:
+                raise ValueError('worker recovery transition verification failed')
+            done = _worker_receipt(intent, 'completed')
+            _recovery_once(receipt_path, done)
+            _recovery_clear_marker(root, marker)
+            return dict(done, status='completed', current_worker_halted=False)

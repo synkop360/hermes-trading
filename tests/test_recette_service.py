@@ -6,6 +6,7 @@ test doubles and the environment checks run on plain dictionaries.
 from __future__ import annotations
 
 import asyncio
+import http.client
 import io
 import json
 import shutil
@@ -19,6 +20,7 @@ from unittest.mock import patch
 ROOT = Path(__file__).resolve().parents[1]
 
 from scripts import recette_service as service
+from scripts import recette_status_report as status_report
 from hermes_trading import pilot_paper
 
 AT = datetime(2026, 11, 15, 14, 0, tzinfo=timezone.utc)
@@ -240,7 +242,7 @@ class RecetteServeTests(unittest.TestCase):
     def runner(self, reports=None, error=None):
         reports = reports if reports is not None else [dict(CLEAN_REPORT)]
 
-        async def fake(root, *, environ, bounds):
+        async def fake(root, *, environ, bounds, on_cycle=None):
             self.calls.append({"root": root, "environ": dict(environ),
                                "bounds": dict(bounds)})
             if error is not None:
@@ -369,9 +371,10 @@ class RecetteRealSessionTests(unittest.TestCase):
         self.reports = []
 
     def runner(self, stop_after):
-        async def run(root, *, environ, bounds):
+        async def run(root, *, environ, bounds, on_cycle=None):
             report = await pilot_paper.run_pilot_session(
-                root, collector=self.double, clock=self.clock, sleep=self.clock.sleep,
+                root, collector=self.double, clock=self.clock,
+                sleep=service.cycle_sleep(self.clock.sleep, on_cycle),
                 environ=environ, collector_options={"retry_delay_seconds": 0},
                 **bounds)
             self.reports.append(report)
@@ -434,7 +437,7 @@ class RecetteCliTests(unittest.TestCase):
         self.calls = []
 
     def runner(self):
-        async def fake(root, *, environ, bounds):
+        async def fake(root, *, environ, bounds, on_cycle=None):
             self.calls.append(root)
             (Path(root) / pilot_paper.STOP_FILE).write_text("stop")
             return dict(CLEAN_REPORT)
@@ -482,6 +485,189 @@ class RecetteCliTests(unittest.TestCase):
         self.assertIn("EXCHANGE_API_KEY", err)
         self.assertEqual(self.calls, [])
 
+
+
+class RecetteReportServiceTests(unittest.TestCase):
+    """The service publishes the schema_version 1 report and serves it read-only."""
+
+    def setUp(self) -> None:
+        self.base = Path(tempfile.mkdtemp(prefix=".test-tmp-recette-status-", dir=ROOT))
+        self.addCleanup(shutil.rmtree, self.base, ignore_errors=True)
+        self.root = self.base / "volume"
+        self.environ = {"HERMES_TRADING_MODE": "paper",
+                        "HERMES_TRADING_ALLOW_REAL_ORDERS": "false",
+                        "HERMES_NOTIFY_ENABLED": "false"}
+        self.seen = []
+
+    async def fake_sleep(self, seconds):
+        self.seen.append(("sleep", self.stored()["heartbeat"]["event"]))
+
+    def stored(self):
+        return status_report.read_recette_report(self.root / status_report.REPORT_NAME)
+
+    def serve(self, runner, **kwargs):
+        options = dict(environ=self.environ, max_cycles=3, max_runtime_seconds=3600,
+                       interval_seconds=60, reflect_every=1, stream=io.StringIO(),
+                       sleep=self.fake_sleep)
+        options.update(kwargs)
+        return asyncio.run(service.serve(self.root, session_runner=runner, **options))
+
+    def test_report_is_written_at_start_after_each_cycle_pass_and_stop(self) -> None:
+        passes = []
+
+        async def runner(root, *, environ, bounds, on_cycle=None):
+            passes.append(root)
+            self.seen.append(("pass_start", self.stored()["heartbeat"]["event"]))
+            for _ in range(2):
+                on_cycle()
+                heartbeat = self.stored()["heartbeat"]
+                self.seen.append(("cycle", heartbeat["event"], heartbeat["pass"], heartbeat["cycle"]))
+            if len(passes) == 2:
+                (Path(root) / pilot_paper.STOP_FILE).write_text("stop")
+            return dict(CLEAN_REPORT, completed_cycles=3)
+
+        summary = self.serve(runner)
+        self.assertEqual(summary["stop_reason"], "stop_requested")
+        self.assertEqual(self.seen, [
+            ("pass_start", "start"), ("cycle", "cycle", 1, 1), ("cycle", "cycle", 1, 2),
+            ("sleep", "pass"),
+            ("pass_start", "pass"), ("cycle", "cycle", 2, 1), ("cycle", "cycle", 2, 2)])
+        report = self.stored()
+        self.assertEqual(report["heartbeat"]["event"], "stop")
+        self.assertEqual((report["heartbeat"]["pass"], report["heartbeat"]["cycle"]), (2, 3))
+        self.assertEqual(report["heartbeat"]["interval_seconds"], 60.0)
+        self.assertEqual(report["accounts"]["count"], 8)
+        self.assertEqual(report["locks"]["active"], ["stop_requested"])
+        self.assertEqual(report["experiment_id"], service.RECETTE_EXPERIMENT_ID)
+
+    def test_session_outside_bounds_publishes_an_error_report(self) -> None:
+        async def runner(root, *, environ, bounds, on_cycle=None):
+            return dict(CLEAN_REPORT, stop_reason="collection_unavailable")
+
+        with self.assertRaises(service.RecetteError):
+            self.serve(runner)
+        report = self.stored()
+        self.assertEqual(report["heartbeat"]["event"], "error")
+        self.assertEqual([(e["source"], e["code"]) for e in report["recent_errors"]],
+                         [("recette_service", "collection_unavailable")])
+
+    def test_runner_failure_is_published_as_a_code_without_its_message(self) -> None:
+        async def runner(root, *, environ, bounds, on_cycle=None):
+            raise pilot_paper.PilotSessionError("token=SECRET_VALUE in " + str(self.base))
+
+        with self.assertRaises(pilot_paper.PilotSessionError):
+            self.serve(runner)
+        raw = (self.root / status_report.REPORT_NAME).read_text(encoding="utf-8")
+        self.assertNotIn("SECRET_VALUE", raw)
+        self.assertNotIn(str(self.base), raw)
+        self.assertEqual(self.stored()["recent_errors"][0]["code"], "PilotSessionError")
+
+    def test_report_failure_never_stops_the_session(self) -> None:
+        async def runner(root, *, environ, bounds, on_cycle=None):
+            on_cycle()
+            (Path(root) / pilot_paper.STOP_FILE).write_text("stop")
+            return dict(CLEAN_REPORT)
+
+        output = io.StringIO()
+        with patch.object(service.status_report, "write_recette_report",
+                          side_effect=OSError("disk SECRET_VALUE")):
+            summary = self.serve(runner, stream=output)
+        self.assertEqual(summary["stop_reason"], "stop_requested")
+        errors = [json.loads(line) for line in output.getvalue().splitlines()
+                  if '"recette_report_error"' in line]
+        self.assertEqual([e["event"] for e in errors], ["start", "cycle", "pass", "stop"])
+        self.assertNotIn("SECRET_VALUE", output.getvalue())
+
+    def test_endpoint_serves_the_report_during_the_service_only(self) -> None:
+        servers, responses = [], []
+
+        def get(path, method="GET"):
+            connection = http.client.HTTPConnection("127.0.0.1", servers[0].server_address[1], timeout=5)
+            try:
+                connection.request(method, path)
+                response = connection.getresponse()
+                return response.status, response.read()
+            finally:
+                connection.close()
+
+        async def runner(root, *, environ, bounds, on_cycle=None):
+            responses.append(get("/recette"))
+            responses.append(get("/recette", "POST"))
+            responses.append(get("/recette_provenance.json"))
+            (Path(root) / pilot_paper.STOP_FILE).write_text("stop")
+            return dict(CLEAN_REPORT)
+
+        output = io.StringIO()
+        self.serve(runner, http_port=0, http_host="127.0.0.1", on_server=servers.append,
+                   stream=output)
+        (status, body), (post, _), (other, _) = responses
+        self.assertEqual((status, post, other), (200, 405, 404))
+        payload = json.loads(body)
+        self.assertEqual(payload["schema_version"], 1)
+        self.assertEqual(payload["heartbeat"]["event"], "start")
+        self.assertFalse(payload["freshness"]["stale"])
+        self.assertIn('"kind": "recette_report_endpoint"', output.getvalue())
+        with self.assertRaises(OSError):
+            get("/recette")
+
+    def test_endpoint_port_comes_from_port_and_is_validated_before_any_write(self) -> None:
+        self.assertEqual(service.resolve_http_port({"PORT": "8080"}), 8080)
+        self.assertIsNone(service.resolve_http_port({}))
+        self.assertEqual(service.resolve_http_port({"PORT": "8080"}, 9000), 9000)
+        for bad in ("http", "70000", "-1"):
+            with self.subTest(port=bad):
+                with self.assertRaises(service.RecetteError):
+                    self.serve(None, environ=dict(self.environ, PORT=bad))
+                self.assertFalse(self.root.exists())
+
+
+class RecetteReportRealSessionTests(unittest.TestCase):
+    """A real two-cycle pilot session reports between its cycles."""
+
+    def setUp(self) -> None:
+        from test_pilot_paper import FakeClock, PriceDouble
+
+        self.base = Path(tempfile.mkdtemp(prefix=".test-tmp-recette-status-real-", dir=ROOT))
+        self.addCleanup(shutil.rmtree, self.base, ignore_errors=True)
+        self.root = self.base / "volume"
+        self.environ = {"HERMES_TRADING_MODE": "paper",
+                        "HERMES_TRADING_ALLOW_REAL_ORDERS": "false",
+                        "HERMES_NOTIFY_ENABLED": "false"}
+        self.clock = FakeClock(datetime.now(timezone.utc).replace(microsecond=0)
+                               + timedelta(hours=1))
+        self.double = PriceDouble(self.clock, ["100", "80", "80", "80"])
+        self.between = []
+
+    def test_real_session_publishes_a_report_between_cycles(self) -> None:
+        async def sleep(seconds):
+            self.between.append(status_report.read_recette_report(
+                self.root / status_report.REPORT_NAME))
+            await self.clock.sleep(seconds)
+
+        async def run(root, *, environ, bounds, on_cycle=None):
+            report = await pilot_paper.run_pilot_session(
+                root, collector=self.double, clock=self.clock,
+                sleep=service.cycle_sleep(sleep, on_cycle),
+                environ=environ, collector_options={"retry_delay_seconds": 0}, **bounds)
+            (Path(root) / pilot_paper.STOP_FILE).write_text("stop")
+            return report
+
+        summary = asyncio.run(service.serve(
+            self.root, environ=self.environ, session_runner=run, max_cycles=2,
+            max_runtime_seconds=3 * 3600, interval_seconds=3600, reflect_every=1,
+            sleep=self.clock.sleep, stream=io.StringIO(), report_clock=self.clock))
+        self.assertEqual(summary["stop_reason"], "stop_requested")
+        self.assertEqual([r["heartbeat"]["event"] for r in self.between], ["cycle"])
+        cycle = self.between[0]
+        self.assertEqual(cycle["manifest_status"], "paper_ready")
+        observed = [a for a in cycle["accounts"]["accounts"].values() if a["net_equity"] is not None]
+        self.assertEqual(len(observed), 8)
+        final = status_report.read_recette_report(self.root / status_report.REPORT_NAME)
+        self.assertEqual(final["heartbeat"]["event"], "stop")
+        self.assertEqual(final["session"]["completed_cycles"], 2)
+        self.assertEqual(final["session"]["stop_reason"], "max_cycles_reached")
+        self.assertEqual(final["storage"]["status"], "ready")
+        self.assertEqual(final["recent_errors"], [])
 
 if __name__ == "__main__":
     unittest.main()
