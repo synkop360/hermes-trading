@@ -33,6 +33,7 @@ from pathlib import Path
 from typing import Any, Iterable
 
 from hermes_trading import paper_history_retention as retention
+from scripts import recette_fingerprint as fingerprint
 
 SCHEMA_VERSION = 1
 REPORT_KIND = "hermes_recette_status"
@@ -263,10 +264,18 @@ def default_storage_limits(volume: Path, experiment_id: str | None) -> dict | No
             "max_state_bytes": total, "reserve_bytes": reserve}
 
 
-def _storage(volume: Path, experiment_id: str | None, limits: dict | None) -> dict:
+# ``local_demo``: limits validated by ``scripts.recette_storage_limits`` for a
+# local demonstration only (refused in the recette deployment).
+LIMITS_SOURCES = frozenset({"configured", "local_demo"})
+
+
+def _storage(volume: Path, experiment_id: str | None, limits: dict | None,
+             limits_source: str = "configured") -> dict:
     from hermes_trading.paired_storage_admission import inspect_storage
 
-    source = "configured" if limits is not None else "recette_default"
+    if limits_source not in LIMITS_SOURCES:
+        raise ValueError("unknown storage limits source")
+    source = limits_source if limits is not None else "recette_default"
     limits = limits if limits is not None else default_storage_limits(volume, experiment_id)
     if limits is None:
         return {"status": "blocked", "reason": "limits_unavailable", "limits_source": source,
@@ -414,6 +423,53 @@ def _unavailable_projection(reason: str) -> dict:
             "bytes_per_day": None, "days_before_reserve": None, "reason": reason}
 
 
+# The recette runs ``pilot_paper``, never ``paired_worker.run_worker``
+# (LAT-140): the worker latch and the 30-day retention are absent from this
+# path. They are published as explicit absences, never as silent omissions, so
+# a quiet field is not mistaken for a proof (they are proven by the CI replay
+# of LAT-142, then observed on their first production run).
+WORKER_RECOVERY_ABSENT = {"status": "not_applicable", "reason": "pilot_has_no_worker_latch",
+                          "proven_by": "ci_worker_replay"}
+HISTORY_RETENTION_ABSENT = {"status": "not_applicable", "reason": "retention_runs_in_paired_worker_only",
+                            "proven_by": "ci_worker_replay"}
+BOUND_NAMES = ("max_cycles", "max_runtime_seconds", "interval_seconds", "reflect_every")
+BOUND_SOURCES = frozenset({"argument", "environment", "default"})
+VOLUME_STATUSES = frozenset({"initialized", "recognized"})
+
+
+def _runtime(value: Any) -> dict:
+    """Fingerprint of the executed sources, republished only if well formed."""
+    if value is None:
+        return fingerprint.unavailable("not_provided")
+    return dict(value) if fingerprint.is_valid_summary(value) else fingerprint.unavailable("unrecognized")
+
+
+def _bounds(value: Any) -> dict:
+    """Session bounds with their provenance (argument, environment or default)."""
+    bounds: dict[str, dict] = {}
+    for name in BOUND_NAMES:
+        row = value.get(name) if isinstance(value, dict) else None
+        if not isinstance(row, dict):
+            continue
+        number, source = row.get("value"), row.get("source")
+        if isinstance(number, bool) or not isinstance(number, (int, float)) or number != number \
+                or number in (float("inf"), float("-inf")) or source not in BOUND_SOURCES:
+            continue
+        bounds[name] = {"value": number, "source": source}
+    return bounds
+
+
+def _volume(value: Any) -> dict:
+    """Identity of the volume and of this service process (restart evidence)."""
+    value = value if isinstance(value, dict) else {}
+    status = value.get("status")
+    return {
+        "status": status if status in VOLUME_STATUSES else "unknown",
+        "marker_created_at": _timestamp(value.get("marker_created_at")),
+        "service_started_at": _timestamp(value.get("service_started_at")),
+    }
+
+
 def build_recette_report(
     volume: Path | str,
     pilot: Path | str,
@@ -424,7 +480,11 @@ def build_recette_report(
     service: dict | None = None,
     service_errors: Iterable[dict] = (),
     storage_limits: dict | None = None,
+    storage_limits_source: str = "configured",
     notifications: dict | None = None,
+    runtime: dict | None = None,
+    bounds: dict | None = None,
+    volume_identity: dict | None = None,
 ) -> dict:
     """Build the expunged ``schema_version: 1`` report for one recette volume."""
     if event not in EVENTS:
@@ -438,7 +498,7 @@ def build_recette_report(
     session = _session(pilot)
     accounts = _accounts(pilot, manifest)
     service = dict(service or {})
-    storage_report = _storage(pilot, experiment_id, storage_limits)
+    storage_report = _storage(pilot, experiment_id, storage_limits, storage_limits_source)
     return {
         "schema_version": SCHEMA_VERSION,
         "kind": REPORT_KIND,
@@ -452,6 +512,9 @@ def build_recette_report(
             "cycle": _count(service.get("cycle")),
             "code_version": _matching(service.get("code_version"), CODE_VERSION_PATTERN),
         },
+        "runtime": _runtime(runtime),
+        "volume": _volume(volume_identity),
+        "bounds": _bounds(bounds),
         "experiment_id": _matching(experiment_id, EXPERIMENT_ID_PATTERN),
         "manifest_status": _manifest_status(manifest),
         "session": session,
@@ -459,6 +522,8 @@ def build_recette_report(
         "storage": storage_report,
         "growth_and_projection": _growth_and_projection(pilot, at, storage_report),
         "daily_summary": _daily_summary(pilot),
+        "worker_recovery": dict(WORKER_RECOVERY_ABSENT),
+        "history_retention": dict(HISTORY_RETENTION_ABSENT),
         "locks": _locks(pilot, session),
         "recent_errors": _recent_errors(session, accounts, service_errors),
         "accounts": accounts,

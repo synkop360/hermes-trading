@@ -29,7 +29,7 @@ TOP_LEVEL_KEYS = {
     "schema_version", "kind", "generated_at", "heartbeat", "experiment_id",
     "manifest_status", "session", "entry_admission", "storage",
     "growth_and_projection", "daily_summary", "locks", "recent_errors", "accounts",
-    "notifications",
+    "notifications", "runtime", "volume", "bounds", "worker_recovery", "history_retention",
 }
 ACCOUNT_KEYS = {"arm", "wallet_eur", "currency", "starting_balance", "status",
                 "net_equity", "observed_at", "error_code"}
@@ -104,6 +104,18 @@ class ReportContentTests(ReportFixture):
             "pass": 2, "cycle": 5, "code_version": "0.1.0"})
         self.assertEqual(report["experiment_id"], "pilot-paper-recette")
         self.assertEqual(report["notifications"], {"status": "disabled"})
+        # LAT-141: outside the service nothing identifies the runtime or the volume.
+        self.assertEqual(report["runtime"]["status"], "unavailable")
+        self.assertEqual(report["runtime"]["reason"], "not_provided")
+        self.assertEqual(report["volume"], {"status": "unknown", "marker_created_at": None,
+                                            "service_started_at": None})
+        self.assertEqual(report["bounds"], {})
+        self.assertEqual(report["worker_recovery"], {
+            "status": "not_applicable", "reason": "pilot_has_no_worker_latch",
+            "proven_by": "ci_worker_replay"})
+        self.assertEqual(report["history_retention"], {
+            "status": "not_applicable", "reason": "retention_runs_in_paired_worker_only",
+            "proven_by": "ci_worker_replay"})
         self.assertEqual(report["session"], {"status": "none"})
         self.assertEqual(report["entry_admission"],
                          {"policy": "absent", "enabled": False, "blocked": False, "reasons": []})
