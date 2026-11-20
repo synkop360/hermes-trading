@@ -38,7 +38,7 @@ SCHEMA_VERSION = 1
 REPORT_KIND = "hermes_recette_status"
 REPORT_NAME = "recette_status.json"
 ENDPOINT_PATH = "/recette"
-EVENTS = ("start", "cycle", "pass", "stop", "error")
+EVENTS = ("start", "cycle", "tick", "pass", "stop", "error")
 # A report older than one interval plus this grace is stale (the cycle itself
 # and the public-market retries fit well inside it).
 STALE_GRACE_SECONDS = 900.0
@@ -424,6 +424,7 @@ def build_recette_report(
     service: dict | None = None,
     service_errors: Iterable[dict] = (),
     storage_limits: dict | None = None,
+    notifications: dict | None = None,
 ) -> dict:
     """Build the expunged ``schema_version: 1`` report for one recette volume."""
     if event not in EVENTS:
@@ -461,6 +462,9 @@ def build_recette_report(
         "locks": _locks(pilot, session),
         "recent_errors": _recent_errors(session, accounts, service_errors),
         "accounts": accounts,
+        # Counters of ``scripts.recette_notifications``; the service fills them
+        # in after evaluating this very report (``{"status": "disabled"}`` otherwise).
+        "notifications": dict(notifications) if isinstance(notifications, dict) else {"status": "disabled"},
     }
 
 

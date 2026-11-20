@@ -22,6 +22,10 @@ Deployed on the Railway ``recette`` environment as
   at start, after every cycle and every session, and serves it read-only on
   ``GET /recette`` when a port is given (``PORT``, set by Railway, or
   ``--http-port``): see ``scripts/recette_status_report.py``.
+* evaluates storage alerts (projection strictly under seven days, aggregated per
+  type with a fifteen-minute delay) and proposes the balances every fifteen
+  minutes into a local outbox, counters in the report: see
+  ``scripts/recette_notifications.py``. No network transport exists here.
 
 Without ``HERMES_RECETTE=true`` (the deployment's own opt-in) the volume itself
 must lie under a ``.test-tmp*`` tree, so a local run can never initialize a
@@ -31,6 +35,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import inspect
 import json
 import os
 import sys
@@ -39,6 +44,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from hermes_trading import pilot_paper
+from scripts import recette_notifications as notifications
 from scripts import recette_status_report as status_report
 
 RECETTE_EXPERIMENT_ID = "pilot-paper-recette"
@@ -65,6 +71,9 @@ ENV_REFLECT_EVERY = "HERMES_RECETTE_REFLECT_EVERY"
 ENV_HTTP_PORT = "PORT"
 DEFAULT_HTTP_HOST = "0.0.0.0"
 CLEAN_STOP_REASONS = {"max_cycles_reached", "max_runtime_reached", "stop_requested"}
+# Waits are cut into slices of at most this length so the balance cadence and
+# the alert delays (both fifteen minutes) are evaluated during long intervals.
+TICK_SECONDS = 900.0
 
 
 class RecetteError(RuntimeError):
@@ -319,25 +328,51 @@ def resolve_http_port(environ: dict[str, str] | None = None, port: int | None = 
     return port
 
 
-def cycle_sleep(sleep, on_cycle):
+async def ticking_sleep(sleep, seconds, on_tick, tick_seconds=TICK_SECONDS):
+    """Sleep ``seconds`` in slices of at most ``tick_seconds``.
+
+    ``on_tick()`` runs after every slice except the last one: the caller
+    publishes right after the wait anyway. The total wait is unchanged.
+    """
+    remaining = float(seconds)
+    while remaining > tick_seconds:
+        await sleep(tick_seconds)
+        remaining -= tick_seconds
+        on_tick()
+    return await sleep(remaining)
+
+
+def cycle_sleep(sleep, on_cycle, on_tick=None):
     """Wrap a session ``sleep`` so ``on_cycle()`` runs after each cycle.
 
     ``run_pilot_session`` sleeps between two cycles only; the last cycle of a
-    session is reported by the pass record, so every cycle is reported.
+    session is reported by the pass record, so every cycle is reported. With
+    ``on_tick`` the wait is sliced (``ticking_sleep``), at a moment where the
+    pilot writes nothing.
     """
-    if on_cycle is None:
+    if on_cycle is None and on_tick is None:
         return sleep
 
     async def wrapped(seconds):
-        on_cycle()
-        return await sleep(seconds)
+        if on_cycle is not None:
+            on_cycle()
+        if on_tick is None:
+            return await sleep(seconds)
+        return await ticking_sleep(sleep, seconds, on_tick)
 
     return wrapped
 
 
-def _default_runner(root, *, environ, bounds, on_cycle=None):
+def _default_runner(root, *, environ, bounds, on_cycle=None, on_tick=None):
     return pilot_paper.run_pilot_session(
-        root, environ=environ, sleep=cycle_sleep(asyncio.sleep, on_cycle), **bounds)
+        root, environ=environ, sleep=cycle_sleep(asyncio.sleep, on_cycle, on_tick), **bounds)
+
+
+def _accepts_on_tick(runner) -> bool:
+    try:
+        return "on_tick" in inspect.signature(runner).parameters
+    except (TypeError, ValueError):
+        return False
 
 
 def _emit(stream, record: dict) -> None:
@@ -360,6 +395,7 @@ async def serve(
     http_host: str = DEFAULT_HTTP_HOST,
     report_clock=None,
     on_server=None,
+    notification_transport=None,
 ) -> dict:
     """Serve identified recette volumes with repeated bounded paper sessions."""
     environ = os.environ if environ is None else environ
@@ -387,14 +423,27 @@ async def serve(
     clock = report_clock or (lambda: datetime.now(timezone.utc))
     progress = {"pass": 0, "cycle": 0, "code_version": code_version()}
     service_errors: list[dict] = []
+    notifier = notifications.RecetteNotifier(root, transport=notification_transport)
+
+    def notify(report: dict, now: datetime) -> dict:
+        """Alerts and balances of this report; a failure never stops the session."""
+        try:
+            notifier.process(report, now)
+            return notifier.summary()
+        except Exception as error:  # noqa: BLE001 - reported as a code only
+            emit({"kind": "recette_notification_error", "code": status_report.error_code(error)})
+            return {"status": "unavailable", "reason": status_report.error_code(error)}
 
     def publish(event: str) -> None:
         """Best effort: a report failure never stops the paper session."""
         try:
-            status_report.write_recette_report(root, status_report.build_recette_report(
-                root, pilot, event=event, now=clock(),
+            now = clock()
+            report = status_report.build_recette_report(
+                root, pilot, event=event, now=now,
                 interval_seconds=bounds["interval_seconds"], service=progress,
-                service_errors=service_errors))
+                service_errors=service_errors)
+            report["notifications"] = notify(report, now)
+            status_report.write_recette_report(root, report)
         except Exception as error:  # noqa: BLE001 - reported as a code only
             emit({"kind": "recette_report_error", "event": event,
                   "code": status_report.error_code(error)})
@@ -408,6 +457,9 @@ async def serve(
     def on_cycle() -> None:
         progress["cycle"] += 1
         publish("cycle")
+
+    def on_tick() -> None:
+        publish("tick")
 
     def stopped() -> dict | None:
         if not (pilot / pilot_paper.STOP_FILE).exists():
@@ -435,7 +487,7 @@ async def serve(
     try:
         return await _serve_passes(
             root, pilot, environ, bounds, runner, sleep, emit, passes, progress,
-            publish, record_error, on_cycle, stopped)
+            publish, record_error, on_cycle, on_tick, stopped)
     finally:
         if server is not None:
             server.shutdown()
@@ -443,7 +495,9 @@ async def serve(
 
 
 async def _serve_passes(root, pilot, environ, bounds, runner, sleep, emit, passes, progress,
-                        publish, record_error, on_cycle, stopped) -> dict:
+                        publish, record_error, on_cycle, on_tick, stopped) -> dict:
+    # Injected runners predating the cadence keep their four-argument contract.
+    tick_option = {"on_tick": on_tick} if _accepts_on_tick(runner) else {}
     while True:
         try:
             assert_identified_root(root)
@@ -455,7 +509,8 @@ async def _serve_passes(root, pilot, environ, bounds, runner, sleep, emit, passe
         progress["pass"] += 1
         progress["cycle"] = 0
         try:
-            report = await runner(pilot, environ=environ, bounds=bounds, on_cycle=on_cycle)
+            report = await runner(pilot, environ=environ, bounds=bounds, on_cycle=on_cycle,
+                                  **tick_option)
         except Exception as error:
             record_error(error)
             raise
@@ -480,7 +535,7 @@ async def _serve_passes(root, pilot, environ, bounds, runner, sleep, emit, passe
             return summary
         # The last cycle of a session does not wait: keep one interval between
         # passes so two sessions never run back-to-back cycles.
-        await sleep(bounds["interval_seconds"])
+        await ticking_sleep(sleep, bounds["interval_seconds"], on_tick)
 
 
 def main(argv=None, *, environ=None, session_runner=None) -> int:

@@ -29,6 +29,7 @@ TOP_LEVEL_KEYS = {
     "schema_version", "kind", "generated_at", "heartbeat", "experiment_id",
     "manifest_status", "session", "entry_admission", "storage",
     "growth_and_projection", "daily_summary", "locks", "recent_errors", "accounts",
+    "notifications",
 }
 ACCOUNT_KEYS = {"arm", "wallet_eur", "currency", "starting_balance", "status",
                 "net_equity", "observed_at", "error_code"}
@@ -102,6 +103,7 @@ class ReportContentTests(ReportFixture):
             "stale_after": (AT + timedelta(seconds=3600 + 900)).isoformat(),
             "pass": 2, "cycle": 5, "code_version": "0.1.0"})
         self.assertEqual(report["experiment_id"], "pilot-paper-recette")
+        self.assertEqual(report["notifications"], {"status": "disabled"})
         self.assertEqual(report["session"], {"status": "none"})
         self.assertEqual(report["entry_admission"],
                          {"policy": "absent", "enabled": False, "blocked": False, "reasons": []})
@@ -453,6 +455,113 @@ class EndpointTests(ReportFixture):
                 self.assertEqual(headers["Allow"], "GET, HEAD")
         self.assertEqual(self.target.read_bytes(), before)
         self.assertEqual(sorted(p.name for p in self.volume.iterdir()), entries)
+
+
+class NotificationReportTests(unittest.TestCase):
+    """LAT-122: alert and cadence counters exposed in the report (fake transport)."""
+
+    def setUp(self) -> None:
+        from fakes.notifications import ManualClock, RecordingTransport
+
+        self.base = Path(tempfile.mkdtemp(prefix=".test-tmp-recette-report-notify-", dir=ROOT))
+        self.addCleanup(shutil.rmtree, self.base, ignore_errors=True)
+        self.root = self.base / "volume"
+        self.environ = {"HERMES_TRADING_MODE": "paper",
+                        "HERMES_NOTIFY_ENABLED": "false"}
+        self.clock = ManualClock(AT)
+        self.transport = RecordingTransport()
+        self.stored = []
+
+    def serve(self, projection, *, transport=None, cycles=3):
+        import asyncio
+        import io
+        from unittest import mock
+        from scripts import recette_service as service
+
+        async def runner(root, *, environ, bounds, on_cycle=None, on_tick=None):
+            for _ in range(cycles):
+                on_cycle()
+                self.stored.append(report_module.read_recette_report(self.root / report_module.REPORT_NAME))
+                self.clock.advance(300)
+            (Path(root) / pilot_paper.STOP_FILE).write_text("stop")
+            return {"stop_reason": "max_cycles_reached", "completed_cycles": cycles}
+
+        with mock.patch.object(report_module, "_growth_and_projection", return_value=projection):
+            return asyncio.run(service.serve(
+                self.root, environ=self.environ, session_runner=runner, max_cycles=cycles,
+                max_runtime_seconds=3600, interval_seconds=3600, reflect_every=1,
+                sleep=self.clock.sleep, stream=io.StringIO(), report_clock=self.clock,
+                notification_transport=self.transport if transport is None else transport))
+
+    def test_alert_counters_and_balance_cadence_are_in_the_report(self) -> None:
+        projection = {"schema_version": 1, "status": "projected", "bytes_per_day": 10,
+                      "days_before_reserve": 3, "headroom_bytes": 30, "sample_days": 4}
+        self.serve(projection)
+        final = report_module.read_recette_report(self.root / report_module.REPORT_NAME)
+        notifications = final["notifications"]
+        below = notifications["alerts"]["storage_projection_below_7_days"]
+        # start 12:00 (emitted), cycles 12:00/12:05/12:10 (suppressed), pass 12:15
+        # (delay elapsed: emitted with 3), stop 12:15 (suppressed again, pending).
+        self.assertEqual((below["active"], below["occurrences"], below["emitted"],
+                          below["suppressed_total"], below["pending_suppressed"]),
+                         (True, 6, 2, 4, 1))
+        self.assertEqual(notifications["alerts"]["storage_projection_unavailable"]["emitted"], 0)
+        self.assertEqual(notifications["balances"], {"slot_seconds": 900, "proposed": 2,
+                                                     "last_proposed_at": "2026-11-16T12:15:00+00:00"})
+        self.assertEqual((notifications["status"], notifications["transport"], notifications["state"]),
+                         ("ready", "local_outbox", "fresh"))
+        self.assertEqual(notifications["messages"], 4)
+        self.assertEqual([(m["kind"], m.get("suppressed")) for m in self.transport.messages],
+                         [("alert", 0), ("balances", None), ("alert", 3), ("balances", None)])
+        balances = self.transport.messages[1]["accounts"]
+        self.assertEqual(len(balances), 8)
+        # The counters are those of the report being published, cycle by cycle.
+        self.assertEqual([r["notifications"]["alerts"]["storage_projection_below_7_days"]["pending_suppressed"]
+                          for r in self.stored], [1, 2, 3])
+        self.assertNotIn(str(self.base), json.dumps(notifications))
+        self.assertLessEqual(len(report_module.encode_report(final)), report_module.MAX_REPORT_BYTES)
+
+    def test_quiet_projection_raises_no_alert_but_balances_continue(self) -> None:
+        self.serve({"schema_version": 1, "status": "projected", "bytes_per_day": 10,
+                    "days_before_reserve": 7, "headroom_bytes": 70, "sample_days": 4})
+        notifications = report_module.read_recette_report(self.root / report_module.REPORT_NAME)["notifications"]
+        self.assertEqual({name: row["emitted"] for name, row in notifications["alerts"].items()},
+                         {"storage_projection_below_7_days": 0, "storage_projection_unavailable": 0})
+        self.assertEqual(self.transport.kinds(), ["balances", "balances"])
+
+    def test_unavailable_projection_is_its_own_alert_type(self) -> None:
+        self.serve({"schema_version": 1, "status": "unavailable", "bytes_per_day": None,
+                    "days_before_reserve": None, "reason": "storage_unavailable"}, cycles=1)
+        alerts = report_module.read_recette_report(self.root / report_module.REPORT_NAME)["notifications"]["alerts"]
+        self.assertEqual(alerts["storage_projection_unavailable"]["emitted"], 1)
+        self.assertEqual(alerts["storage_projection_below_7_days"]["occurrences"], 0)
+
+    def test_broken_notification_state_never_stops_the_report(self) -> None:
+        from scripts import recette_notifications
+
+        self.root.mkdir(parents=True)
+        # Unwritable state target: a directory where the file should be.
+        projection = {"schema_version": 1, "status": "insufficient_data", "bytes_per_day": None,
+                      "days_before_reserve": None}
+        from scripts import recette_service as service
+        service.prepare_recette_volume(self.root, environ=self.environ)
+        (self.root / recette_notifications.STATE_NAME).mkdir()
+        summary = self.serve(projection, cycles=1)
+        self.assertEqual(summary["stop_reason"], "stop_requested")
+        final = report_module.read_recette_report(self.root / report_module.REPORT_NAME)
+        self.assertEqual(final["notifications"], {"status": "unavailable", "reason": "ValueError"})
+        self.assertEqual(final["heartbeat"]["event"], "stop")
+
+    def test_transport_failures_are_counted_not_raised(self) -> None:
+        from fakes.notifications import RecordingTransport
+
+        self.serve({"schema_version": 1, "status": "insufficient_data", "bytes_per_day": None,
+                    "days_before_reserve": None}, transport=RecordingTransport(failures=1), cycles=1)
+        notifications = report_module.read_recette_report(self.root / report_module.REPORT_NAME)["notifications"]
+        # start 12:00 proposes the slot (send fails), pass/stop 12:05 stay in it.
+        self.assertEqual(notifications["transport_errors"], 1)
+        self.assertEqual(notifications["balances"]["proposed"], 1)
+        self.assertEqual(notifications["outbox"], 1)
 
 
 if __name__ == "__main__":
