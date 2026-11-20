@@ -26,6 +26,12 @@ Deployed on the Railway ``recette`` environment as
   type with a fifteen-minute delay) and proposes the balances every fifteen
   minutes into a local outbox, counters in the report: see
   ``scripts/recette_notifications.py``. No network transport exists here.
+* fingerprints the executed sources once at start (``runtime`` in the report,
+  ``scripts/recette_fingerprint.py``), publishes the provenance of every bound,
+  the volume/process identity for restart evidence, and the absence of the
+  worker latch and of the retention on the pilot path (LAT-141). Optional
+  demonstration storage limits (``--storage-limits``,
+  ``scripts/recette_storage_limits.py``) are refused in the deployment.
 
 Without ``HERMES_RECETTE=true`` (the deployment's own opt-in) the volume itself
 must lie under a ``.test-tmp*`` tree, so a local run can never initialize a
@@ -44,7 +50,9 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from hermes_trading import pilot_paper
+from scripts import recette_fingerprint as fingerprint
 from scripts import recette_notifications as notifications
+from scripts import recette_storage_limits as storage_limits
 from scripts import recette_status_report as status_report
 
 RECETTE_EXPERIMENT_ID = "pilot-paper-recette"
@@ -267,7 +275,30 @@ def resolve_bounds(
     reflect_every: int | None = None,
 ) -> dict:
     """Bounds for one bounded session, from arguments or environment defaults."""
+    return resolve_bounds_with_provenance(
+        environ, max_cycles=max_cycles, max_runtime_seconds=max_runtime_seconds,
+        interval_seconds=interval_seconds, reflect_every=reflect_every)[0]
+
+
+def resolve_bounds_with_provenance(
+    environ: dict[str, str] | None = None,
+    *,
+    max_cycles: int | None = None,
+    max_runtime_seconds: float | None = None,
+    interval_seconds: float | None = None,
+    reflect_every: int | None = None,
+) -> tuple[dict, dict]:
+    """Validated bounds and, per bound, ``{value, source}`` (argument/environment/default)."""
     environ = os.environ if environ is None else environ
+    sources: dict[str, str] = {}
+
+    def origin(name: str, argument, env_name: str) -> None:
+        if argument is not None:
+            sources[name] = "argument"
+        elif (environ.get(env_name) or "").strip():
+            sources[name] = "environment"
+        else:
+            sources[name] = "default"
 
     def env_int(name: str, default: int) -> int:
         raw = environ.get(name)
@@ -309,7 +340,12 @@ def resolve_bounds(
         pilot_paper._check_session_bounds(**bounds)
     except ValueError as error:
         raise RecetteError(str(error)) from error
-    return bounds
+    origin("max_cycles", max_cycles, ENV_MAX_CYCLES)
+    origin("max_runtime_seconds", max_runtime_seconds, ENV_MAX_RUNTIME_SECONDS)
+    origin("interval_seconds", interval_seconds, ENV_INTERVAL_SECONDS)
+    origin("reflect_every", reflect_every, ENV_REFLECT_EVERY)
+    provenance = {name: {"value": value, "source": sources[name]} for name, value in bounds.items()}
+    return bounds, provenance
 
 
 def resolve_http_port(environ: dict[str, str] | None = None, port: int | None = None) -> int | None:
@@ -396,6 +432,7 @@ async def serve(
     report_clock=None,
     on_server=None,
     notification_transport=None,
+    storage_limits_path: Path | str | None = None,
 ) -> dict:
     """Serve identified recette volumes with repeated bounded paper sessions."""
     environ = os.environ if environ is None else environ
@@ -403,7 +440,7 @@ async def serve(
     emit = (lambda record: _emit(stream, record)) if emit is None else emit
     sleep = sleep or asyncio.sleep
     # Validate every bound before anything is written to the volume.
-    bounds = resolve_bounds(
+    bounds, bounds_provenance = resolve_bounds_with_provenance(
         environ,
         max_cycles=max_cycles,
         max_runtime_seconds=max_runtime_seconds,
@@ -411,16 +448,28 @@ async def serve(
         reflect_every=reflect_every,
     )
     port = resolve_http_port(environ, http_port)
-    prepared = prepare_recette_volume(root, environ=environ)
+    demo_limits = None
+    if storage_limits_path is not None:
+        storage_limits.assert_local_demonstration(
+            root, recette=is_recette_deployment(environ), transport=notification_transport)
+        demo_limits = storage_limits.load_demo_limits(storage_limits_path)
+    # Once, before any session: the sources this process imported.
+    runtime = fingerprint.runtime_fingerprint()
+    clock = report_clock or (lambda: datetime.now(timezone.utc))
+    prepared = prepare_recette_volume(root, environ=environ, now=clock())
     root = Path(root).absolute().resolve()
     runner = session_runner or _default_runner
     pilot = pilot_root(root)
+    volume_identity = {"status": prepared["status"],
+                       "marker_created_at": prepared["marker"].get("created_at"),
+                       "service_started_at": clock().isoformat()}
     emit({"kind": "recette_service_start", "root": str(root), "pilot_root": str(pilot),
           "volume": prepared["status"], "code_version": code_version(),
           "marker_code_version": prepared["marker"].get("code_version"),
+          "runtime_fingerprint": runtime.get("fingerprint"), "runtime_status": runtime["status"],
+          "storage_limits_source": (storage_limits.LIMITS_SOURCE if demo_limits else "recette_default"),
           "bounds": bounds})
     passes: list[dict] = []
-    clock = report_clock or (lambda: datetime.now(timezone.utc))
     progress = {"pass": 0, "cycle": 0, "code_version": code_version()}
     service_errors: list[dict] = []
     notifier = notifications.RecetteNotifier(root, transport=notification_transport)
@@ -441,7 +490,9 @@ async def serve(
             report = status_report.build_recette_report(
                 root, pilot, event=event, now=now,
                 interval_seconds=bounds["interval_seconds"], service=progress,
-                service_errors=service_errors)
+                service_errors=service_errors, runtime=runtime, bounds=bounds_provenance,
+                volume_identity=volume_identity, storage_limits=demo_limits,
+                storage_limits_source=storage_limits.LIMITS_SOURCE)
             report["notifications"] = notify(report, now)
             status_report.write_recette_report(root, report)
         except Exception as error:  # noqa: BLE001 - reported as a code only
@@ -547,6 +598,8 @@ def main(argv=None, *, environ=None, session_runner=None) -> int:
     parser.add_argument("--reflect-every", type=int, default=None)
     parser.add_argument("--http-port", type=int, default=None,
                         help="read-only report endpoint port (default: $PORT, else disabled)")
+    parser.add_argument("--storage-limits", type=Path, default=None,
+                        help="local demonstration storage limits (refused with HERMES_RECETTE=true)")
     args = parser.parse_args(argv)
     try:
         summary = asyncio.run(serve(
@@ -556,6 +609,7 @@ def main(argv=None, *, environ=None, session_runner=None) -> int:
             interval_seconds=args.interval_seconds,
             reflect_every=args.reflect_every,
             http_port=args.http_port,
+            storage_limits_path=args.storage_limits,
         ))
     except (RecetteError, ValueError, PermissionError, pilot_paper.PilotSessionError) as error:
         print(f"refused: {error}", file=sys.stderr, flush=True)

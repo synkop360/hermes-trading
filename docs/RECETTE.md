@@ -64,7 +64,72 @@ périmètre de ce ticket. Le service de recette vit donc entièrement dans
 
 Le marqueur porte aussi `code_version` (version du paquet installé) et
 `created_at` (UTC). `code_version` est informatif : il n'est pas vérifié à la
-reprise, pour qu'un redéploiement d'`integration` reprenne le même volume.
+reprise, pour qu'un redéploiement d'`integration` reprenne le même volume. Il
+vaut `unknown` dans l'image (projet « virtuel » dans `uv.lock`, jamais installé)
+et n'identifie de toute façon aucun commit : l'identité du code exécuté est
+l'empreinte `runtime` (section suivante).
+
+## Empreinte du code exécuté (LAT-141)
+
+Code dans `scripts/recette_fingerprint.py`. Au démarrage, avant toute session,
+le service calcule une fois l'empreinte des sources **importées par le
+processus** et la publie dans chaque rapport (`runtime`) et dans la ligne
+`recette_service_start` (`runtime_fingerprint`, `runtime_status`).
+
+| Composant        | Fichiers                                              |
+| ---------------- | ----------------------------------------------------- |
+| `hermes_trading` | tous les `*.py` du paquet importé                     |
+| `scripts`        | tous les `*.py` du paquet `scripts` importé           |
+| `dependencies`   | `pyproject.toml` et `uv.lock` (à côté de `scripts/`)  |
+
+Ce sont exactement les entrées de l'image (`.dockerignore`). Règle : chemin
+relatif POSIX → SHA-256 des octets, la même que
+`paper_publication._release_hashes` ; le condensé du composant
+`hermes_trading` est donc celui de la carte épinglée des releases. Condensé
+d'un composant = SHA-256 du JSON canonique (clés triées, séparateurs `,` `:`)
+de sa carte ; `runtime.fingerprint` = SHA-256 du JSON canonique
+`{"algorithm": "hermes-recette-runtime-v1", "components": {nom: condensé}}`.
+Les répertoires `__pycache__` et `.test-tmp*`, la documentation, les tests et
+les fichiers non Python de `scripts/` n'en font pas partie. Un lien
+symbolique ou un composant absent donne `runtime.status: unavailable` (avec
+`reason`), jamais une empreinte partielle.
+
+Le rapport ne publie que `schema_version`, `status` (`identified` ou
+`unavailable`), `algorithm`, `fingerprint`, `short` (12 premiers caractères)
+et, par composant, `files` et `sha256` : aucun chemin, aucune valeur de
+variable, aucun contenu. Une empreinte mal formée ou incohérente n'est jamais
+recopiée (`unavailable`, `reason: unrecognized`).
+
+**Rapprocher la recette d'une livraison.** Sur le commit de la PR (ou le commit
+de fusion dans `integration`), sans checkout :
+
+```sh
+uv run python -m scripts.recette_fingerprint --git-rev <sha> --expect <runtime.fingerprint>
+```
+
+Code 0 et `"matches": true` si le code exécuté est celui du commit ; code 1
+sinon. `--source <répertoire>` calcule la même valeur depuis un checkout,
+`--files` liste les cartes `{chemin relatif: sha256}` pour localiser un écart.
+Sans option, la commande donne l'empreinte des sources locales. L'empreinte
+identifie les sources, pas la plateforme : une variable de commit fournie par
+Railway n'est pas utilisée (elle relèverait d'une décision de Thomas).
+
+## Absences explicites du parcours pilote
+
+La recette exécute `pilot_paper.run_pilot_session`, jamais
+`paired_worker.run_worker` (analyse LAT-140). Le rapport le dit au lieu de se
+taire :
+
+- `worker_recovery` : `{"status": "not_applicable", "reason":
+  "pilot_has_no_worker_latch", "proven_by": "ci_worker_replay"}` — le pilote
+  n'a pas de politique `paper_safety`, aucun verrou worker ne peut être posé ;
+- `history_retention` : `{"status": "not_applicable", "reason":
+  "retention_runs_in_paired_worker_only", "proven_by": "ci_worker_replay"}` —
+  `apply_retention` n'est appelée que par le worker.
+
+Ces deux preuves sont déplacées (décision de Thomas du 20/11, option C) vers
+le rejeu CI de `paired_worker` (LAT-142), puis l'observation à leur première
+exécution en production. La recette ne les présente jamais comme prouvées.
 
 ## Boucle
 
@@ -84,7 +149,7 @@ compte adaptatif : aucun fournisseur LLM. Un intervalle sépare deux passes.
 
 Chaque événement est une ligne JSON sur la sortie standard :
 `recette_service_start` (volume `initialized` ou `recognized`, bornes,
-versions), `recette_pass` (raison d'arrêt, cycles, échantillons, entrées,
+versions, empreinte `runtime_fingerprint`, `storage_limits_source`), `recette_pass` (raison d'arrêt, cycles, échantillons, entrées,
 sorties), `recette_service_stop`, et pour le rapport
 `recette_report_endpoint` (port d'écoute) et `recette_report_error` (code seul).
 
@@ -130,6 +195,17 @@ Clés de premier niveau, toutes toujours présentes :
 - `heartbeat` : `at`, `event`, `interval_seconds`, `stale_after`
   (`at` + intervalle + 900 s), `pass` (numéro de session du processus),
   `cycle` (cycles de la session en cours), `code_version` ;
+- `runtime` (LAT-141) : empreinte du code exécuté, voir « Empreinte du code
+  exécuté » ; `{"status": "unavailable", "reason": "not_provided"}` hors service ;
+- `volume` (LAT-141) : `status` (`initialized` au premier démarrage,
+  `recognized` à la reprise, `unknown` hors service), `marker_created_at`
+  (`created_at` du marqueur : identité du volume), `service_started_at`
+  (démarrage du processus courant) ;
+- `bounds` (LAT-141) : par borne de session (`max_cycles`,
+  `max_runtime_seconds`, `interval_seconds`, `reflect_every`), `value` et
+  `source` (`argument`, `environment` ou `default`) ; `{}` hors service ;
+- `worker_recovery`, `history_retention` (LAT-141) : absences explicites, voir
+  « Absences explicites du parcours pilote » ;
 - `experiment_id`, `manifest_status` (`pilot_bootstrap`, `paper_ready`, `missing` ou `unrecognized`) ;
 - `session` : dernière `pilot_session.json` terminée (`status: none` sinon) —
   `started_at`, `finished_at`, `stop_reason`, `error_code`, `completed_cycles`,
@@ -139,7 +215,8 @@ Clés de premier niveau, toutes toujours présentes :
   (codes) ; une mesure impossible bloque ;
 - `storage` : `status` (`ready`/`blocked`), `reason`, `limits_source`
   (`recette_default` : budget = taille du volume, réserve = max(2 paquets
-  maximaux, 1/10 du volume)), `state_bytes`, `free_bytes`, `reserve_bytes`,
+  maximaux, 1/10 du volume) ; `local_demo` : limites de démonstration locale,
+  jamais en recette, voir « Démonstration locale des alertes »), `state_bytes`, `free_bytes`, `reserve_bytes`,
   `max_state_bytes`, `files` — mesure `paired_storage_admission.inspect_storage`
   sur le pilote ;
 - `growth_and_projection` : même contrat que `heartbeat['storage_projection']`
