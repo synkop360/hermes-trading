@@ -59,9 +59,9 @@ class DemoError(RuntimeError):
 def _check_output(output: Path, environ) -> Path:
     if (environ.get("HERMES_RECETTE") or "").strip().lower() == "true":
         raise DemoError("the alert demonstration is local only (HERMES_RECETTE=true)")
+    if not storage_limits.inside_test_tmp(output):
+        raise DemoError("demonstration output must be inside a .test-tmp* directory (no '..')")
     output = Path(output).absolute()
-    if not any(part.startswith(".test-tmp") for part in output.parts):
-        raise DemoError("demonstration output must be inside a .test-tmp* directory")
     for candidate in (output, *output.parents):
         if candidate.is_symlink():
             raise DemoError("demonstration output path contains a symlink")

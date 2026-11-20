@@ -13,6 +13,7 @@ import os
 import shutil
 import tempfile
 import unittest
+from unittest import mock
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -251,6 +252,39 @@ class AlertDemoTests(Fixture):
             demo.run_demo(self.base / "run2", environ=dict(PAPER),
                           limits_path=self.limits_file(dict(VALID, reserve_bytes=1)))
         self.assertFalse((self.base / "run2").exists())
+
+    def test_output_escaping_test_tmp_through_dot_dot_is_refused_before_any_write(self) -> None:
+        name = f"outside-demo-{os.getpid()}-{id(self)}"
+        escapes = [self.base / ".." / name,
+                   Path(".test-tmp-path-guard") / ".." / name,
+                   self.base / "inner" / ".." / ".." / name]
+        for escape in escapes:
+            with self.subTest(path=str(escape)):
+                with mock.patch.object(Path, "mkdir") as mkdir:
+                    with self.assertRaises(demo.DemoError):
+                        demo.run_demo(escape, environ=dict(PAPER))
+                    mkdir.assert_not_called()
+                self.assertFalse((self.base.parent / name).exists())
+                self.assertFalse((ROOT / name).exists())
+                self.assertFalse(limits_module.inside_test_tmp(escape))
+                with self.assertRaises(limits_module.StorageLimitsError):
+                    limits_module.assert_local_demonstration(escape, recette=False, transport=None)
+        self.assertFalse((self.base / "inner").exists())
+        self.assertTrue(limits_module.inside_test_tmp(self.base / "run"))
+
+    def test_output_through_a_symlink_is_still_refused(self) -> None:
+        real = self.base / "real"
+        real.mkdir()
+        outside = Path(tempfile.mkdtemp(prefix="recette-demo-outside-"))
+        self.addCleanup(shutil.rmtree, outside, ignore_errors=True)
+        for target in (real, outside):
+            link = self.base / f"link-{target.name}"
+            link.symlink_to(target, target_is_directory=True)
+            for candidate in (link, link / "run"):
+                with self.subTest(target=target.name, path=candidate.name):
+                    with self.assertRaises(demo.DemoError):
+                        demo.run_demo(candidate, environ=dict(PAPER))
+            self.assertEqual(list(target.iterdir()), [])
 
     def test_cli_summary_and_result_are_refused_as_recette_evidence(self) -> None:
         out = io.StringIO()

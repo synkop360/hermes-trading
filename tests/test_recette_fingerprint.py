@@ -45,11 +45,18 @@ def copy_sources(target: Path) -> Path:
 
 
 def git(repo: Path, *args: str) -> str:
-    environ = dict(os.environ, GIT_AUTHOR_NAME="t", GIT_AUTHOR_EMAIL="t@example.invalid",
+    # Self-contained identity: inherited GIT_* variables (GIT_DIR, GIT_CONFIG_*,
+    # useConfigOnly...) and user/system config never reach the throw-away repo,
+    # and the identity is also given per command -- no git setting is changed.
+    environ = {k: v for k, v in os.environ.items() if not k.startswith("GIT_")}
+    environ.update(GIT_AUTHOR_NAME="t", GIT_AUTHOR_EMAIL="t@example.invalid",
                    GIT_COMMITTER_NAME="t", GIT_COMMITTER_EMAIL="t@example.invalid",
-                   GIT_CONFIG_GLOBAL=os.devnull, GIT_CONFIG_SYSTEM=os.devnull)
-    return subprocess.run(["git", "-C", str(repo), *args], check=True, capture_output=True,
-                          text=True, env=environ).stdout.strip()
+                   GIT_CONFIG_GLOBAL=os.devnull, GIT_CONFIG_SYSTEM=os.devnull,
+                   GIT_CONFIG_NOSYSTEM="1")
+    identity = ("-c", "user.name=t", "-c", "user.email=t@example.invalid",
+                "-c", "user.useConfigOnly=false", "-c", "commit.gpgsign=false")
+    return subprocess.run(["git", *identity, "-C", str(repo), *args], check=True,
+                          capture_output=True, text=True, env=environ).stdout.strip()
 
 
 class FingerprintFixture(unittest.TestCase):

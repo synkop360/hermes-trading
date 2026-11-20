@@ -104,11 +104,25 @@ def load_demo_limits(path: Path | str) -> dict:
     return validate_demo_limits(data)
 
 
+def inside_test_tmp(path: Path | str) -> bool:
+    """True when ``path`` lies inside a ``.test-tmp*`` directory once normalised.
+
+    A ``..`` component is refused outright: ``Path.absolute`` keeps it, so
+    ``.test-tmp-x/../outside`` would otherwise pass the component check while
+    designating a directory outside the scratch tree.
+    """
+    raw = Path(path).absolute()
+    if any(part == ".." for part in raw.parts):
+        return False
+    normalised = Path(os.path.normpath(raw))
+    return any(part.startswith(".test-tmp") for part in normalised.parts)
+
+
 def assert_local_demonstration(root: Path | str, *, recette: bool, transport) -> None:
     """Demonstration limits stay local: no deployment, a scratch root, the outbox."""
     if recette:
         raise StorageLimitsError("demonstration storage limits are refused in the recette deployment")
-    if not any(part.startswith(".test-tmp") for part in Path(root).absolute().parts):
+    if not inside_test_tmp(root):
         raise StorageLimitsError("demonstration storage limits require a .test-tmp* volume")
     if transport is not None:
         raise StorageLimitsError("demonstration storage limits use the local_outbox transport only")
