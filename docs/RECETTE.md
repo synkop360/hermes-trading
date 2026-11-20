@@ -336,11 +336,162 @@ La démonstration réelle en recette (compteurs visibles sur `GET /recette`
 pendant la période probante) reste distincte des tests synthétiques et relève
 de l'accord de Thomas.
 
+## Démonstration locale des alertes (LAT-141)
+
+**Démonstration locale, pas observation de recette.** Avec le budget par
+défaut (tout le volume), le seuil de 7 jours dépend de la capacité, de
+l'occupation et de la croissance mesurées, que personne ne contrôle (LAT-140).
+La démonstration rend le seuil et la cadence déterministes **sans remplir de
+volume** :
+
+```sh
+uv run python -m scripts.recette_alert_demo --output .test-tmp-demo/<run> \
+  [--storage-limits <fichier>]
+```
+
+Elle exécute le vrai code de recette : `storage_projection` (échantillons
+quotidiens SQLite de LAT-120) et `RecetteNotifier` (état persistant, boîte
+locale de LAT-122), avec une **horloge simulée** (départ fictif
+2026-11-21T12:00 UTC, jamais une échéance réelle) et des **occupations
+déclarées** sous des limites de démonstration. Croissance simulée
+`g = (max_state_bytes − reserve_bytes) // 16` par jour ; deux échantillons à un
+jour d'écart. Scénarios, chacun dans son répertoire :
+
+| Scénario                | Ce qui est démontré                                                                 |
+| ----------------------- | ----------------------------------------------------------------------------------- |
+| `threshold_boundary`    | premier échantillon `insufficient_data` sans alerte ; marge `7 × g` → 7 jours, aucune alerte ; marge `7 × g − 1` → 6 jours, alerte `storage_projection_below_7_days` (frontière stricte < 7) |
+| `aggregation_and_delay` | émission à t0, suppressions à 300, 600 et **899 s**, émission à **900 s** avec `suppressed: 3` ; compteurs exacts (5 occurrences, 2 émissions, 3 supprimées, 0 en attente) ; soldes une fois par tranche de 900 s |
+| `restart_boundary`      | deux redémarrages du notificateur dans le délai : état `resumed`, `restarts` 1 puis 2, aucune répétition à 899 s ; à 900 s, condition disparue : vidage `suppressed_flush` avec `suppressed: 2` ; tranche de soldes non reproposée |
+| `type_isolation`        | `storage_projection_unavailable` émise à 60 s malgré le délai de l'autre type ; délais et compteurs séparés (1 suppression chacun), vidage du second type à sa propre limite (960 s) |
+
+Sorties conservées dans le répertoire : `demo_result.json` (`kind:
+hermes_recette_alert_demo`, `evidence: local_demonstration`,
+`recette_observation: false`, `clock: simulated`, `transport: local_outbox`,
+limites et leur origine `default` ou `file`, empreinte `runtime`, chaque étape
+avec `expected`, `observed`, `passed`) et, par scénario,
+`recette_notifications.json` (boîte locale). Code 0 si toutes les étapes
+passent, 1 sinon, 2 en cas de refus. Refus si `HERMES_RECETTE=true`, si la
+sortie n'est pas sous `.test-tmp*`, contient un lien ou n'est pas vide.
+
+**Limites de démonstration** (`scripts/recette_storage_limits.py`) : petit
+fichier JSON (4 Kio au plus, régulier, sans lien, sans clé dupliquée, sans
+`NaN`) avec exactement `schema_version` (1), `experiment_id`
+(`pilot-paper-recette`), `max_state_bytes` et `reserve_bytes`, entiers ;
+réserve d'au moins deux paquets maximaux (128 Mio) et strictement inférieure
+au budget (`paired_storage_admission`), budget d'au plus 1 Gio. Défaut :
+budget 256 Mio, réserve 128 Mio. Toute autre forme est refusée avant toute
+écriture. Le service les accepte aussi (`--storage-limits`) pour un essai
+local : refusées si `HERMES_RECETTE=true`, hors volume `.test-tmp*` ou avec un
+transport injecté (boîte locale `local_outbox` uniquement), et publiées
+`storage.limits_source: local_demo`. Un rapport `local_demo` n'est jamais une
+preuve de recette.
+
+Les tests (`test_recette_alert_demo`) rejouent la même démonstration. Ni eux
+ni elle ne remplacent l'observation réelle en recette : compteurs
+`notifications` visibles sur `GET /recette` pendant la fenêtre.
+
+## Protocole de preuve (LAT-141)
+
+Contrôles hors ligne dans `scripts/recette_evidence.py`, sur des rapports
+enregistrés depuis `GET /recette` (avec `freshness`), ou sur une observation
+enregistrée `{"received_at", "status", "sha256", "report": {…}}`. La commande
+lit seulement les fichiers donnés, sans réseau, sans redémarrage et sans
+écriture ; chaque critère est listé avec ce qui a été observé. Un résultat de
+démonstration locale est refusé (code 2).
+
+### Délai initial de la projection
+
+`storage_projection` ne lit que les échantillons des jours UTC **antérieurs**,
+et l'échantillon d'un jour est sa **dernière** publication. Il faut 86 400 s
+entre ce dernier échantillon et la publication courante. Sur un volume neuf, le
+premier statut calculé arrive donc **24 à 48 h** après le premier échantillon,
+selon son heure (simulation LAT-140 : départ 13:30 UTC → 34,25 h ; 00:00 →
+47,75 h ; 23:45 → 24 h). Ensuite le statut est `projected` seulement si la
+croissance est positive (`non_positive_growth` sinon). Un redémarrage garde les
+échantillons ; un volume vidé repart de zéro. Ce délai vaut aussi en
+production ; sa réduction est hors périmètre (LAT-143).
+
+### Ouverture de la fenêtre de 24 h
+
+```sh
+uv run python -m scripts.recette_evidence window <rapport.json> \
+  --expected-fingerprint <empreinte du commit livré>
+```
+
+L'empreinte attendue est calculée sur le commit livré
+(`scripts.recette_fingerprint --git-rev <sha>`). Code 0 (`window_may_open:
+true`) seulement si tous les critères passent :
+
+- `runtime_fingerprint_identified`, `runtime_matches_delivery` : empreinte
+  `identified`, cohérente, égale à celle du commit livré ;
+- `projection_computed` : `growth_and_projection.status` vaut `projected`.
+  `insufficient_data` **ne satisfait pas** le critère, pas plus que
+  `non_positive_growth`, `unavailable` ou `reserve_reached` ;
+- `default_recette_limits` : `storage.limits_source` vaut `recette_default` ;
+- `served_and_fresh` (`freshness.stale: false`), `storage_ready`,
+  `no_recent_errors`, `no_active_locks`, `session_clean` (aucune session ou
+  arrêt propre sans erreur), `eight_accounts`, `volume_identified`.
+
+Règles (rappelées dans chaque résultat) : la fenêtre s'ouvre seulement après
+identification de l'empreinte exécutée **et** observation du statut requis,
+jamais à une heure fixée d'avance ; **`integration` est gelée pendant toute la
+fenêtre** (chaque push redéploie la recette) ; la fenêtre dure au moins 24 h ;
+**toute nouvelle fusion impose une nouvelle qualification, puis une nouvelle
+fenêtre**.
+
+### Clôture de la fenêtre
+
+```sh
+uv run python -m scripts.recette_evidence window-close <ouverture.json> <cloture.json> \
+  --expected-fingerprint <empreinte>
+```
+
+Les deux rapports qualifient, ont la même empreinte (`same_runtime_fingerprint`,
+sinon nouvelle fusion : requalifier puis rouvrir), le même volume
+(`marker_created_at`) et au moins 24 h d'écart (`generated_at`). Les
+observations intermédiaires pendant la fenêtre restent à enregistrer.
+
+### Durabilité du pilote après redémarrage
+
+Le redémarrage n'est **jamais** déclenché par l'équipe : il est observé lors
+d'un redéploiement ou d'un redémarrage décidé par Thomas. Enregistrer un
+rapport `GET /recette` juste avant (`avant.json`), puis le premier après
+reprise (`apres.json`), avec `received_at` et `sha256`, puis :
+
+```sh
+uv run python -m scripts.recette_evidence restart <avant.json> <apres.json>
+```
+
+Champs de preuve comparés (code 0, `durability_proven: true` si tous passent) :
+
+| Critère                         | Champs                                                        |
+| ------------------------------- | ------------------------------------------------------------- |
+| `same_experiment`               | `experiment_id`                                               |
+| `same_volume_identity`          | `volume.marker_created_at` identique                          |
+| `volume_recognized_after_restart` | `volume.status` = `recognized` après                        |
+| `new_service_process`           | `volume.service_started_at` postérieur                        |
+| `accounts_preserved`            | les huit comptes et leur `starting_balance`                   |
+| `history_preserved`             | `daily_summary.total_decisions` non décroissant               |
+| `daily_summaries_preserved`     | mêmes comptes, `daily_summary.accounts.*.days` non décroissants |
+| `projection_samples_preserved`  | `growth_and_projection.sample_days` non décroissant           |
+| `notification_state_resumed`    | `notifications.state` = `resumed`, `restarts` incrémenté      |
+| `balance_cadence_not_reset`     | `notifications.balances.proposed` non décroissant             |
+
+Le résultat rapporte aussi la provenance des bornes avant/après
+(`bounds_provenance`, `argument`/`environment`/`default`) et les empreintes
+avant/après (`runtime.same`). Non couvert, et affiché comme tel
+(`not_covered`) : l'archive de rétention et le verrou worker, absents du
+parcours pilote (voir « Absences explicites du parcours pilote »).
+
+Les tests (`test_recette_evidence`) exercent ces contrôles sur des passages
+locaux du service : ils prouvent les contrôles, pas la recette.
+
 ## Tests
 
 ```sh
 PYTHONPATH=$PWD/tests:$PWD uv run python -m unittest test_recette_status_report test_recette_service \
-  test_storage_alerts test_notification_cadence
+  test_storage_alerts test_notification_cadence test_recette_fingerprint test_recette_alert_demo \
+  test_recette_evidence
 ```
 
 Les tests utilisent des racines `.test-tmp-recette-*` (ou un répertoire
